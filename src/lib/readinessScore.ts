@@ -1,4 +1,13 @@
 import { SECTIONS, type ReadinessScore, type SectionCompletion } from './types';
+import {
+        calculateContactsScore,
+        calculateCredentialsScore,
+        calculateFieldBasedScore,
+        calculateFinancialScore,
+        calculateInsuranceScore,
+        calculatePetsScore,
+        SECTION_FIELDS
+} from './scoringRules';
 
 /**
  * Calculate the overall readiness score based on section completions
@@ -46,18 +55,7 @@ export function calculateReadinessScore(completions: SectionCompletion[]): Readi
  * @returns Score (0-100 points)
  */
 export function calculateSectionScore(sectionName: string, data: any): number {
-	// Import scoring functions
-	const {
-		calculateCredentialsScore,
-		calculatePetsScore,
-		calculateContactsScore,
-		calculateInsuranceScore,
-		calculateFinancialScore,
-		calculateFieldBasedScore,
-		SECTION_FIELDS
-	} = require('./scoringRules');
-
-	if (!data) return 0;
+        if (!data) return 0;
 
 	// Variable-length sections with specialized scoring
 	switch (sectionName) {
