@@ -3,12 +3,17 @@
 		label,
 		name,
 		type = 'text',
-		value = $bindable(''),
+		value = $bindable(),
 		placeholder = '',
 		required = false,
 		rows = 3,
 		options = []
 	} = $props();
+
+	// Ensure value is never undefined
+	if (value === undefined) {
+		value = '';
+	}
 </script>
 
 <div class="form-field">
