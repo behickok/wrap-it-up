@@ -16,8 +16,8 @@
 	"d1_databases": [
 		{
 			"binding": "DB",
-			"database_name": "wrap-it-up-db",
-			"database_id": "wrap-it-up-db"
+			"database_name": "wrap-it-up",
+			"database_id": "f1dce013-ee51-43d1-ba1b-c2ec21a415f3"
 		}
 	]
 	/**
