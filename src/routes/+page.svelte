@@ -1,255 +1,82 @@
-<script>
+<script lang="ts">
 	import { SECTIONS } from '$lib/types';
 	import { getCompletionColor, getMotivationalMessage } from '$lib/readinessScore';
+	import { Card, CardContent, CardHeader, CardTitle } from '$lib/components/ui/card';
+	import { Badge } from '$lib/components/ui/badge';
+	import { Progress } from '$lib/components/ui/progress';
 
 	let { data } = $props();
 
 	const readinessScore = $derived(data.readinessScore);
 	const motivationalMessage = $derived(getMotivationalMessage(readinessScore.total_score));
+
+	// Helper to get badge variant based on color
+	function getBadgeVariant(color: string): 'success' | 'warning' | 'destructive' | 'default' {
+		if (color === 'green') return 'success';
+		if (color === 'yellow') return 'warning';
+		if (color === 'orange' || color === 'red') return 'destructive';
+		return 'default';
+	}
 </script>
 
-<div class="dashboard">
-	<div class="welcome-section">
-		<h2>Welcome to Your Planning Workbook</h2>
-		<p class="motivation">{motivationalMessage}</p>
-		<div class="score-details">
-			<div class="score-card">
-				<div class="score-big">{readinessScore.total_score}%</div>
-				<div class="score-description">Overall Readiness</div>
+<div class="max-w-full">
+	<Card class="mb-8">
+		<CardHeader>
+			<CardTitle class="text-3xl">Welcome to Your Planning Workbook</CardTitle>
+			<p class="text-lg text-muted-foreground mt-2">{motivationalMessage}</p>
+		</CardHeader>
+		<CardContent>
+			<div class="flex justify-center">
+				<div class="bg-gradient-to-br from-primary to-secondary text-primary-foreground rounded-xl p-8 text-center min-w-[200px] shadow-lg">
+					<div class="text-5xl font-bold mb-2">{readinessScore.total_score}%</div>
+					<div class="text-base opacity-90">Overall Readiness</div>
+				</div>
 			</div>
-		</div>
-	</div>
+		</CardContent>
+	</Card>
 
-	<div class="sections-grid">
+	<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
 		{#each SECTIONS as section}
 			{@const sectionScore = readinessScore.sections[section.id] || 0}
 			{@const color = getCompletionColor(sectionScore)}
 
-			<a href="/section/{section.id}" class="section-card">
-				<div class="section-header">
-					<h3>{section.name}</h3>
-					<div class="progress-badge {color}">{sectionScore}%</div>
-				</div>
-				<div class="progress-bar">
-					<div class="progress-fill {color}" style="width: {sectionScore}%"></div>
-				</div>
-				<div class="section-footer">
-					<span class="weight-indicator">Priority: {section.weight}/10</span>
-					<span class="status">
-						{#if sectionScore === 0}
-							Not started
-						{:else if sectionScore < 100}
-							In progress
-						{:else}
-							Complete
-						{/if}
-					</span>
-				</div>
+			<a href="/section/{section.id}" class="block transition-transform hover:-translate-y-1">
+				<Card class="h-full hover:shadow-lg transition-shadow">
+					<CardHeader>
+						<div class="flex justify-between items-start">
+							<CardTitle class="text-xl flex-1">{section.name}</CardTitle>
+							<Badge variant={getBadgeVariant(color)} class="ml-4">{sectionScore}%</Badge>
+						</div>
+					</CardHeader>
+					<CardContent class="space-y-3">
+						<Progress value={sectionScore} class="h-2" />
+						<div class="flex justify-between items-center text-sm text-muted-foreground">
+							<span class="font-medium">Priority: {section.weight}/10</span>
+							<span class="italic">
+								{#if sectionScore === 0}
+									Not started
+								{:else if sectionScore < 100}
+									In progress
+								{:else}
+									Complete
+								{/if}
+							</span>
+						</div>
+					</CardContent>
+				</Card>
 			</a>
 		{/each}
 	</div>
 
-	<div class="help-section">
-		<div class="help-card">
-			<h3>Need Help?</h3>
-			<p>
+	<Card class="bg-gradient-to-br from-amber-50 to-orange-100 border-amber-200">
+		<CardHeader>
+			<CardTitle>Need Help?</CardTitle>
+		</CardHeader>
+		<CardContent>
+			<p class="text-muted-foreground leading-relaxed">
 				Each section has an "Ask AI" feature to help you think through what information to include.
 				Simply click on any section to get started.
 			</p>
-		</div>
-	</div>
+		</CardContent>
+	</Card>
 </div>
-
-<style>
-	.dashboard {
-		max-width: 100%;
-	}
-
-	.welcome-section {
-		background: white;
-		border-radius: 12px;
-		padding: 2rem;
-		margin-bottom: 2rem;
-		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-	}
-
-	.welcome-section h2 {
-		margin: 0 0 1rem 0;
-		color: #2d3748;
-		font-size: 1.8rem;
-	}
-
-	.motivation {
-		color: #4a5568;
-		font-size: 1.1rem;
-		margin: 0 0 1.5rem 0;
-	}
-
-	.score-details {
-		display: flex;
-		justify-content: center;
-	}
-
-	.score-card {
-		background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-		color: white;
-		padding: 2rem;
-		border-radius: 12px;
-		text-align: center;
-		min-width: 200px;
-	}
-
-	.score-big {
-		font-size: 3rem;
-		font-weight: bold;
-		line-height: 1;
-		margin-bottom: 0.5rem;
-	}
-
-	.score-description {
-		font-size: 1rem;
-		opacity: 0.9;
-	}
-
-	.sections-grid {
-		display: grid;
-		grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-		gap: 1.5rem;
-		margin-bottom: 2rem;
-	}
-
-	.section-card {
-		background: white;
-		border-radius: 12px;
-		padding: 1.5rem;
-		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-		transition: transform 0.2s, box-shadow 0.2s;
-		text-decoration: none;
-		color: inherit;
-		display: block;
-	}
-
-	.section-card:hover {
-		transform: translateY(-4px);
-		box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
-	}
-
-	.section-header {
-		display: flex;
-		justify-content: space-between;
-		align-items: flex-start;
-		margin-bottom: 1rem;
-	}
-
-	.section-header h3 {
-		margin: 0;
-		font-size: 1.2rem;
-		color: #2d3748;
-		flex: 1;
-	}
-
-	.progress-badge {
-		padding: 0.25rem 0.75rem;
-		border-radius: 20px;
-		font-weight: 600;
-		font-size: 0.9rem;
-		margin-left: 1rem;
-	}
-
-	.progress-badge.green {
-		background: #c6f6d5;
-		color: #22543d;
-	}
-
-	.progress-badge.yellow {
-		background: #fef5e7;
-		color: #744210;
-	}
-
-	.progress-badge.orange {
-		background: #fed7d7;
-		color: #742a2a;
-	}
-
-	.progress-badge.red {
-		background: #fed7d7;
-		color: #742a2a;
-	}
-
-	.progress-bar {
-		height: 8px;
-		background: #e2e8f0;
-		border-radius: 4px;
-		overflow: hidden;
-		margin-bottom: 1rem;
-	}
-
-	.progress-fill {
-		height: 100%;
-		transition: width 0.3s ease;
-	}
-
-	.progress-fill.green {
-		background: #48bb78;
-	}
-
-	.progress-fill.yellow {
-		background: #ecc94b;
-	}
-
-	.progress-fill.orange {
-		background: #ed8936;
-	}
-
-	.progress-fill.red {
-		background: #f56565;
-	}
-
-	.section-footer {
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		font-size: 0.85rem;
-		color: #718096;
-	}
-
-	.weight-indicator {
-		font-weight: 500;
-	}
-
-	.status {
-		font-style: italic;
-	}
-
-	.help-section {
-		margin-top: 2rem;
-	}
-
-	.help-card {
-		background: linear-gradient(135deg, #fdfcfb 0%, #e2d1c3 100%);
-		border-radius: 12px;
-		padding: 2rem;
-		text-align: center;
-	}
-
-	.help-card h3 {
-		margin: 0 0 1rem 0;
-		color: #2d3748;
-	}
-
-	.help-card p {
-		margin: 0;
-		color: #4a5568;
-		line-height: 1.6;
-	}
-
-	@media (max-width: 768px) {
-		.sections-grid {
-			grid-template-columns: 1fr;
-		}
-
-		.score-big {
-			font-size: 2.5rem;
-		}
-	}
-</style>

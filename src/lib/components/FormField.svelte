@@ -1,4 +1,9 @@
-<script>
+<script lang="ts">
+	import { Label } from '$lib/components/ui/label';
+	import { Input } from '$lib/components/ui/input';
+	import { Textarea } from '$lib/components/ui/textarea';
+	import { Select, SelectContent, SelectItem, SelectTrigger } from '$lib/components/ui/select';
+
 	let {
 		label,
 		name,
@@ -14,34 +19,56 @@
 	if (value === undefined) {
 		value = '';
 	}
+
+	// For select, we need to handle the selected state
+	let selected = $state(value ? { value: value, label: value } : undefined);
+
+	// Update value when selected changes
+	$effect(() => {
+		if (type === 'select' && selected) {
+			value = selected.value;
+		}
+	});
+
+	// Update selected when value changes externally
+	$effect(() => {
+		if (type === 'select' && value && (!selected || selected.value !== value)) {
+			selected = { value: value, label: value };
+		}
+	});
 </script>
 
-<div class="form-field">
-	<label for={name}>
+<div class="mb-6">
+	<Label for={name} class="mb-2 block">
 		{label}
 		{#if required}
-			<span class="required">*</span>
+			<span class="text-destructive">*</span>
 		{/if}
-	</label>
+	</Label>
 
 	{#if type === 'textarea'}
-		<textarea
+		<Textarea
 			id={name}
 			{name}
 			bind:value
 			{placeholder}
 			{rows}
 			{required}
-		></textarea>
+		/>
 	{:else if type === 'select'}
-		<select id={name} {name} bind:value {required}>
-			<option value="">Select...</option>
-			{#each options as option}
-				<option value={option}>{option}</option>
-			{/each}
-		</select>
+		<Select bind:selected>
+			<SelectTrigger id={name} class="w-full">
+				<span>{selected?.label || 'Select...'}</span>
+			</SelectTrigger>
+			<SelectContent>
+				<SelectItem value="" label="Select...">Select...</SelectItem>
+				{#each options as option}
+					<SelectItem value={option} label={option}>{option}</SelectItem>
+				{/each}
+			</SelectContent>
+		</Select>
 	{:else if type === 'date'}
-		<input
+		<Input
 			id={name}
 			{name}
 			type="date"
@@ -49,7 +76,7 @@
 			{required}
 		/>
 	{:else if type === 'number'}
-		<input
+		<Input
 			id={name}
 			{name}
 			type="number"
@@ -59,7 +86,7 @@
 			step="0.01"
 		/>
 	{:else}
-		<input
+		<Input
 			id={name}
 			{name}
 			{type}
@@ -69,51 +96,3 @@
 		/>
 	{/if}
 </div>
-
-<style>
-	.form-field {
-		margin-bottom: 1.5rem;
-	}
-
-	label {
-		display: block;
-		margin-bottom: 0.5rem;
-		font-weight: 500;
-		color: #2d3748;
-		font-size: 0.95rem;
-	}
-
-	.required {
-		color: #e53e3e;
-	}
-
-	input,
-	textarea,
-	select {
-		width: 100%;
-		padding: 0.75rem;
-		border: 1px solid #cbd5e0;
-		border-radius: 6px;
-		font-size: 1rem;
-		font-family: inherit;
-		transition: border-color 0.2s;
-		box-sizing: border-box;
-	}
-
-	input:focus,
-	textarea:focus,
-	select:focus {
-		outline: none;
-		border-color: #667eea;
-		box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-	}
-
-	textarea {
-		resize: vertical;
-		min-height: 80px;
-	}
-
-	select {
-		cursor: pointer;
-	}
-</style>

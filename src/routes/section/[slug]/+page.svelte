@@ -1,8 +1,10 @@
-<script>
+<script lang="ts">
 	import { enhance } from '$app/forms';
 	import { SECTIONS } from '$lib/types';
 	import FormField from '$lib/components/FormField.svelte';
 	import AskAI from '$lib/components/AskAI.svelte';
+	import { Button } from '$lib/components/ui/button';
+	import { Card } from '$lib/components/ui/card';
 
 	let { data, form } = $props();
 
@@ -13,23 +15,23 @@
 	let saving = $state(false);
 </script>
 
-<div class="section-page">
-	<div class="section-header">
+<div class="max-w-4xl mx-auto">
+	<div class="flex flex-wrap justify-between items-start mb-8 gap-4">
 		<div>
-			<a href="/" class="back-link">← Back to Dashboard</a>
-			<h1>{section?.name || 'Section'}</h1>
+			<a href="/" class="inline-block text-primary hover:underline text-sm mb-2">← Back to Dashboard</a>
+			<h1 class="text-4xl font-bold text-foreground">{section?.name || 'Section'}</h1>
 		</div>
 		<AskAI sectionName={section?.name || ''} />
 	</div>
 
 	{#if form?.success}
-		<div class="success-message">
+		<div class="bg-green-50 text-green-800 px-4 py-3 rounded-lg mb-6 font-medium border border-green-200">
 			✓ Your information has been saved successfully!
 		</div>
 	{/if}
 
 	{#if form?.error}
-		<div class="error-message">
+		<div class="bg-destructive/10 text-destructive px-4 py-3 rounded-lg mb-6 font-medium border border-destructive/20">
 			✗ {form.error}
 		</div>
 	{/if}
@@ -41,11 +43,11 @@
 			saving = false;
 		};
 	}}>
-		<div class="form-container">
+		<Card class="p-8 mb-6">
 			{#if data.slug === 'personal'}
-				<div class="form-section">
-					<h2>Basic Information</h2>
-					<div class="form-grid">
+				<div class="mb-10">
+					<h2 class="text-2xl font-semibold text-foreground mb-4 pb-3 border-b-2 border-border">Basic Information</h2>
+					<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 						<FormField
 							label="Legal Name"
 							name="legal_name"
@@ -73,9 +75,9 @@
 					</div>
 				</div>
 
-				<div class="form-section">
-					<h2>Contact Information</h2>
-					<div class="form-grid">
+				<div class="mb-10">
+					<h2 class="text-2xl font-semibold text-foreground mb-4 pb-3 border-b-2 border-border">Contact Information</h2>
+					<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 						<FormField
 							label="Address"
 							name="address"
@@ -109,9 +111,9 @@
 					</div>
 				</div>
 
-				<div class="form-section">
-					<h2>Identification</h2>
-					<div class="form-grid">
+				<div class="mb-10">
+					<h2 class="text-2xl font-semibold text-foreground mb-4 pb-3 border-b-2 border-border">Identification</h2>
+					<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 						<FormField
 							label="Driver's License Number"
 							name="drivers_license"
@@ -130,9 +132,9 @@
 					</div>
 				</div>
 
-				<div class="form-section">
-					<h2>Professional & Affiliations</h2>
-					<div class="form-grid">
+				<div class="mb-10">
+					<h2 class="text-2xl font-semibold text-foreground mb-4 pb-3 border-b-2 border-border">Professional & Affiliations</h2>
+					<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 						<FormField
 							label="Occupation"
 							name="occupation"
@@ -166,14 +168,14 @@
 				</div>
 
 			{:else if data.slug === 'final-days'}
-				<div class="form-section">
-					<h2>Your Final Days Preferences</h2>
-					<p class="section-description">
+				<div class="mb-10">
+					<h2 class="text-2xl font-semibold text-foreground mb-4 pb-3 border-b-2 border-border">Your Final Days Preferences</h2>
+					<p class="text-muted-foreground leading-relaxed mb-6">
 						Help your loved ones understand how you'd like to spend your final days.
 						These are personal preferences that will guide those caring for you.
 					</p>
 
-					<div class="form-grid">
+					<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 						<FormField
 							label="Who do you want around you?"
 							name="who_around"
@@ -246,12 +248,12 @@
 				</div>
 
 			{:else if data.slug === 'credentials'}
-				<div class="form-section">
-					<h2>Usernames & Passwords</h2>
-					<p class="section-description">
+				<div class="mb-10">
+					<h2 class="text-2xl font-semibold text-foreground mb-4 pb-3 border-b-2 border-border">Usernames & Passwords</h2>
+					<p class="text-muted-foreground leading-relaxed mb-6">
 						Store your important login credentials securely. This helps ensure your loved ones can access important accounts when needed.
 					</p>
-					<div class="form-grid">
+					<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 						<FormField
 							label="Site Name"
 							name="site_name"
@@ -288,12 +290,12 @@
 				</div>
 
 			{:else if data.slug === 'family'}
-				<div class="form-section">
-					<h2>Family History</h2>
-					<p class="section-description">
+				<div class="mb-10">
+					<h2 class="text-2xl font-semibold text-foreground mb-4 pb-3 border-b-2 border-border">Family History</h2>
+					<p class="text-muted-foreground leading-relaxed mb-6">
 						Document your family history and relationships to help preserve your legacy.
 					</p>
-					<div class="form-grid">
+					<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 						<FormField
 							label="Parents' Names"
 							name="parents_names"
@@ -341,12 +343,12 @@
 				</div>
 
 			{:else if data.slug === 'pets'}
-				<div class="form-section">
-					<h2>Pet Information</h2>
-					<p class="section-description">
+				<div class="mb-10">
+					<h2 class="text-2xl font-semibold text-foreground mb-4 pb-3 border-b-2 border-border">Pet Information</h2>
+					<p class="text-muted-foreground leading-relaxed mb-6">
 						Record information about your pets to ensure they're properly cared for.
 					</p>
-					<div class="form-grid">
+					<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 						<FormField
 							label="Pet Name"
 							name="name"
@@ -411,12 +413,12 @@
 				</div>
 
 			{:else if data.slug === 'contacts'}
-				<div class="form-section">
-					<h2>Key Contacts</h2>
-					<p class="section-description">
+				<div class="mb-10">
+					<h2 class="text-2xl font-semibold text-foreground mb-4 pb-3 border-b-2 border-border">Key Contacts</h2>
+					<p class="text-muted-foreground leading-relaxed mb-6">
 						List important people in your life who should be contacted or who can help with various matters.
 					</p>
-					<div class="form-grid">
+					<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 						<FormField
 							label="Relationship"
 							name="relationship"
@@ -458,12 +460,12 @@
 				</div>
 
 			{:else if data.slug === 'medical'}
-				<div class="form-section">
-					<h2>Medical Information</h2>
-					<p class="section-description">
+				<div class="mb-10">
+					<h2 class="text-2xl font-semibold text-foreground mb-4 pb-3 border-b-2 border-border">Medical Information</h2>
+					<p class="text-muted-foreground leading-relaxed mb-6">
 						Your medical information to help healthcare providers and loved ones.
 					</p>
-					<div class="form-grid">
+					<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 						<FormField
 							label="Full Name"
 							name="name"
@@ -530,9 +532,9 @@
 					</div>
 				</div>
 
-				<div class="form-section">
-					<h2>Physician Information</h2>
-					<div class="form-grid">
+				<div class="mb-10">
+					<h2 class="text-2xl font-semibold text-foreground mb-4 pb-3 border-b-2 border-border">Physician Information</h2>
+					<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 						<FormField
 							label="Physician Name"
 							name="physician_name"
@@ -560,12 +562,12 @@
 				</div>
 
 			{:else if data.slug === 'employment'}
-				<div class="form-section">
-					<h2>Employment Information</h2>
-					<p class="section-description">
+				<div class="mb-10">
+					<h2 class="text-2xl font-semibold text-foreground mb-4 pb-3 border-b-2 border-border">Employment Information</h2>
+					<p class="text-muted-foreground leading-relaxed mb-6">
 						Document your current and past employment history.
 					</p>
-					<div class="form-grid">
+					<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 						<FormField
 							label="Employer Name"
 							name="employer_name"
@@ -617,12 +619,12 @@
 				</div>
 
 			{:else if data.slug === 'residence'}
-				<div class="form-section">
-					<h2>Primary Residence</h2>
-					<p class="section-description">
+				<div class="mb-10">
+					<h2 class="text-2xl font-semibold text-foreground mb-4 pb-3 border-b-2 border-border">Primary Residence</h2>
+					<p class="text-muted-foreground leading-relaxed mb-6">
 						Information about your home and related services.
 					</p>
-					<div class="form-grid">
+					<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 						<FormField
 							label="Address"
 							name="address"
@@ -717,12 +719,12 @@
 				</div>
 
 			{:else if data.slug === 'property'}
-				<div class="form-section">
-					<h2>Vehicles & Property</h2>
-					<p class="section-description">
+				<div class="mb-10">
+					<h2 class="text-2xl font-semibold text-foreground mb-4 pb-3 border-b-2 border-border">Vehicles & Property</h2>
+					<p class="text-muted-foreground leading-relaxed mb-6">
 						Document your vehicles and other significant property.
 					</p>
-					<div class="form-grid">
+					<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 						<FormField
 							label="Names on Title"
 							name="names_on_title"
@@ -770,12 +772,12 @@
 				</div>
 
 			{:else if data.slug === 'insurance'}
-				<div class="form-section">
-					<h2>Insurance Policies</h2>
-					<p class="section-description">
+				<div class="mb-10">
+					<h2 class="text-2xl font-semibold text-foreground mb-4 pb-3 border-b-2 border-border">Insurance Policies</h2>
+					<p class="text-muted-foreground leading-relaxed mb-6">
 						Document all your insurance policies (life, health, auto, home, etc.).
 					</p>
-					<div class="form-grid">
+					<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 						<FormField
 							label="Insurance Type"
 							name="insurance_type"
@@ -836,12 +838,12 @@
 				</div>
 
 			{:else if data.slug === 'financial'}
-				<div class="form-section">
-					<h2>Financial Accounts</h2>
-					<p class="section-description">
+				<div class="mb-10">
+					<h2 class="text-2xl font-semibold text-foreground mb-4 pb-3 border-b-2 border-border">Financial Accounts</h2>
+					<p class="text-muted-foreground leading-relaxed mb-6">
 						Document your bank accounts, investments, and other financial assets.
 					</p>
-					<div class="form-grid">
+					<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 						<FormField
 							label="Institution Name"
 							name="institution_name"
@@ -877,12 +879,12 @@
 				</div>
 
 			{:else if data.slug === 'legal'}
-				<div class="form-section">
-					<h2>Legal Documents</h2>
-					<p class="section-description">
+				<div class="mb-10">
+					<h2 class="text-2xl font-semibold text-foreground mb-4 pb-3 border-b-2 border-border">Legal Documents</h2>
+					<p class="text-muted-foreground leading-relaxed mb-6">
 						Track important legal documents like wills, trusts, power of attorney, etc.
 					</p>
-					<div class="form-grid">
+					<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 						<FormField
 							label="Document Type"
 							name="document_type"
@@ -920,12 +922,12 @@
 				</div>
 
 			{:else if data.slug === 'obituary'}
-				<div class="form-section">
-					<h2>Obituary Planning</h2>
-					<p class="section-description">
+				<div class="mb-10">
+					<h2 class="text-2xl font-semibold text-foreground mb-4 pb-3 border-b-2 border-border">Obituary Planning</h2>
+					<p class="text-muted-foreground leading-relaxed mb-6">
 						Plan your obituary to ensure your life story is told the way you want.
 					</p>
-					<div class="form-grid">
+					<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 						<FormField
 							label="Online or Newspaper"
 							name="online_or_newspaper"
@@ -976,12 +978,12 @@
 				</div>
 
 			{:else if data.slug === 'after-death'}
-				<div class="form-section">
-					<h2>After Death Arrangements</h2>
-					<p class="section-description">
+				<div class="mb-10">
+					<h2 class="text-2xl font-semibold text-foreground mb-4 pb-3 border-b-2 border-border">After Death Arrangements</h2>
+					<p class="text-muted-foreground leading-relaxed mb-6">
 						Your preferences for what happens after your passing.
 					</p>
-					<div class="form-grid">
+					<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 						<FormField
 							label="Primary Contact Name"
 							name="contact_name"
@@ -1108,12 +1110,12 @@
 				</div>
 
 			{:else if data.slug === 'funeral'}
-				<div class="form-section">
-					<h2>Funeral & Celebration of Life</h2>
-					<p class="section-description">
+				<div class="mb-10">
+					<h2 class="text-2xl font-semibold text-foreground mb-4 pb-3 border-b-2 border-border">Funeral & Celebration of Life</h2>
+					<p class="text-muted-foreground leading-relaxed mb-6">
 						Plan your funeral service or celebration of life the way you envision it.
 					</p>
-					<div class="form-grid">
+					<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 						<FormField
 							label="Location Name"
 							name="location_name"
@@ -1225,12 +1227,12 @@
 				</div>
 
 			{:else if data.slug === 'conclusion'}
-				<div class="form-section">
-					<h2>Final Thoughts & Reflections</h2>
-					<p class="section-description">
+				<div class="mb-10">
+					<h2 class="text-2xl font-semibold text-foreground mb-4 pb-3 border-b-2 border-border">Final Thoughts & Reflections</h2>
+					<p class="text-muted-foreground leading-relaxed mb-6">
 						Share any final thoughts, reflections, or additional information you'd like to document.
 					</p>
-					<div class="form-grid">
+					<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 						<FormField
 							label="Life Reflections"
 							name="life_reflections"
@@ -1275,186 +1277,24 @@
 				</div>
 
 			{:else}
-				<div class="form-section">
-					<p class="coming-soon">
+				<div class="mb-10">
+					<p class="text-center py-12 text-muted-foreground text-lg">
 						The form for the {section?.name} section is coming soon.
 						We're building out all 17 sections to help you organize your important information.
 					</p>
 				</div>
 			{/if}
-		</div>
+		</Card>
 
-		<div class="form-actions">
-			<button type="submit" class="save-button" disabled={saving}>
+		<div class="flex flex-col md:flex-row gap-4 justify-end">
+			<Button type="submit" disabled={saving}>
 				{#if saving}
 					Saving...
 				{:else}
 					Save Progress
 				{/if}
-			</button>
-			<a href="/" class="cancel-button">Cancel</a>
+			</Button>
+			<Button variant="outline" href="/">Cancel</Button>
 		</div>
 	</form>
 </div>
-
-<style>
-	.section-page {
-		max-width: 900px;
-		margin: 0 auto;
-	}
-
-	.section-header {
-		display: flex;
-		justify-content: space-between;
-		align-items: flex-start;
-		margin-bottom: 2rem;
-		flex-wrap: wrap;
-		gap: 1rem;
-	}
-
-	.back-link {
-		display: inline-block;
-		color: #667eea;
-		text-decoration: none;
-		margin-bottom: 0.5rem;
-		font-size: 0.95rem;
-	}
-
-	.back-link:hover {
-		text-decoration: underline;
-	}
-
-	h1 {
-		margin: 0;
-		color: #2d3748;
-		font-size: 2rem;
-	}
-
-	.success-message {
-		background: #c6f6d5;
-		color: #22543d;
-		padding: 1rem;
-		border-radius: 8px;
-		margin-bottom: 1.5rem;
-		font-weight: 500;
-	}
-
-	.error-message {
-		background: #fed7d7;
-		color: #742a2a;
-		padding: 1rem;
-		border-radius: 8px;
-		margin-bottom: 1.5rem;
-		font-weight: 500;
-	}
-
-	.form-container {
-		background: white;
-		border-radius: 12px;
-		padding: 2rem;
-		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-		margin-bottom: 1.5rem;
-	}
-
-	.form-section {
-		margin-bottom: 2.5rem;
-	}
-
-	.form-section:last-child {
-		margin-bottom: 0;
-	}
-
-	.form-section h2 {
-		margin: 0 0 1rem 0;
-		color: #2d3748;
-		font-size: 1.4rem;
-		padding-bottom: 0.75rem;
-		border-bottom: 2px solid #e2e8f0;
-	}
-
-	.section-description {
-		color: #4a5568;
-		line-height: 1.6;
-		margin-bottom: 1.5rem;
-	}
-
-	.form-grid {
-		display: grid;
-		grid-template-columns: 1fr;
-		gap: 1.5rem;
-	}
-
-	@media (min-width: 768px) {
-		.form-grid {
-			grid-template-columns: repeat(2, 1fr);
-		}
-	}
-
-	.form-actions {
-		display: flex;
-		gap: 1rem;
-		justify-content: flex-end;
-	}
-
-	.save-button {
-		background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-		color: white;
-		border: none;
-		padding: 0.75rem 2rem;
-		border-radius: 8px;
-		font-size: 1rem;
-		font-weight: 500;
-		cursor: pointer;
-		transition: transform 0.2s, box-shadow 0.2s;
-	}
-
-	.save-button:hover:not(:disabled) {
-		transform: translateY(-2px);
-		box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
-	}
-
-	.save-button:disabled {
-		opacity: 0.6;
-		cursor: not-allowed;
-	}
-
-	.cancel-button {
-		background: white;
-		color: #4a5568;
-		border: 1px solid #cbd5e0;
-		padding: 0.75rem 2rem;
-		border-radius: 8px;
-		font-size: 1rem;
-		font-weight: 500;
-		text-decoration: none;
-		display: inline-block;
-		transition: background 0.2s;
-	}
-
-	.cancel-button:hover {
-		background: #f7fafc;
-	}
-
-	.coming-soon {
-		text-align: center;
-		padding: 3rem;
-		color: #718096;
-		font-size: 1.1rem;
-	}
-
-	@media (max-width: 768px) {
-		.section-header {
-			flex-direction: column;
-		}
-
-		.form-actions {
-			flex-direction: column;
-		}
-
-		.save-button,
-		.cancel-button {
-			width: 100%;
-			text-align: center;
-		}
-	}
-</style>
