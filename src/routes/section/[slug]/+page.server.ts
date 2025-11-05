@@ -159,6 +159,31 @@ export const actions: Actions = {
 					];
 					break;
 
+				case 'credentials':
+					completionPercentage = calculateSectionCompletion(data);
+
+					query = `
+						INSERT INTO credentials (
+							user_id, site_name, web_address, username, password, other_info
+						) VALUES (?, ?, ?, ?, ?, ?)
+						ON CONFLICT(id) DO UPDATE SET
+							site_name = excluded.site_name,
+							web_address = excluded.web_address,
+							username = excluded.username,
+							password = excluded.password,
+							other_info = excluded.other_info
+					`;
+
+					values = [
+						userId,
+						data.site_name || '',
+						data.web_address || '',
+						data.username || '',
+						data.password || '',
+						data.other_info || ''
+					];
+					break;
+
 				case 'final-days':
 					completionPercentage = calculateSectionCompletion(data);
 
