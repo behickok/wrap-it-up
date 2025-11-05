@@ -6,19 +6,18 @@
 	import Card from './ui/card/card.svelte';
 	import * as Dialog from './ui/dialog';
 
-	export let credentials: Credential[] = [];
-	export let userId: number;
+	let { credentials = [], userId }: { credentials?: Credential[]; userId: number } = $props();
 
-	let isDialogOpen = false;
-	let isEditing = false;
-	let currentCredential: Partial<Credential> = {
+	let isDialogOpen = $state(false);
+	let isEditing = $state(false);
+	let currentCredential = $state<Partial<Credential>>({
 		site_name: '',
 		web_address: '',
 		username: '',
 		password: '',
 		category: 'other',
 		other_info: ''
-	};
+	});
 
 	const categoryOptions = [
 		{ value: 'email', label: 'Email' },
