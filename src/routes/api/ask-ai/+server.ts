@@ -30,7 +30,7 @@ Focus on what information is important to document and why it matters for their 
 				'Authorization': `Bearer ${apiKey}`
 			},
 			body: JSON.stringify({
-				model: 'gpt-3.5-turbo',
+				model: 'gpt-5-mini-2025-08-07',
 				messages: [
 					{
 						role: 'system',
