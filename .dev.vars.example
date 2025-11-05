@@ -1,0 +1,5 @@
+# Development environment variables
+# Copy this file to .dev.vars and fill in your actual values
+
+# OpenAI API Key for the Ask AI feature
+OPENAI_API_KEY=your_openai_api_key_here
