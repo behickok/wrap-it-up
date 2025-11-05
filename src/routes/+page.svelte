@@ -28,8 +28,9 @@
 		<CardContent>
 			<div class="flex justify-center">
 				<div class="bg-gradient-to-br from-primary to-secondary text-primary-foreground rounded-xl p-8 text-center min-w-[200px] shadow-lg">
-					<div class="text-5xl font-bold mb-2">{readinessScore.total_score}%</div>
-					<div class="text-base opacity-90">Overall Readiness</div>
+					<div class="text-5xl font-bold mb-2">{readinessScore.total_score}</div>
+					<div class="text-base opacity-90">Overall Readiness Score</div>
+					<div class="text-xs opacity-75 mt-1">out of 100 points</div>
 				</div>
 			</div>
 		</CardContent>
@@ -45,7 +46,7 @@
 					<CardHeader>
 						<div class="flex justify-between items-start">
 							<CardTitle class="text-xl flex-1">{section.name}</CardTitle>
-							<Badge variant={getBadgeVariant(color)} class="ml-4">{sectionScore}%</Badge>
+							<Badge variant={getBadgeVariant(color)} class="ml-4">{sectionScore}/100</Badge>
 						</div>
 					</CardHeader>
 					<CardContent class="space-y-3">

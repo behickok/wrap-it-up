@@ -15,7 +15,10 @@ CREATE TABLE IF NOT EXISTS credentials (
     web_address TEXT,
     username TEXT,
     password TEXT,
+    category TEXT DEFAULT 'other' CHECK(category IN ('email', 'banking', 'social', 'utilities', 'government', 'other')),
     other_info TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id)
 );
 
@@ -388,7 +391,7 @@ CREATE TABLE IF NOT EXISTS section_completion (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER NOT NULL,
     section_name TEXT NOT NULL,
-    completion_percentage INTEGER DEFAULT 0,
+    score INTEGER DEFAULT 0,
     last_updated DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id),
     UNIQUE(user_id, section_name)

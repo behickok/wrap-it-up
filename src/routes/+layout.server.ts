@@ -36,9 +36,9 @@ export const load: LayoutServerLoad = async ({ platform, locals, url }) => {
 			};
 		}
 
-		// Fetch section completion data
+		// Fetch section score data
 		const { results } = await db.prepare(`
-			SELECT section_name, completion_percentage, last_updated
+			SELECT section_name, score, last_updated
 			FROM section_completion
 			WHERE user_id = ?
 		`).bind(userId).all();

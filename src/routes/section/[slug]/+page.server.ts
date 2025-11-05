@@ -1,6 +1,6 @@
 import { redirect, fail } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
-import { calculateSectionCompletion } from '$lib/readinessScore';
+import { calculateSectionScore } from '$lib/readinessScore';
 
 export const load: PageServerLoad = async ({ params, platform, locals }) => {
 	const { slug } = params;
@@ -113,12 +113,12 @@ export const actions: Actions = {
 
 			let query = '';
 			let values: any[] = [];
-			let completionPercentage = 0;
+			let score = 0;
 
 			switch (slug) {
 				case 'personal':
-					// Calculate fields for completion
-					completionPercentage = calculateSectionCompletion(data);
+					// Calculate score for completion
+					score = calculateSectionScore('personal', data);
 
 					query = `
 						INSERT INTO personal_info (
@@ -159,33 +159,8 @@ export const actions: Actions = {
 					];
 					break;
 
-				case 'credentials':
-					completionPercentage = calculateSectionCompletion(data);
-
-					query = `
-						INSERT INTO credentials (
-							user_id, site_name, web_address, username, password, other_info
-						) VALUES (?, ?, ?, ?, ?, ?)
-						ON CONFLICT(id) DO UPDATE SET
-							site_name = excluded.site_name,
-							web_address = excluded.web_address,
-							username = excluded.username,
-							password = excluded.password,
-							other_info = excluded.other_info
-					`;
-
-					values = [
-						userId,
-						data.site_name || '',
-						data.web_address || '',
-						data.username || '',
-						data.password || '',
-						data.other_info || ''
-					];
-					break;
-
 				case 'final-days':
-					completionPercentage = calculateSectionCompletion(data);
+					score = calculateSectionScore('final-days', data);
 
 					query = `
 						INSERT INTO final_days (
@@ -221,19 +196,184 @@ export const actions: Actions = {
 
 			await db.prepare(query).bind(...values).run();
 
-			// Update section completion
+			// Update section score
 			await db.prepare(`
-				INSERT INTO section_completion (user_id, section_name, completion_percentage, last_updated)
+				INSERT INTO section_completion (user_id, section_name, score, last_updated)
 				VALUES (?, ?, ?, CURRENT_TIMESTAMP)
 				ON CONFLICT(user_id, section_name) DO UPDATE SET
-					completion_percentage = excluded.completion_percentage,
+					score = excluded.score,
 					last_updated = CURRENT_TIMESTAMP
-			`).bind(userId, slug, completionPercentage).run();
+			`).bind(userId, slug, score).run();
 
 			return { success: true };
 		} catch (error) {
 			console.error('Error saving section data:', error);
 			return fail(500, { error: 'Failed to save data' });
+		}
+	},
+
+	addCredential: async ({ request, platform, locals }) => {
+		const userId = locals.user?.id;
+
+		if (!userId) {
+			return fail(401, { error: 'Not authenticated' });
+		}
+
+		const db = platform?.env?.DB;
+
+		if (!db) {
+			return fail(500, { error: 'Database not available' });
+		}
+
+		try {
+			const formData = await request.formData();
+			const data = Object.fromEntries(formData);
+
+			await db.prepare(`
+				INSERT INTO credentials (
+					user_id, site_name, web_address, username, password, category, other_info
+				) VALUES (?, ?, ?, ?, ?, ?, ?)
+			`).bind(
+				userId,
+				data.site_name || '',
+				data.web_address || '',
+				data.username || '',
+				data.password || '',
+				data.category || 'other',
+				data.other_info || ''
+			).run();
+
+			// Recalculate score for credentials section
+			const credentialsResult = await db.prepare(
+				'SELECT * FROM credentials WHERE user_id = ?'
+			).bind(userId).all();
+
+			const score = calculateSectionScore('credentials', credentialsResult.results || []);
+
+			await db.prepare(`
+				INSERT INTO section_completion (user_id, section_name, score, last_updated)
+				VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+				ON CONFLICT(user_id, section_name) DO UPDATE SET
+					score = excluded.score,
+					last_updated = CURRENT_TIMESTAMP
+			`).bind(userId, 'credentials', score).run();
+
+			return { success: true };
+		} catch (error) {
+			console.error('Error adding credential:', error);
+			return fail(500, { error: 'Failed to add credential' });
+		}
+	},
+
+	updateCredential: async ({ request, platform, locals }) => {
+		const userId = locals.user?.id;
+
+		if (!userId) {
+			return fail(401, { error: 'Not authenticated' });
+		}
+
+		const db = platform?.env?.DB;
+
+		if (!db) {
+			return fail(500, { error: 'Database not available' });
+		}
+
+		try {
+			const formData = await request.formData();
+			const data = Object.fromEntries(formData);
+			const credentialId = data.id;
+
+			if (!credentialId) {
+				return fail(400, { error: 'Credential ID required' });
+			}
+
+			await db.prepare(`
+				UPDATE credentials SET
+					site_name = ?,
+					web_address = ?,
+					username = ?,
+					password = ?,
+					category = ?,
+					other_info = ?,
+					updated_at = CURRENT_TIMESTAMP
+				WHERE id = ? AND user_id = ?
+			`).bind(
+				data.site_name || '',
+				data.web_address || '',
+				data.username || '',
+				data.password || '',
+				data.category || 'other',
+				data.other_info || '',
+				credentialId,
+				userId
+			).run();
+
+			// Recalculate score for credentials section
+			const credentialsResult = await db.prepare(
+				'SELECT * FROM credentials WHERE user_id = ?'
+			).bind(userId).all();
+
+			const score = calculateSectionScore('credentials', credentialsResult.results || []);
+
+			await db.prepare(`
+				INSERT INTO section_completion (user_id, section_name, score, last_updated)
+				VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+				ON CONFLICT(user_id, section_name) DO UPDATE SET
+					score = excluded.score,
+					last_updated = CURRENT_TIMESTAMP
+			`).bind(userId, 'credentials', score).run();
+
+			return { success: true };
+		} catch (error) {
+			console.error('Error updating credential:', error);
+			return fail(500, { error: 'Failed to update credential' });
+		}
+	},
+
+	deleteCredential: async ({ request, platform, locals }) => {
+		const userId = locals.user?.id;
+
+		if (!userId) {
+			return fail(401, { error: 'Not authenticated' });
+		}
+
+		const db = platform?.env?.DB;
+
+		if (!db) {
+			return fail(500, { error: 'Database not available' });
+		}
+
+		try {
+			const formData = await request.formData();
+			const credentialId = formData.get('id');
+
+			if (!credentialId) {
+				return fail(400, { error: 'Credential ID required' });
+			}
+
+			await db.prepare(
+				'DELETE FROM credentials WHERE id = ? AND user_id = ?'
+			).bind(credentialId, userId).run();
+
+			// Recalculate score for credentials section
+			const credentialsResult = await db.prepare(
+				'SELECT * FROM credentials WHERE user_id = ?'
+			).bind(userId).all();
+
+			const score = calculateSectionScore('credentials', credentialsResult.results || []);
+
+			await db.prepare(`
+				INSERT INTO section_completion (user_id, section_name, score, last_updated)
+				VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+				ON CONFLICT(user_id, section_name) DO UPDATE SET
+					score = excluded.score,
+					last_updated = CURRENT_TIMESTAMP
+			`).bind(userId, 'credentials', score).run();
+
+			return { success: true };
+		} catch (error) {
+			console.error('Error deleting credential:', error);
+			return fail(500, { error: 'Failed to delete credential' });
 		}
 	}
 };

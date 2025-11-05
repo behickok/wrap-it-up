@@ -17,6 +17,8 @@ export interface Session {
 	created_at: string;
 }
 
+export type CredentialCategory = 'email' | 'banking' | 'social' | 'utilities' | 'government' | 'other';
+
 export interface Credential {
 	id?: number;
 	user_id: number;
@@ -24,7 +26,10 @@ export interface Credential {
 	web_address: string;
 	username: string;
 	password: string;
+	category: CredentialCategory;
 	other_info: string;
+	created_at?: string;
+	updated_at?: string;
 }
 
 export interface PersonalInfo {
@@ -261,7 +266,7 @@ export interface SectionCompletion {
 	id?: number;
 	user_id: number;
 	section_name: string;
-	completion_percentage: number;
+	score: number;
 	last_updated: string;
 }
 
