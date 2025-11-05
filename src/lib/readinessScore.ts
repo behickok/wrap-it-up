@@ -2,7 +2,8 @@ import { SECTIONS, type ReadinessScore, type SectionCompletion } from './types';
 
 /**
  * Calculate the overall readiness score based on section completions
- * @param completions - Array of section completion data
+ * Now uses point-based scoring (0-100) instead of percentage-based
+ * @param completions - Array of section completion data (with scores 0-100)
  * @returns ReadinessScore object with total score and section breakdown
  */
 export function calculateReadinessScore(completions: SectionCompletion[]): ReadinessScore {
@@ -16,10 +17,10 @@ export function calculateReadinessScore(completions: SectionCompletion[]): Readi
 		totalWeight += section.weight;
 	});
 
-	// Update with actual completion data
+	// Update with actual score data
 	completions.forEach((completion) => {
 		if (sectionScores.hasOwnProperty(completion.section_name)) {
-			sectionScores[completion.section_name] = completion.completion_percentage;
+			sectionScores[completion.section_name] = completion.score;
 		}
 	});
 
@@ -38,44 +39,93 @@ export function calculateReadinessScore(completions: SectionCompletion[]): Readi
 }
 
 /**
- * Calculate completion percentage for a given section based on filled fields
- * @param data - The section data object
- * @param requiredFields - Array of field names that are considered required/important
- * @returns Completion percentage (0-100)
+ * Calculate section score using point-based system
+ * Routes to appropriate scoring function based on section type
+ * @param sectionName - The section identifier
+ * @param data - The section data (can be single object or array)
+ * @returns Score (0-100 points)
  */
-export function calculateSectionCompletion(
-	data: any,
-	requiredFields?: string[]
-): number {
+export function calculateSectionScore(sectionName: string, data: any): number {
+	// Import scoring functions
+	const {
+		calculateCredentialsScore,
+		calculatePetsScore,
+		calculateContactsScore,
+		calculateInsuranceScore,
+		calculateFinancialScore,
+		calculateFieldBasedScore,
+		SECTION_FIELDS
+	} = require('./scoringRules');
+
 	if (!data) return 0;
 
-	const fields = requiredFields || Object.keys(data).filter((key) =>
-		key !== 'id' && key !== 'user_id' && key !== 'created_at' && key !== 'updated_at'
-	);
+	// Variable-length sections with specialized scoring
+	switch (sectionName) {
+		case 'credentials':
+			return Array.isArray(data)
+				? calculateCredentialsScore(data).total
+				: calculateCredentialsScore([data]).total;
 
-	if (fields.length === 0) return 0;
+		case 'pets':
+			return Array.isArray(data) ? calculatePetsScore(data) : calculatePetsScore([data]);
 
-	let filledCount = 0;
+		case 'contacts':
+			return Array.isArray(data)
+				? calculateContactsScore(data)
+				: calculateContactsScore([data]);
 
-	fields.forEach((field) => {
-		const value = data[field];
-		if (value !== null && value !== undefined && value !== '') {
-			filledCount++;
-		}
-	});
+		case 'insurance':
+			return Array.isArray(data)
+				? calculateInsuranceScore(data)
+				: calculateInsuranceScore([data]);
 
-	return Math.round((filledCount / fields.length) * 100);
+		case 'financial':
+			return Array.isArray(data)
+				? calculateFinancialScore(data)
+				: calculateFinancialScore([data]);
+
+		// Fixed-field sections with field-based scoring
+		case 'personal':
+		case 'medical':
+		case 'employment':
+		case 'residence':
+		case 'legal':
+		case 'final-days':
+		case 'obituary':
+		case 'after-death':
+		case 'funeral':
+		case 'conclusion':
+			const fields = SECTION_FIELDS[sectionName];
+			if (fields) {
+				return calculateFieldBasedScore(
+					data,
+					fields.critical || [],
+					fields.important || [],
+					fields.optional || []
+				);
+			}
+			return 0;
+
+		// Sections not yet implemented with specific scoring
+		case 'family':
+		case 'property':
+			// Use simple field-based scoring as fallback
+			return calculateFieldBasedScore(data, [], Object.keys(data), []);
+
+		default:
+			return 0;
+	}
 }
 
 /**
- * Get the completion status color based on percentage
- * @param percentage - Completion percentage
+ * Get the completion status color based on score
+ * @param score - Completion score (0-100 points)
  * @returns Color class or code
  */
-export function getCompletionColor(percentage: number): string {
-	if (percentage >= 80) return 'green';
-	if (percentage >= 50) return 'yellow';
-	if (percentage >= 25) return 'orange';
+export function getCompletionColor(score: number): string {
+	if (score >= 80) return 'green';
+	if (score >= 50) return 'yellow';
+	if (score >= 25) return 'orange';
 	return 'red';
 }
 

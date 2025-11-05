@@ -2,6 +2,7 @@
 	import { enhance } from '$app/forms';
 	import { SECTIONS } from '$lib/types';
 	import FormField from '$lib/components/FormField.svelte';
+	import CredentialsList from '$lib/components/CredentialsList.svelte';
 	import AskAI from '$lib/components/AskAI.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { Card } from '$lib/components/ui/card';
@@ -248,46 +249,7 @@
 				</div>
 
 			{:else if data.slug === 'credentials'}
-				<div class="mb-10">
-					<h2 class="text-2xl font-semibold text-foreground mb-4 pb-3 border-b-2 border-border">Usernames & Passwords</h2>
-					<p class="text-muted-foreground leading-relaxed mb-6">
-						Store your important login credentials securely. This helps ensure your loved ones can access important accounts when needed.
-					</p>
-					<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-						<FormField
-							label="Site Name"
-							name="site_name"
-							bind:value={formData.site_name}
-							placeholder="e.g., Gmail, Bank of America"
-						/>
-						<FormField
-							label="Web Address"
-							name="web_address"
-							type="url"
-							bind:value={formData.web_address}
-							placeholder="https://example.com"
-						/>
-						<FormField
-							label="Username"
-							name="username"
-							bind:value={formData.username}
-							placeholder="Your username or email"
-						/>
-						<FormField
-							label="Password"
-							name="password"
-							bind:value={formData.password}
-							placeholder="Your password"
-						/>
-						<FormField
-							label="Other Information"
-							name="other_info"
-							type="textarea"
-							bind:value={formData.other_info}
-							placeholder="Security questions, recovery codes, notes"
-						/>
-					</div>
-				</div>
+				<CredentialsList credentials={Array.isArray(data.sectionData) ? data.sectionData : []} userId={data.userId} />
 
 			{:else if data.slug === 'family'}
 				<div class="mb-10">
