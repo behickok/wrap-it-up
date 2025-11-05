@@ -1,8 +1,23 @@
 <script>
 	import favicon from '$lib/assets/favicon.svg';
 	import { page } from '$app/stores';
+	import { goto } from '$app/navigation';
 
 	let { children } = $props();
+
+	let loggingOut = $state(false);
+
+	async function handleLogout() {
+		loggingOut = true;
+		try {
+			await fetch('/api/auth/logout', { method: 'POST' });
+			goto('/login');
+		} catch (error) {
+			console.error('Logout error:', error);
+		} finally {
+			loggingOut = false;
+		}
+	}
 </script>
 
 <svelte:head>
@@ -13,21 +28,35 @@
 <div class="app">
 	<header>
 		<div class="header-container">
-			<div class="readiness-score">
-				<div class="score-circle">
-					<span class="score-value">{$page.data?.readinessScore?.total_score || 0}%</span>
-					<span class="score-label">Ready</span>
+			{#if $page.data?.user}
+				<div class="readiness-score">
+					<div class="score-circle">
+						<span class="score-value">{$page.data?.readinessScore?.total_score || 0}%</span>
+						<span class="score-label">Ready</span>
+					</div>
 				</div>
-			</div>
+			{:else}
+				<div></div>
+			{/if}
 
 			<div class="header-title">
 				<h1>Wrap It Up</h1>
 				<p class="subtitle">Your End of Life Planning Workbook</p>
 			</div>
 
-			<nav class="main-nav">
-				<a href="/" class:active={$page.url.pathname === '/'}>Dashboard</a>
-			</nav>
+			{#if $page.data?.user}
+				<div class="user-section">
+					<span class="username">@{$page.data.user.username}</span>
+					<button class="logout-btn" onclick={handleLogout} disabled={loggingOut}>
+						{loggingOut ? 'Logging out...' : 'Logout'}
+					</button>
+				</div>
+			{:else}
+				<nav class="main-nav">
+					<a href="/login" class:active={$page.url.pathname === '/login'}>Login</a>
+					<a href="/register" class:active={$page.url.pathname === '/register'}>Register</a>
+				</nav>
+			{/if}
 		</div>
 	</header>
 
@@ -134,6 +163,40 @@
 	.main-nav a:hover,
 	.main-nav a.active {
 		background: rgba(255, 255, 255, 0.2);
+	}
+
+	.user-section {
+		display: flex;
+		align-items: center;
+		gap: 1rem;
+	}
+
+	.username {
+		font-weight: 600;
+		font-size: 0.95rem;
+		opacity: 0.95;
+	}
+
+	.logout-btn {
+		background: rgba(255, 255, 255, 0.2);
+		color: white;
+		border: 1px solid rgba(255, 255, 255, 0.3);
+		padding: 0.5rem 1rem;
+		border-radius: 6px;
+		cursor: pointer;
+		font-size: 0.875rem;
+		font-weight: 500;
+		transition: all 0.2s;
+	}
+
+	.logout-btn:hover:not(:disabled) {
+		background: rgba(255, 255, 255, 0.3);
+		transform: translateY(-1px);
+	}
+
+	.logout-btn:disabled {
+		opacity: 0.5;
+		cursor: not-allowed;
 	}
 
 	main {
