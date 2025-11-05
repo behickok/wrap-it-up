@@ -85,7 +85,7 @@
 				Store your important login credentials securely. Organize them by category for easy access.
 			</p>
 		</div>
-		<Button on:click={openAddDialog}>Add Credential</Button>
+                <Button onclick={openAddDialog}>Add Credential</Button>
 	</div>
 
 	{#if credentials.length === 0}
@@ -108,7 +108,7 @@
 				<p class="text-sm text-muted-foreground mb-4">
 					Start adding your important login credentials to keep them organized.
 				</p>
-				<Button on:click={openAddDialog}>Add Your First Credential</Button>
+                                <Button onclick={openAddDialog}>Add Your First Credential</Button>
 			</Card.Content>
 		</Card.Root>
 	{:else}
@@ -156,7 +156,7 @@
 						</div>
 					</Card.Content>
 					<Card.Footer class="flex gap-2">
-						<Button variant="outline" size="sm" on:click={() => openEditDialog(credential)}>
+                                                <Button variant="outline" size="sm" onclick={() => openEditDialog(credential)}>
 							Edit
 						</Button>
 						<form method="POST" action="?/deleteCredential" use:enhance>
@@ -248,7 +248,7 @@
 			</div>
 
 			<Dialog.Footer class="mt-6">
-				<Button type="button" variant="outline" on:click={closeDialog}>Cancel</Button>
+                                <Button type="button" variant="outline" onclick={closeDialog}>Cancel</Button>
 				<Button type="submit">{isEditing ? 'Update' : 'Add'} Credential</Button>
 			</Dialog.Footer>
 		</form>
