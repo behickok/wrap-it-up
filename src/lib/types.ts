@@ -2,8 +2,19 @@
 
 export interface User {
 	id: number;
+	email: string;
+	username: string;
+	is_active: boolean;
+	last_login: string | null;
 	created_at: string;
 	updated_at: string;
+}
+
+export interface Session {
+	id: string;
+	user_id: number;
+	expires_at: string;
+	created_at: string;
 }
 
 export interface Credential {

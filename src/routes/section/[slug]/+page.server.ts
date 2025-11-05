@@ -2,9 +2,13 @@ import { redirect, fail } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { calculateSectionCompletion } from '$lib/readinessScore';
 
-export const load: PageServerLoad = async ({ params, platform }) => {
+export const load: PageServerLoad = async ({ params, platform, locals }) => {
 	const { slug } = params;
-	const userId = 1; // Default user for now
+	const userId = locals.user?.id;
+
+	if (!userId) {
+		throw redirect(302, '/login');
+	}
 
 	const db = platform?.env?.DB;
 
@@ -89,9 +93,13 @@ export const load: PageServerLoad = async ({ params, platform }) => {
 };
 
 export const actions: Actions = {
-	save: async ({ request, platform, params }) => {
+	save: async ({ request, platform, params, locals }) => {
 		const { slug } = params;
-		const userId = 1;
+		const userId = locals.user?.id;
+
+		if (!userId) {
+			return fail(401, { error: 'Not authenticated' });
+		}
 
 		const db = platform?.env?.DB;
 

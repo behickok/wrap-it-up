@@ -1,12 +1,29 @@
 import type { LayoutServerLoad } from './$types';
+import { redirect } from '@sveltejs/kit';
 import { calculateReadinessScore } from '$lib/readinessScore';
 
-export const load: LayoutServerLoad = async ({ platform }) => {
-	try {
-		// For now, we'll use a default user_id of 1
-		// In a production app, this would come from authentication
-		const userId = 1;
+export const load: LayoutServerLoad = async ({ platform, locals, url }) => {
+	// Allow access to auth pages without authentication
+	const publicPaths = ['/login', '/register'];
+	const isPublicPath = publicPaths.some(path => url.pathname === path);
 
+	if (!locals.user && !isPublicPath) {
+		throw redirect(302, '/login');
+	}
+
+	// Return minimal data for public pages
+	if (isPublicPath) {
+		return {
+			readinessScore: {
+				total_score: 0,
+				sections: {}
+			},
+			user: null
+		};
+	}
+
+	try {
+		const userId = locals.user!.id;
 		const db = platform?.env?.DB;
 
 		if (!db) {
@@ -14,14 +31,10 @@ export const load: LayoutServerLoad = async ({ platform }) => {
 				readinessScore: {
 					total_score: 0,
 					sections: {}
-				}
+				},
+				user: locals.user
 			};
 		}
-
-		// Initialize user if not exists
-		await db.prepare(`
-			INSERT OR IGNORE INTO users (id) VALUES (?)
-		`).bind(userId).run();
 
 		// Fetch section completion data
 		const { results } = await db.prepare(`
@@ -34,7 +47,7 @@ export const load: LayoutServerLoad = async ({ platform }) => {
 
 		return {
 			readinessScore,
-			userId
+			user: locals.user
 		};
 	} catch (error) {
 		console.error('Error loading layout data:', error);
@@ -43,7 +56,7 @@ export const load: LayoutServerLoad = async ({ platform }) => {
 				total_score: 0,
 				sections: {}
 			},
-			userId: 1
+			user: locals.user
 		};
 	}
 };
