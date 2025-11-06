@@ -1,9 +1,5 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import { Button } from '$lib/components/ui/button';
-	import { Input } from '$lib/components/ui/input';
-	import { Label } from '$lib/components/ui/label';
-	import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '$lib/components/ui/card';
 
 	let email = $state('');
 	let username = $state('');
@@ -76,78 +72,91 @@
 </script>
 
 <div class="min-h-[calc(100vh-200px)] flex items-center justify-center p-8 bg-gradient-to-br from-slate-50 to-slate-200">
-	<Card class="w-full max-w-md">
-		<CardHeader class="text-center">
-			<CardTitle class="text-3xl font-bold">Create Account</CardTitle>
-			<CardDescription>Start your compassionate end-of-life planning journey</CardDescription>
-		</CardHeader>
-		<CardContent>
+	<div class="card w-full max-w-md shadow-xl" style="background-color: var(--color-card);">
+		<div class="card-body">
+			<h2 class="card-title text-3xl font-bold justify-center" style="color: var(--color-foreground);">Create Account</h2>
+			<p class="text-center" style="color: var(--color-muted-foreground);">Start your compassionate end-of-life planning journey</p>
+
 			{#if error}
-				<div class="bg-destructive/10 text-destructive px-4 py-3 rounded-lg mb-6 text-sm">
-					{error}
+				<div class="alert alert-error mb-4">
+					<span>{error}</span>
 				</div>
 			{/if}
 
 			<form onsubmit={(e) => { e.preventDefault(); handleRegister(); }} class="space-y-4">
-				<div class="space-y-2">
-					<Label for="email">Email</Label>
-					<Input
+				<div class="form-control">
+					<label class="label" for="email">
+						<span class="label-text">Email</span>
+					</label>
+					<input
 						id="email"
 						type="email"
 						bind:value={email}
 						placeholder="Enter your email"
 						disabled={loading}
 						onkeydown={handleKeydown}
+						class="input input-bordered w-full"
 					/>
 				</div>
 
-				<div class="space-y-2">
-					<Label for="username">Username</Label>
-					<Input
+				<div class="form-control">
+					<label class="label" for="username">
+						<span class="label-text">Username</span>
+					</label>
+					<input
 						id="username"
 						type="text"
 						bind:value={username}
 						placeholder="Choose a username (3-20 characters)"
 						disabled={loading}
 						onkeydown={handleKeydown}
+						class="input input-bordered w-full"
 					/>
 				</div>
 
-				<div class="space-y-2">
-					<Label for="password">Password</Label>
-					<Input
+				<div class="form-control">
+					<label class="label" for="password">
+						<span class="label-text">Password</span>
+					</label>
+					<input
 						id="password"
 						type="password"
 						bind:value={password}
 						placeholder="Create a strong password"
 						disabled={loading}
 						onkeydown={handleKeydown}
+						class="input input-bordered w-full"
 					/>
-					<p class="text-xs text-muted-foreground">
-						Must be 8+ characters with uppercase, lowercase, and number
-					</p>
+					<label class="label">
+						<span class="label-text-alt" style="color: var(--color-muted-foreground);">
+							Must be 8+ characters with uppercase, lowercase, and number
+						</span>
+					</label>
 				</div>
 
-				<div class="space-y-2">
-					<Label for="confirmPassword">Confirm Password</Label>
-					<Input
+				<div class="form-control">
+					<label class="label" for="confirmPassword">
+						<span class="label-text">Confirm Password</span>
+					</label>
+					<input
 						id="confirmPassword"
 						type="password"
 						bind:value={confirmPassword}
 						placeholder="Confirm your password"
 						disabled={loading}
 						onkeydown={handleKeydown}
+						class="input input-bordered w-full"
 					/>
 				</div>
 
-				<Button type="submit" class="w-full" disabled={loading}>
+				<button type="submit" class="btn w-full" style="background-color: var(--color-primary); color: var(--color-primary-foreground);" disabled={loading}>
 					{loading ? 'Creating Account...' : 'Create Account'}
-				</Button>
+				</button>
 			</form>
 
-			<div class="mt-6 text-center text-sm text-muted-foreground">
-				<p>Already have an account? <a href="/login" class="text-primary font-semibold hover:underline">Sign in</a></p>
+			<div class="mt-6 text-center text-sm" style="color: var(--color-muted-foreground);">
+				<p>Already have an account? <a href="/login" class="font-semibold hover:underline" style="color: var(--color-primary);">Sign in</a></p>
 			</div>
-		</CardContent>
-	</Card>
+		</div>
+	</div>
 </div>

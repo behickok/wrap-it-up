@@ -1,14 +1,4 @@
 <script lang="ts">
-	import { Button } from '$lib/components/ui/button';
-	import { Textarea } from '$lib/components/ui/textarea';
-	import {
-		Dialog,
-		DialogContent,
-		DialogDescription,
-		DialogHeader,
-		DialogTitle,
-		DialogTrigger
-	} from '$lib/components/ui/dialog';
 
 	let {
 		sectionName
@@ -52,34 +42,33 @@
 	}
 </script>
 
-<Dialog bind:open>
-	<DialogTrigger>
-		<Button class="inline-flex items-center gap-2">
-			<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-				<circle cx="12" cy="12" r="10"></circle>
-				<path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
-				<line x1="12" y1="17" x2="12.01" y2="17"></line>
-			</svg>
-			Ask AI for Help
-		</Button>
-	</DialogTrigger>
-	<DialogContent class="sm:max-w-[600px]">
-		<DialogHeader>
-			<DialogTitle>Ask AI for Help</DialogTitle>
-			<DialogDescription>
-				Need help filling out the {sectionName} section? Ask me anything!
-			</DialogDescription>
-		</DialogHeader>
+<button class="btn inline-flex items-center gap-2" style="background-color: var(--color-primary); color: var(--color-primary-foreground);" onclick={() => open = true}>
+	<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+		<circle cx="12" cy="12" r="10"></circle>
+		<path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+		<line x1="12" y1="17" x2="12.01" y2="17"></line>
+	</svg>
+	Ask AI for Help
+</button>
 
-		<div class="space-y-4">
-			<Textarea
+<dialog class="modal" class:modal-open={open}>
+	<div class="modal-box max-w-[600px]">
+		<h3 class="font-bold text-lg">Ask AI for Help</h3>
+		<p class="py-2" style="color: var(--color-muted-foreground);">
+			Need help filling out the {sectionName} section? Ask me anything!
+		</p>
+
+		<div class="space-y-4 mt-4">
+			<textarea
 				bind:value={question}
 				placeholder="Example: What kind of information should I include about my pets?"
 				rows={4}
-			/>
+				class="textarea textarea-bordered w-full"
+			></textarea>
 
-			<Button
-				class="w-full"
+			<button
+				class="btn w-full"
+				style="background-color: var(--color-primary); color: var(--color-primary-foreground);"
 				onclick={askAI}
 				disabled={loading || !question.trim()}
 			>
@@ -88,14 +77,21 @@
 				{:else}
 					Get Answer
 				{/if}
-			</Button>
+			</button>
 
 			{#if answer}
-				<div class="rounded-lg border-l-4 border-primary bg-muted p-4">
+				<div class="rounded-lg border-l-4 p-4" style="background-color: var(--color-muted); border-color: var(--color-primary);">
 					<h4 class="mb-2 font-semibold">AI Response:</h4>
-					<p class="text-sm text-muted-foreground whitespace-pre-wrap">{answer}</p>
+					<p class="text-sm whitespace-pre-wrap" style="color: var(--color-muted-foreground);">{answer}</p>
 				</div>
 			{/if}
 		</div>
-	</DialogContent>
-</Dialog>
+
+		<div class="modal-action">
+			<button class="btn btn-outline" onclick={() => open = false}>Close</button>
+		</div>
+	</div>
+	<form method="dialog" class="modal-backdrop">
+		<button onclick={() => open = false}>close</button>
+	</form>
+</dialog>
