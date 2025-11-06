@@ -3,7 +3,7 @@
 	import type { Credential, CredentialCategory } from '$lib/types';
 	import FormField from './FormField.svelte';
 	import Button from './ui/button/button.svelte';
-	import Card from './ui/card/card.svelte';
+	import * as Card from './ui/card';
 	import * as Dialog from './ui/dialog';
 
 	let { credentials = [], userId }: { credentials?: Credential[]; userId: number } = $props();

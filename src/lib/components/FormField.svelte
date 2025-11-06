@@ -4,6 +4,9 @@
 	import { Textarea } from '$lib/components/ui/textarea';
 	import { Select, SelectContent, SelectItem, SelectTrigger } from '$lib/components/ui/select';
 
+	type SelectOption = string | { value: string; label?: string; disabled?: boolean };
+	type NormalizedOption = { value: string; label: string; disabled?: boolean };
+
 	let {
 		label,
 		name,
@@ -12,7 +15,7 @@
 		placeholder = '',
 		required = false,
 		rows = 3,
-		options = []
+		options = [] as SelectOption[]
 	} = $props();
 
 	// Ensure value is never undefined
@@ -21,19 +24,51 @@
 	}
 
 	// For select, we need to handle the selected state
-	let selected = $state(value ? { value: value, label: value } : undefined);
+	const normalizeOption = (option: SelectOption): NormalizedOption => {
+		if (typeof option === 'string') {
+			return { value: option, label: option };
+		}
+		return {
+			value: option.value,
+			label: option.label ?? option.value,
+			disabled: option.disabled
+		};
+	};
+
+	const normalizedOptions = $derived(options.map(normalizeOption));
+	let selected = $state<NormalizedOption | undefined>(undefined);
+	let selectOpen = $state(false);
 
 	// Update value when selected changes
 	$effect(() => {
-		if (type === 'select' && selected) {
-			value = selected.value;
+		if (type !== 'select') {
+			return;
+		}
+
+		const nextValue = selected?.value ?? '';
+		if (value !== nextValue) {
+			value = nextValue;
 		}
 	});
 
 	// Update selected when value changes externally
 	$effect(() => {
-		if (type === 'select' && value && (!selected || selected.value !== value)) {
-			selected = { value: value, label: value };
+		if (type !== 'select') {
+			return;
+		}
+
+		if (!value) {
+			if (selected !== undefined) {
+				selected = undefined;
+			}
+			return;
+		}
+
+		const match = normalizedOptions.find(option => option.value === value);
+		const nextSelected = match ?? { value, label: value };
+
+		if (!selected || selected.value !== nextSelected.value || selected.label !== nextSelected.label) {
+			selected = nextSelected;
 		}
 	});
 </script>
@@ -56,14 +91,16 @@
 			{required}
 		/>
 	{:else if type === 'select'}
-		<Select bind:selected>
+		<Select bind:selected bind:open={selectOpen} name={name} required={required} items={normalizedOptions}>
 			<SelectTrigger id={name} class="w-full">
 				<span>{selected?.label || 'Select...'}</span>
 			</SelectTrigger>
 			<SelectContent>
 				<SelectItem value="" label="Select...">Select...</SelectItem>
-				{#each options as option}
-					<SelectItem value={option} label={option}>{option}</SelectItem>
+				{#each normalizedOptions as option}
+					<SelectItem value={option.value} label={option.label} disabled={option.disabled}>
+						{option.label}
+					</SelectItem>
 				{/each}
 			</SelectContent>
 		</Select>
