@@ -2,9 +2,6 @@
 	import { enhance } from '$app/forms';
 	import type { Credential, CredentialCategory } from '$lib/types';
 	import FormField from './FormField.svelte';
-	import Button from './ui/button/button.svelte';
-	import * as Card from './ui/card';
-	import * as Dialog from './ui/dialog';
 
 	let { credentials = [], userId }: { credentials?: Credential[]; userId: number } = $props();
 
@@ -80,19 +77,20 @@
 <div class="space-y-6">
 	<div class="flex justify-between items-center">
 		<div>
-			<h2 class="text-2xl font-semibold text-foreground">Usernames & Passwords</h2>
-			<p class="text-muted-foreground mt-2">
+			<h2 class="text-2xl font-semibold" style="color: var(--color-foreground);">Usernames & Passwords</h2>
+			<p class="mt-2" style="color: var(--color-muted-foreground);">
 				Store your important login credentials securely. Organize them by category for easy access.
 			</p>
 		</div>
-                <Button onclick={openAddDialog}>Add Credential</Button>
+		<button class="btn" style="background-color: var(--color-primary); color: var(--color-primary-foreground);" onclick={openAddDialog}>Add Credential</button>
 	</div>
 
 	{#if credentials.length === 0}
-		<Card.Root class="border-dashed">
-			<Card.Content class="flex flex-col items-center justify-center py-12">
+		<div class="card shadow-xl border-2 border-dashed" style="background-color: var(--color-card);">
+			<div class="card-body flex flex-col items-center justify-center py-12">
 				<svg
-					class="w-16 h-16 text-muted-foreground mb-4"
+					class="w-16 h-16 mb-4"
+					style="color: var(--color-muted-foreground);"
 					fill="none"
 					stroke="currentColor"
 					viewBox="0 0 24 24"
@@ -104,80 +102,75 @@
 						d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
 					/>
 				</svg>
-				<p class="text-lg font-medium text-foreground mb-2">No credentials yet</p>
-				<p class="text-sm text-muted-foreground mb-4">
+				<p class="text-lg font-medium mb-2" style="color: var(--color-foreground);">No credentials yet</p>
+				<p class="text-sm mb-4" style="color: var(--color-muted-foreground);">
 					Start adding your important login credentials to keep them organized.
 				</p>
-                                <Button onclick={openAddDialog}>Add Your First Credential</Button>
-			</Card.Content>
-		</Card.Root>
+				<button class="btn" style="background-color: var(--color-primary); color: var(--color-primary-foreground);" onclick={openAddDialog}>Add Your First Credential</button>
+			</div>
+		</div>
 	{:else}
 		<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
 			{#each credentials as credential (credential.id)}
-				<Card.Root>
-					<Card.Header>
-						<div class="flex justify-between items-start">
+				<div class="card shadow-xl" style="background-color: var(--color-card);">
+					<div class="card-body">
+						<div class="flex justify-between items-start mb-4">
 							<div class="flex-1">
-								<Card.Title class="text-lg">{credential.site_name}</Card.Title>
-								<Card.Description class="mt-1">
-									{#if credential.web_address}
-										<a
-											href={credential.web_address}
-											target="_blank"
-											rel="noopener noreferrer"
-											class="text-blue-600 hover:underline text-sm"
-										>
-											{credential.web_address}
-										</a>
-									{/if}
-								</Card.Description>
+								<h3 class="card-title text-lg">{credential.site_name}</h3>
+								{#if credential.web_address}
+									<a
+										href={credential.web_address}
+										target="_blank"
+										rel="noopener noreferrer"
+										class="text-sm hover:underline"
+										style="color: var(--color-primary);"
+									>
+										{credential.web_address}
+									</a>
+								{/if}
 							</div>
-							<span class="text-xs px-2 py-1 rounded-full {getCategoryBadgeColor(credential.category)}">
+							<span class="badge text-xs {getCategoryBadgeColor(credential.category)}">
 								{getCategoryLabel(credential.category)}
 							</span>
 						</div>
-					</Card.Header>
-					<Card.Content>
 						<div class="space-y-2 text-sm">
 							<div>
-								<span class="font-medium text-muted-foreground">Username:</span>
-								<p class="text-foreground break-all">{credential.username || 'Not set'}</p>
+								<span class="font-medium" style="color: var(--color-muted-foreground);">Username:</span>
+								<p class="break-all" style="color: var(--color-foreground);">{credential.username || 'Not set'}</p>
 							</div>
 							<div>
-								<span class="font-medium text-muted-foreground">Password:</span>
-								<p class="text-foreground font-mono">{'•'.repeat(Math.min(credential.password?.length || 0, 12))}</p>
+								<span class="font-medium" style="color: var(--color-muted-foreground);">Password:</span>
+								<p class="font-mono" style="color: var(--color-foreground);">{'•'.repeat(Math.min(credential.password?.length || 0, 12))}</p>
 							</div>
 							{#if credential.other_info}
 								<div>
-									<span class="font-medium text-muted-foreground">Notes:</span>
-									<p class="text-foreground text-xs line-clamp-2">{credential.other_info}</p>
+									<span class="font-medium" style="color: var(--color-muted-foreground);">Notes:</span>
+									<p class="text-xs line-clamp-2" style="color: var(--color-foreground);">{credential.other_info}</p>
 								</div>
 							{/if}
 						</div>
-					</Card.Content>
-					<Card.Footer class="flex gap-2">
-                                                <Button variant="outline" size="sm" onclick={() => openEditDialog(credential)}>
-							Edit
-						</Button>
-						<form method="POST" action="?/deleteCredential" use:enhance>
-							<input type="hidden" name="id" value={credential.id} />
-							<Button variant="destructive" size="sm" type="submit">Delete</Button>
-						</form>
-					</Card.Footer>
-				</Card.Root>
+						<div class="card-actions justify-end mt-4 gap-2">
+							<button class="btn btn-sm btn-outline" onclick={() => openEditDialog(credential)}>
+								Edit
+							</button>
+							<form method="POST" action="?/deleteCredential" use:enhance>
+								<input type="hidden" name="id" value={credential.id} />
+								<button class="btn btn-sm" style="background-color: var(--color-destructive); color: var(--color-destructive-foreground);" type="submit">Delete</button>
+							</form>
+						</div>
+					</div>
+				</div>
 			{/each}
 		</div>
 	{/if}
 </div>
 
-<Dialog.Root bind:open={isDialogOpen}>
-	<Dialog.Content class="max-w-2xl max-h-[90vh] overflow-y-auto">
-		<Dialog.Header>
-			<Dialog.Title>{isEditing ? 'Edit Credential' : 'Add New Credential'}</Dialog.Title>
-			<Dialog.Description>
-				{isEditing ? 'Update your credential information' : 'Add a new login credential to your collection'}
-			</Dialog.Description>
-		</Dialog.Header>
+<dialog class="modal" class:modal-open={isDialogOpen}>
+	<div class="modal-box max-w-2xl">
+		<h3 class="font-bold text-lg">{isEditing ? 'Edit Credential' : 'Add New Credential'}</h3>
+		<p class="py-2" style="color: var(--color-muted-foreground);">
+			{isEditing ? 'Update your credential information' : 'Add a new login credential to your collection'}
+		</p>
 
 		<form
 			method="POST"
@@ -195,7 +188,7 @@
 				<input type="hidden" name="id" value={currentCredential.id} />
 			{/if}
 
-			<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+			<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
 				<FormField
 					label="Site Name"
 					name="site_name"
@@ -247,10 +240,13 @@
 				</div>
 			</div>
 
-			<Dialog.Footer class="mt-6">
-                                <Button type="button" variant="outline" onclick={closeDialog}>Cancel</Button>
-				<Button type="submit">{isEditing ? 'Update' : 'Add'} Credential</Button>
-			</Dialog.Footer>
+			<div class="modal-action">
+				<button type="button" class="btn btn-outline" onclick={closeDialog}>Cancel</button>
+				<button type="submit" class="btn" style="background-color: var(--color-primary); color: var(--color-primary-foreground);">{isEditing ? 'Update' : 'Add'} Credential</button>
+			</div>
 		</form>
-	</Dialog.Content>
-</Dialog.Root>
+	</div>
+	<form method="dialog" class="modal-backdrop">
+		<button onclick={closeDialog}>close</button>
+	</form>
+</dialog>

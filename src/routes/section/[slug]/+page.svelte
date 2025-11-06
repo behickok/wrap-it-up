@@ -5,8 +5,6 @@
 	import CredentialsList from '$lib/components/CredentialsList.svelte';
 	import AskAI from '$lib/components/AskAI.svelte';
 	import SectionNavigation from '$lib/components/SectionNavigation.svelte';
-	import { Button } from '$lib/components/ui/button';
-	import { Card } from '$lib/components/ui/card';
 
 	let { data, form } = $props();
 
@@ -68,7 +66,7 @@
 			saving = false;
 		};
 	}}>
-		<Card class="p-8 mb-6">
+		<div class="card shadow-xl p-8 mb-6" style="background-color: var(--color-card);">
 			{#if data.slug === 'personal'}
 				<div class="mb-10">
 					<h2 class="text-2xl font-semibold text-foreground mb-4 pb-3 border-b-2 border-border">Basic Information</h2>
@@ -1270,17 +1268,17 @@
 					</p>
 				</div>
 			{/if}
-		</Card>
+		</div>
 
 		<div class="flex flex-col md:flex-row gap-4 justify-end">
-			<Button type="submit" disabled={saving}>
+			<button type="submit" class="btn" style="background-color: var(--color-primary); color: var(--color-primary-foreground);" disabled={saving}>
 				{#if saving}
 					Saving...
 				{:else}
 					Save Progress
 				{/if}
-			</Button>
-			<Button variant="outline" href="/">Cancel</Button>
+			</button>
+			<a href="/" class="btn btn-outline">Cancel</a>
 		</div>
 	</form>
 

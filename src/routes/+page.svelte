@@ -1,9 +1,6 @@
 <script lang="ts">
 	import { SECTIONS, JOURNEY_CATEGORIES, type JourneyCategory } from '$lib/types';
 	import { getMotivationalMessage } from '$lib/readinessScore';
-	import { Card, CardContent, CardHeader, CardTitle } from '$lib/components/ui/card';
-	import { Badge } from '$lib/components/ui/badge';
-	import { Progress } from '$lib/components/ui/progress';
 	import JourneyTabs from '$lib/components/JourneyTabs.svelte';
 	import JourneyVisual from '$lib/components/JourneyVisual.svelte';
 	import SectionContent from '$lib/components/SectionContent.svelte';
@@ -63,21 +60,21 @@
 					class="card-button flex-shrink-0 transition-all duration-500"
 					class:active={activeSection === section.id}
 				>
-					<Card
+					<div
 						class="glass-card h-full transition-all duration-500"
 						style="--accent-color: {currentCategoryInfo?.color}"
 					>
-						<CardHeader class="pb-3">
+						<div class="pb-3 p-6">
 							<div class="flex items-start justify-between gap-4">
-								<CardTitle class="flex-1 text-lg text-glass-title">{section.name}</CardTitle>
+								<h3 class="flex-1 text-lg text-glass-title font-semibold">{section.name}</h3>
 								{#if sectionScore === 100}
-									<Badge variant="success" class="shrink-0 px-2 py-0.5 text-xs">
+									<span class="badge badge-success shrink-0 text-xs">
 										✓
-									</Badge>
+									</span>
 								{/if}
 							</div>
-						</CardHeader>
-					</Card>
+						</div>
+					</div>
 				</button>
 			{/each}
 		</div>
@@ -90,9 +87,9 @@
 		{/if}
 	{/key}
 
-	<Card class="border-accent bg-gradient-to-br from-accent to-accent/50">
-		<CardHeader>
-			<CardTitle class="flex items-center gap-2">
+	<div class="card shadow-xl bg-gradient-to-br" style="background: linear-gradient(to bottom right, var(--color-accent), color-mix(in srgb, var(--color-accent) 50%, transparent));">
+		<div class="card-body">
+			<h2 class="card-title flex items-center gap-2">
 				<svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 					<path
 						stroke-linecap="round"
@@ -102,15 +99,13 @@
 					/>
 				</svg>
 				Need Help?
-			</CardTitle>
-		</CardHeader>
-		<CardContent>
-			<p class="leading-relaxed text-muted-foreground">
+			</h2>
+			<p class="leading-relaxed" style="color: var(--color-muted-foreground);">
 				Each section has an "Ask AI" feature to help you think through what information to
 				include. Use the journey tabs above to navigate between different life planning areas.
 			</p>
-		</CardContent>
-	</Card>
+		</div>
+	</div>
 </div>
 
 <style>

@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { SECTIONS, type JourneyCategory } from '$lib/types';
-	import { Button } from './ui/button';
 
 	let { currentSectionId }: { currentSectionId: string } = $props();
 

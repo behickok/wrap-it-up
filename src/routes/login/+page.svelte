@@ -1,9 +1,5 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import { Button } from '$lib/components/ui/button';
-	import { Input } from '$lib/components/ui/input';
-	import { Label } from '$lib/components/ui/label';
-	import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '$lib/components/ui/card';
 
 	let emailOrUsername = $state('');
 	let password = $state('');
@@ -53,51 +49,56 @@
 </script>
 
 <div class="min-h-[calc(100vh-200px)] flex items-center justify-center p-8">
-	<Card class="w-full max-w-md">
-		<CardHeader class="text-center">
-			<CardTitle class="text-3xl font-bold">Welcome Back</CardTitle>
-			<CardDescription>Sign in to continue your end-of-life planning journey</CardDescription>
-		</CardHeader>
-		<CardContent>
+	<div class="card w-full max-w-md shadow-xl" style="background-color: var(--color-card);">
+		<div class="card-body">
+			<h2 class="card-title text-3xl font-bold justify-center" style="color: var(--color-foreground);">Welcome Back</h2>
+			<p class="text-center" style="color: var(--color-muted-foreground);">Sign in to continue your end-of-life planning journey</p>
+
 			{#if error}
-				<div class="bg-destructive/10 text-destructive px-4 py-3 rounded-lg mb-6 text-sm">
-					{error}
+				<div class="alert alert-error mb-4">
+					<span>{error}</span>
 				</div>
 			{/if}
 
 			<form onsubmit={(e) => { e.preventDefault(); handleLogin(); }} class="space-y-4">
-				<div class="space-y-2">
-					<Label for="emailOrUsername">Email or Username</Label>
-					<Input
+				<div class="form-control">
+					<label class="label" for="emailOrUsername">
+						<span class="label-text">Email or Username</span>
+					</label>
+					<input
 						id="emailOrUsername"
 						type="text"
 						bind:value={emailOrUsername}
 						placeholder="Enter your email or username"
 						disabled={loading}
 						onkeydown={handleKeydown}
+						class="input input-bordered w-full"
 					/>
 				</div>
 
-				<div class="space-y-2">
-					<Label for="password">Password</Label>
-					<Input
+				<div class="form-control">
+					<label class="label" for="password">
+						<span class="label-text">Password</span>
+					</label>
+					<input
 						id="password"
 						type="password"
 						bind:value={password}
 						placeholder="Enter your password"
 						disabled={loading}
 						onkeydown={handleKeydown}
+						class="input input-bordered w-full"
 					/>
 				</div>
 
-				<Button type="submit" class="w-full" disabled={loading}>
+				<button type="submit" class="btn w-full" style="background-color: var(--color-primary); color: var(--color-primary-foreground);" disabled={loading}>
 					{loading ? 'Signing in...' : 'Sign In'}
-				</Button>
+				</button>
 			</form>
 
-			<div class="mt-6 text-center text-sm text-muted-foreground">
-				<p>Don't have an account? <a href="/register" class="text-primary font-semibold hover:underline">Create one</a></p>
+			<div class="mt-6 text-center text-sm" style="color: var(--color-muted-foreground);">
+				<p>Don't have an account? <a href="/register" class="font-semibold hover:underline" style="color: var(--color-primary);">Create one</a></p>
 			</div>
-		</CardContent>
-	</Card>
+		</div>
+	</div>
 </div>

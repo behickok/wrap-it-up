@@ -3,8 +3,6 @@
 	import { SECTIONS } from '$lib/types';
 	import FormField from '$lib/components/FormField.svelte';
 	import AskAI from '$lib/components/AskAI.svelte';
-	import { Button } from '$lib/components/ui/button';
-	import { Card } from '$lib/components/ui/card';
 
 	let { sectionId, data }: { sectionId: string; data: any } = $props();
 
@@ -35,7 +33,7 @@
 	</div>
 
 	<form method="POST" action="/section/{sectionId}?/save">
-		<Card class="p-8 mb-6">
+		<div class="card shadow-xl p-8 mb-6" style="background-color: var(--color-card);">
 			{#if sectionId === 'personal'}
 				<div class="mb-10">
 					<h3 class="text-2xl font-semibold text-foreground mb-4 pb-3 border-b-2 border-border">
@@ -1339,16 +1337,16 @@
 					</p>
 				</div>
 			{/if}
-		</Card>
+		</div>
 
 		<div class="flex gap-4 justify-end">
-			<Button type="submit" disabled={saving}>
+			<button type="submit" class="btn" style="background-color: var(--color-primary); color: var(--color-primary-foreground);" disabled={saving}>
 				{#if saving}
 					Saving...
 				{:else}
 					Save Progress
 				{/if}
-			</Button>
+			</button>
 		</div>
 	</form>
 </div>

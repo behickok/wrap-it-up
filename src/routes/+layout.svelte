@@ -3,7 +3,6 @@
 	import favicon from '$lib/assets/favicon.svg';
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
-	import { Button } from '$lib/components/ui/button';
 
 	let { children } = $props();
 
@@ -62,15 +61,13 @@
 				{#if $page.data?.user}
 					<div class="flex items-center justify-center md:justify-end gap-3 md:gap-4">
 						<span class="font-semibold text-sm md:text-base opacity-95 truncate max-w-[120px] md:max-w-none">@{$page.data.user.username}</span>
-						<Button
-							variant="secondary"
-							size="sm"
+						<button
 							onclick={handleLogout}
 							disabled={loggingOut}
-							class="bg-white/20 hover:bg-white/30 border border-white/30 backdrop-blur-sm transition-all duration-300 hover:scale-105 shrink-0"
+							class="btn btn-sm bg-white/20 hover:bg-white/30 border border-white/30 backdrop-blur-sm transition-all duration-300 hover:scale-105 shrink-0"
 						>
 							{loggingOut ? 'Logging out...' : 'Logout'}
-						</Button>
+						</button>
 					</div>
 				{:else}
 					<nav class="flex justify-center md:justify-end gap-3 md:gap-4">
