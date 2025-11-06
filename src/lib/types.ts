@@ -277,22 +277,74 @@ export interface ReadinessScore {
 	};
 }
 
+export type JourneyCategory = 'plan' | 'care' | 'connect' | 'support' | 'legacy';
+
+export interface JourneyCategoryInfo {
+	id: JourneyCategory;
+	name: string;
+	description: string;
+	color: string;
+	icon: string;
+}
+
+export const JOURNEY_CATEGORIES: JourneyCategoryInfo[] = [
+	{
+		id: 'plan',
+		name: 'Plan',
+		description: 'Legal & Financial Foundation',
+		color: 'var(--color-plan)',
+		icon: 'shield'
+	},
+	{
+		id: 'care',
+		name: 'Care',
+		description: 'Health & Daily Life',
+		color: 'var(--color-care)',
+		icon: 'heart'
+	},
+	{
+		id: 'connect',
+		name: 'Connect',
+		description: 'Relationships & History',
+		color: 'var(--color-connect)',
+		icon: 'users'
+	},
+	{
+		id: 'support',
+		name: 'Support',
+		description: 'Digital & Practical',
+		color: 'var(--color-support)',
+		icon: 'key'
+	},
+	{
+		id: 'legacy',
+		name: 'Legacy',
+		description: 'End-of-Life Planning',
+		color: 'var(--color-legacy)',
+		icon: 'star'
+	}
+];
+
 export const SECTIONS = [
-	{ id: 'credentials', name: 'Usernames & Passwords', weight: 5 },
-	{ id: 'personal', name: 'Personal Information', weight: 8 },
-	{ id: 'family', name: 'Family History', weight: 6 },
-	{ id: 'pets', name: 'Pets', weight: 3 },
-	{ id: 'contacts', name: 'Key Contacts', weight: 7 },
-	{ id: 'medical', name: 'Medical', weight: 8 },
-	{ id: 'employment', name: 'Employment', weight: 5 },
-	{ id: 'residence', name: 'Primary Residence', weight: 6 },
-	{ id: 'property', name: 'Property', weight: 6 },
-	{ id: 'insurance', name: 'Insurance', weight: 8 },
-	{ id: 'financial', name: 'Financial', weight: 8 },
-	{ id: 'legal', name: 'Legal', weight: 9 },
-	{ id: 'final-days', name: 'Final Days', weight: 7 },
-	{ id: 'obituary', name: 'Obituary', weight: 5 },
-	{ id: 'after-death', name: 'After Death', weight: 8 },
-	{ id: 'funeral', name: 'Funeral & Celebration', weight: 7 },
-	{ id: 'conclusion', name: 'Conclusion', weight: 4 }
+	{ id: 'legal', name: 'Legal Documents', weight: 9, category: 'plan' as JourneyCategory },
+	{ id: 'financial', name: 'Financial Accounts', weight: 8, category: 'plan' as JourneyCategory },
+	{ id: 'insurance', name: 'Insurance Policies', weight: 8, category: 'plan' as JourneyCategory },
+	{ id: 'employment', name: 'Employment', weight: 5, category: 'plan' as JourneyCategory },
+
+	{ id: 'medical', name: 'Medical Information', weight: 8, category: 'care' as JourneyCategory },
+	{ id: 'personal', name: 'Personal Information', weight: 8, category: 'care' as JourneyCategory },
+	{ id: 'residence', name: 'Primary Residence', weight: 6, category: 'care' as JourneyCategory },
+	{ id: 'property', name: 'Vehicles & Property', weight: 6, category: 'care' as JourneyCategory },
+
+	{ id: 'family', name: 'Family History', weight: 6, category: 'connect' as JourneyCategory },
+	{ id: 'contacts', name: 'Key Contacts', weight: 7, category: 'connect' as JourneyCategory },
+	{ id: 'pets', name: 'Pets', weight: 3, category: 'connect' as JourneyCategory },
+
+	{ id: 'credentials', name: 'Usernames & Passwords', weight: 5, category: 'support' as JourneyCategory },
+
+	{ id: 'final-days', name: 'Final Days Preferences', weight: 7, category: 'legacy' as JourneyCategory },
+	{ id: 'after-death', name: 'After Death Arrangements', weight: 8, category: 'legacy' as JourneyCategory },
+	{ id: 'funeral', name: 'Funeral & Celebration of Life', weight: 7, category: 'legacy' as JourneyCategory },
+	{ id: 'obituary', name: 'Obituary Planning', weight: 5, category: 'legacy' as JourneyCategory },
+	{ id: 'conclusion', name: 'Final Thoughts & Reflections', weight: 4, category: 'legacy' as JourneyCategory }
 ] as const;

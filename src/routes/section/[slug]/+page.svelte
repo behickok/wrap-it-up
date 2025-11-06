@@ -4,6 +4,7 @@
 	import FormField from '$lib/components/FormField.svelte';
 	import CredentialsList from '$lib/components/CredentialsList.svelte';
 	import AskAI from '$lib/components/AskAI.svelte';
+	import SectionNavigation from '$lib/components/SectionNavigation.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { Card } from '$lib/components/ui/card';
 
@@ -14,16 +15,39 @@
 
 	let formData = $state({ ...sectionData });
 	let saving = $state(false);
+
+	function getCategoryColor(category: string): string {
+		const colors: Record<string, string> = {
+			plan: 'var(--color-plan)',
+			care: 'var(--color-care)',
+			connect: 'var(--color-connect)',
+			support: 'var(--color-support)',
+			legacy: 'var(--color-legacy)'
+		};
+		return colors[category] || 'var(--color-primary)';
+	}
 </script>
 
 <div class="max-w-4xl mx-auto">
 	<div class="flex flex-wrap justify-between items-start mb-8 gap-4">
-		<div>
+		<div class="flex-1">
 			<a href="/" class="inline-block text-primary hover:underline text-sm mb-2">← Back to Dashboard</a>
-			<h1 class="text-4xl font-bold text-foreground">{section?.name || 'Section'}</h1>
+			<h1 class="text-4xl font-bold text-foreground mb-2">{section?.name || 'Section'}</h1>
+			{#if section}
+				<div class="flex items-center gap-2 mt-2">
+					<div
+						class="w-3 h-3 rounded-full"
+						style="background-color: {getCategoryColor(section.category)}"
+					></div>
+					<span class="text-sm text-muted-foreground capitalize">{section.category} Journey</span>
+				</div>
+			{/if}
 		</div>
 		<AskAI sectionName={section?.name || ''} />
 	</div>
+
+	<!-- Section Navigation -->
+	<SectionNavigation currentSectionId={data.slug} />
 
 	{#if form?.success}
 		<div class="bg-green-50 text-green-800 px-4 py-3 rounded-lg mb-6 font-medium border border-green-200">
@@ -1259,4 +1283,7 @@
 			<Button variant="outline" href="/">Cancel</Button>
 		</div>
 	</form>
+
+	<!-- Bottom Navigation -->
+	<SectionNavigation currentSectionId={data.slug} />
 </div>

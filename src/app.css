@@ -1,26 +1,36 @@
 @import "tailwindcss";
 
 @theme {
-	--color-background: oklch(100% 0 0);
-	--color-foreground: oklch(9% 0.05 230);
+	--color-background: oklch(98% 0.005 200);
+	--color-foreground: oklch(25% 0.02 230);
 	--color-card: oklch(100% 0 0);
-	--color-card-foreground: oklch(9% 0.05 230);
+	--color-card-foreground: oklch(25% 0.02 230);
 	--color-popover: oklch(100% 0 0);
-	--color-popover-foreground: oklch(9% 0.05 230);
-	--color-primary: oklch(65% 0.15 230);
-	--color-primary-foreground: oklch(98% 0.01 230);
-	--color-secondary: oklch(55% 0.12 220);
-	--color-secondary-foreground: oklch(11% 0.05 230);
-	--color-muted: oklch(96% 0.01 230);
-	--color-muted-foreground: oklch(47% 0.02 230);
-	--color-accent: oklch(96% 0.01 230);
-	--color-accent-foreground: oklch(11% 0.05 230);
-	--color-destructive: oklch(60% 0.17 25);
-	--color-destructive-foreground: oklch(98% 0.01 230);
-	--color-border: oklch(91% 0.01 230);
-	--color-input: oklch(91% 0.01 230);
-	--color-ring: oklch(65% 0.15 230);
-	--radius: 0.5rem;
+	--color-popover-foreground: oklch(25% 0.02 230);
+
+	/* Journey category colors - inspired by bQuest */
+	--color-primary: oklch(60% 0.12 180); /* Teal for main actions */
+	--color-primary-foreground: oklch(98% 0.01 180);
+	--color-secondary: oklch(70% 0.08 200); /* Soft blue-gray */
+	--color-secondary-foreground: oklch(98% 0.01 200);
+
+	/* Journey category accent colors */
+	--color-plan: oklch(55% 0.15 175); /* Deep teal */
+	--color-care: oklch(70% 0.10 25); /* Soft coral/peach */
+	--color-connect: oklch(65% 0.12 280); /* Soft purple */
+	--color-support: oklch(60% 0.10 150); /* Muted green */
+	--color-legacy: oklch(55% 0.08 60); /* Warm gold/amber */
+
+	--color-muted: oklch(95% 0.01 200);
+	--color-muted-foreground: oklch(55% 0.02 230);
+	--color-accent: oklch(93% 0.02 180);
+	--color-accent-foreground: oklch(25% 0.02 180);
+	--color-destructive: oklch(60% 0.15 25);
+	--color-destructive-foreground: oklch(98% 0.01 25);
+	--color-border: oklch(88% 0.01 200);
+	--color-input: oklch(96% 0.01 200);
+	--color-ring: oklch(60% 0.12 180);
+	--radius: 0.75rem; /* Slightly more rounded for softer feel */
 }
 
 * {
