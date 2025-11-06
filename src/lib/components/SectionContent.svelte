@@ -1351,8 +1351,4 @@
 	</form>
 </div>
 
-<style>
-	.section-content-container {
-		max-width: 100%;
-	}
-</style>
+
