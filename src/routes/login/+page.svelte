@@ -52,7 +52,7 @@
 	}
 </script>
 
-<div class="min-h-[calc(100vh-200px)] flex items-center justify-center p-8 bg-gradient-to-br from-slate-50 to-slate-200">
+<div class="min-h-[calc(100vh-200px)] flex items-center justify-center p-8">
 	<Card class="w-full max-w-md">
 		<CardHeader class="text-center">
 			<CardTitle class="text-3xl font-bold">Welcome Back</CardTitle>
