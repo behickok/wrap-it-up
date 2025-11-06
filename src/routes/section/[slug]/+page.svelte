@@ -3,6 +3,8 @@
 	import { SECTIONS } from '$lib/types';
 	import FormField from '$lib/components/FormField.svelte';
 	import CredentialsList from '$lib/components/CredentialsList.svelte';
+	import ContactsList from '$lib/components/ContactsList.svelte';
+	import DocumentsList from '$lib/components/DocumentsList.svelte';
 	import AskAI from '$lib/components/AskAI.svelte';
 	import SectionNavigation from '$lib/components/SectionNavigation.svelte';
 
@@ -397,51 +399,7 @@
 				</div>
 
 			{:else if data.slug === 'contacts'}
-				<div class="mb-10">
-					<h2 class="text-2xl font-semibold text-foreground mb-4 pb-3 border-b-2 border-border">Key Contacts</h2>
-					<p class="text-muted-foreground leading-relaxed mb-6">
-						List important people in your life who should be contacted or who can help with various matters.
-					</p>
-					<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-						<FormField
-							label="Relationship"
-							name="relationship"
-							bind:value={formData.relationship}
-							placeholder="e.g., Attorney, Executor, Close Friend"
-						/>
-						<FormField
-							label="Name"
-							name="name"
-							bind:value={formData.name}
-							placeholder="Full name"
-						/>
-						<FormField
-							label="Phone"
-							name="phone"
-							type="tel"
-							bind:value={formData.phone}
-						/>
-						<FormField
-							label="Email"
-							name="email"
-							type="email"
-							bind:value={formData.email}
-						/>
-						<FormField
-							label="Address"
-							name="address"
-							type="textarea"
-							bind:value={formData.address}
-							placeholder="Full address"
-						/>
-						<FormField
-							label="Date of Birth"
-							name="date_of_birth"
-							type="date"
-							bind:value={formData.date_of_birth}
-						/>
-					</div>
-				</div>
+				<ContactsList contacts={Array.isArray(data.sectionData) ? data.sectionData : []} userId={data.userId} />
 
 			{:else if data.slug === 'medical'}
 				<div class="mb-10">
@@ -904,6 +862,9 @@
 						/>
 					</div>
 				</div>
+
+			{:else if data.slug === 'documents'}
+				<DocumentsList documents={Array.isArray(data.sectionData) ? data.sectionData : []} userId={data.userId} />
 
 			{:else if data.slug === 'obituary'}
 				<div class="mb-10">
