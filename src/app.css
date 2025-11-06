@@ -1,11 +1,11 @@
 @import "tailwindcss";
 
 @theme {
-	--color-background: oklch(98% 0.005 200);
+	--color-background: oklch(96% 0.015 70); /* Warm egg-shell background */
 	--color-foreground: oklch(25% 0.02 230);
-	--color-card: oklch(100% 0 0);
+	--color-card: oklch(99% 0.008 70); /* Slightly warm white for cards */
 	--color-card-foreground: oklch(25% 0.02 230);
-	--color-popover: oklch(100% 0 0);
+	--color-popover: oklch(99% 0.008 70);
 	--color-popover-foreground: oklch(25% 0.02 230);
 
 	/* Journey category colors - inspired by bQuest */

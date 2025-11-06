@@ -40,33 +40,20 @@
 	.journey-tabs-container {
 		width: 100%;
 		padding: 0 1rem;
-		margin-bottom: 1rem;
+		margin-bottom: 1.5rem;
 	}
 
 	.journey-tabs {
 		display: flex;
 		gap: 0.75rem;
-		overflow-x: auto;
-		overflow-y: hidden;
+		justify-content: center;
+		flex-wrap: wrap;
 		padding: 0.5rem 0;
-		scrollbar-width: thin;
-		scrollbar-color: oklch(85% 0.02 200) transparent;
-	}
-
-	.journey-tabs::-webkit-scrollbar {
-		height: 6px;
-	}
-
-	.journey-tabs::-webkit-scrollbar-track {
-		background: transparent;
-	}
-
-	.journey-tabs::-webkit-scrollbar-thumb {
-		background: oklch(85% 0.02 200);
-		border-radius: 3px;
 	}
 
 	.journey-tab {
+		--tab-fallback: var(--color-plan);
+		--tab-tone: var(--category-color, var(--tab-fallback));
 		position: relative;
 		display: flex;
 		flex-direction: column;
@@ -74,71 +61,118 @@
 		justify-content: center;
 		padding: 1rem 2rem;
 		min-width: 160px;
-		border: none;
-		background: white;
 		border-radius: 2rem;
 		cursor: pointer;
-		transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+		border: none;
+		appearance: none;
+		color: inherit;
+		background: transparent;
+		overflow: hidden;
 		flex-shrink: 0;
+		transition: transform 350ms ease, box-shadow 350ms ease;
 	}
 
 	.journey-tab::before {
 		content: '';
 		position: absolute;
 		inset: 0;
-		border-radius: 2rem;
-		padding: 2px;
-		background: linear-gradient(135deg, var(--category-color), transparent);
-		-webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-		-webkit-mask-composite: xor;
-		mask-composite: exclude;
-		opacity: 0;
-		transition: opacity 0.3s ease;
+		border-radius: inherit;
+		background: linear-gradient(
+			140deg,
+			color-mix(in srgb, var(--tab-tone) 14%, rgba(255, 255, 255, 0.94)) 0%,
+			color-mix(in srgb, var(--tab-tone) 6%, rgba(255, 255, 255, 0.7)) 100%
+		);
+		border: 1px solid color-mix(in srgb, var(--tab-tone) 16%, rgba(255, 255, 255, 0.65));
+		box-shadow: 0 18px 36px -24px color-mix(in srgb, var(--tab-tone) 52%, rgba(24, 52, 42, 0.45));
+		backdrop-filter: blur(26px);
+		-webkit-backdrop-filter: blur(26px);
+		transition:
+			background 350ms ease,
+			border-color 350ms ease,
+			box-shadow 350ms ease;
 	}
 
-	.journey-tab:hover::before {
-		opacity: 0.5;
+	.journey-tab::after {
+		content: '';
+		position: absolute;
+		inset: 0;
+		border-radius: inherit;
+		background: radial-gradient(circle at 20% 15%, rgba(255, 255, 255, 0.85), transparent 60%);
+		opacity: 0.85;
+		pointer-events: none;
+		transition: opacity 350ms ease;
+	}
+
+	.journey-tab > :global(*) {
+		position: relative;
+		z-index: 1;
+	}
+
+	.journey-tab:hover,
+	.journey-tab:focus-visible {
+		transform: translateY(-4px);
+	}
+
+	.journey-tab:hover::before,
+	.journey-tab:focus-visible::before {
+		background: linear-gradient(
+			145deg,
+			color-mix(in srgb, var(--tab-tone) 21%, rgba(255, 255, 255, 0.98)) 0%,
+			color-mix(in srgb, var(--tab-tone) 10%, rgba(255, 255, 255, 0.72)) 100%
+		);
+		border-color: color-mix(in srgb, var(--tab-tone) 24%, rgba(255, 255, 255, 0.72));
+		box-shadow: 0 28px 52px -28px color-mix(in srgb, var(--tab-tone) 60%, rgba(24, 52, 42, 0.35));
+	}
+
+	.journey-tab:focus-visible {
+		outline: none;
+	}
+
+	.journey-tab:focus-visible::before {
+		box-shadow:
+			0 0 0 3px color-mix(in srgb, var(--tab-tone) 28%, rgba(255, 255, 255, 0.8)),
+			0 28px 52px -28px color-mix(in srgb, var(--tab-tone) 60%, rgba(24, 52, 42, 0.35));
 	}
 
 	.journey-tab.active::before {
-		opacity: 1;
-		padding: 3px;
+		background: linear-gradient(
+			145deg,
+			color-mix(in srgb, var(--tab-tone) 24%, rgba(255, 255, 255, 0.98)) 0%,
+			color-mix(in srgb, var(--tab-tone) 12%, rgba(255, 255, 255, 0.75)) 100%
+		);
+		border-color: color-mix(in srgb, var(--tab-tone) 32%, rgba(255, 255, 255, 0.78));
+		box-shadow:
+			0 34px 68px -28px color-mix(in srgb, var(--tab-tone) 58%, rgba(24, 52, 42, 0.55)),
+			0 0 0 1px color-mix(in srgb, var(--tab-tone) 28%, rgba(255, 255, 255, 0.6)),
+			0 14px 28px -22px color-mix(in srgb, var(--tab-tone) 72%, rgba(30, 58, 49, 0.38));
 	}
 
-	.journey-tab:hover {
-		transform: translateY(-2px);
-		box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
-	}
-
-	.journey-tab.active {
-		background: linear-gradient(135deg, var(--category-color), white);
-		box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-		transform: translateY(-4px) scale(1.05);
+	.journey-tab.active::after {
+		opacity: 0.95;
 	}
 
 	.tab-name {
 		font-size: 1.125rem;
 		font-weight: 600;
-		color: oklch(30% 0.03 230);
-		transition: color 0.3s ease;
+		color: color-mix(in srgb, var(--tab-tone) 55%, rgba(32, 52, 46, 0.9));
 		margin-bottom: 0.25rem;
+		transition: color 300ms ease;
 	}
 
 	.journey-tab.active .tab-name {
-		color: oklch(20% 0.05 230);
+		color: color-mix(in srgb, var(--tab-tone) 85%, rgba(28, 56, 50, 0.95));
 	}
 
 	.tab-description {
 		font-size: 0.75rem;
-		color: oklch(60% 0.02 230);
-		transition: color 0.3s ease;
+		color: color-mix(in srgb, var(--tab-tone) 24%, rgba(76, 92, 88, 0.85));
+		transition: color 300ms ease;
 		white-space: nowrap;
+		font-weight: 500;
 	}
 
 	.journey-tab.active .tab-description {
-		color: oklch(40% 0.03 230);
-		font-weight: 500;
+		color: color-mix(in srgb, var(--tab-tone) 54%, rgba(48, 68, 62, 0.88));
 	}
 
 	/* Mobile responsiveness */
@@ -150,6 +184,24 @@
 		.journey-tabs {
 			gap: 0.5rem;
 			justify-content: flex-start;
+			overflow-x: auto;
+			overflow-y: hidden;
+			flex-wrap: nowrap;
+			scrollbar-width: thin;
+			scrollbar-color: oklch(85% 0.02 200) transparent;
+		}
+
+		.journey-tabs::-webkit-scrollbar {
+			height: 6px;
+		}
+
+		.journey-tabs::-webkit-scrollbar-track {
+			background: transparent;
+		}
+
+		.journey-tabs::-webkit-scrollbar-thumb {
+			background: oklch(85% 0.02 200);
+			border-radius: 3px;
 		}
 
 		.journey-tab {

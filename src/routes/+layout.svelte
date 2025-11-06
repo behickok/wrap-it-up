@@ -43,10 +43,10 @@
 			<div class="grid grid-cols-1 md:grid-cols-3 items-center gap-4">
 				{#if $page.data?.user}
 					<div class="flex justify-center md:justify-start">
-						<a href="/" class="block group">
-							<div class="w-20 h-20 rounded-full bg-white/20 backdrop-blur-md border-2 border-white/40 flex flex-col items-center justify-center shadow-lg transition-all duration-300 group-hover:scale-105 group-hover:bg-white/30">
-								<span class="text-2xl font-bold leading-none">{$page.data?.readinessScore?.total_score || 0}%</span>
-								<span class="text-xs uppercase tracking-wide opacity-90">Ready</span>
+						<a href="/" class="group block">
+							<div class="flex h-24 w-24 flex-col items-center justify-center rounded-full border-2 border-white/40 bg-white/20 shadow-lg backdrop-blur-md transition-all duration-300 group-hover:scale-105 group-hover:bg-white/30">
+								<span class="text-3xl font-bold leading-none">{$page.data?.readinessScore?.total_score ?? 0}</span>
+								<span class="mt-1 text-[10px] font-medium uppercase tracking-wider opacity-90">Points<br />Ready</span>
 							</div>
 						</a>
 					</div>
@@ -55,8 +55,8 @@
 				{/if}
 
 				<a href="/" class="text-center no-underline group">
-					<h1 class="text-3xl md:text-4xl font-bold tracking-tight transition-transform group-hover:scale-105">Wrap It Up</h1>
-					<p class="text-sm md:text-base opacity-90 mt-1">Your Life Planning Journey</p>
+					<h1 class="text-3xl md:text-4xl font-bold tracking-tight transition-transform group-hover:scale-105">rhythm</h1>
+					<!-- <p class="text-sm md:text-base opacity-90 mt-1">Your Life Planning Journey</p> -->
 				</a>
 
 				{#if $page.data?.user}
