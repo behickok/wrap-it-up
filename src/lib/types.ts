@@ -87,6 +87,15 @@ export interface KeyContact {
 	date_of_birth: string;
 }
 
+export interface Document {
+	id?: number;
+	user_id: number;
+	personal_info_id?: number;
+	document_type: string;
+	file_path: string;
+	uploaded_at?: string;
+}
+
 export interface MedicalInfo {
 	id?: number;
 	user_id: number;

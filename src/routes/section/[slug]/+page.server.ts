@@ -66,6 +66,13 @@ export const load: PageServerLoad = async ({ params, platform, locals }) => {
 				sectionData = legalResult.results || [];
 				break;
 
+			case 'documents':
+				const documentsResult = await db.prepare(
+					'SELECT * FROM documents WHERE user_id = ?'
+				).bind(userId).all();
+				sectionData = documentsResult.results || [];
+				break;
+
 			case 'final-days':
 				const finalDaysResult = await db.prepare(
 					'SELECT * FROM final_days WHERE user_id = ?'
@@ -374,6 +381,277 @@ export const actions: Actions = {
 		} catch (error) {
 			console.error('Error deleting credential:', error);
 			return fail(500, { error: 'Failed to delete credential' });
+		}
+	},
+
+	addContact: async ({ request, platform, locals }) => {
+		const userId = locals.user?.id;
+
+		if (!userId) {
+			return fail(401, { error: 'Not authenticated' });
+		}
+
+		const db = platform?.env?.DB;
+
+		if (!db) {
+			return fail(500, { error: 'Database not available' });
+		}
+
+		try {
+			const formData = await request.formData();
+			const data = Object.fromEntries(formData);
+
+			await db.prepare(`
+				INSERT INTO key_contacts (
+					user_id, relationship, name, phone, address, email, date_of_birth
+				) VALUES (?, ?, ?, ?, ?, ?, ?)
+			`).bind(
+				userId,
+				data.relationship || '',
+				data.name || '',
+				data.phone || '',
+				data.address || '',
+				data.email || '',
+				data.date_of_birth || ''
+			).run();
+
+			// Recalculate score for contacts section
+			const contactsResult = await db.prepare(
+				'SELECT * FROM key_contacts WHERE user_id = ?'
+			).bind(userId).all();
+
+			const score = calculateSectionScore('contacts', contactsResult.results || []);
+
+			await db.prepare(`
+				INSERT INTO section_completion (user_id, section_name, score, last_updated)
+				VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+				ON CONFLICT(user_id, section_name) DO UPDATE SET
+					score = excluded.score,
+					last_updated = CURRENT_TIMESTAMP
+			`).bind(userId, 'contacts', score).run();
+
+			return { success: true };
+		} catch (error) {
+			console.error('Error adding contact:', error);
+			return fail(500, { error: 'Failed to add contact' });
+		}
+	},
+
+	updateContact: async ({ request, platform, locals }) => {
+		const userId = locals.user?.id;
+
+		if (!userId) {
+			return fail(401, { error: 'Not authenticated' });
+		}
+
+		const db = platform?.env?.DB;
+
+		if (!db) {
+			return fail(500, { error: 'Database not available' });
+		}
+
+		try {
+			const formData = await request.formData();
+			const data = Object.fromEntries(formData);
+			const contactId = data.id;
+
+			if (!contactId) {
+				return fail(400, { error: 'Contact ID required' });
+			}
+
+			await db.prepare(`
+				UPDATE key_contacts SET
+					relationship = ?,
+					name = ?,
+					phone = ?,
+					address = ?,
+					email = ?,
+					date_of_birth = ?
+				WHERE id = ? AND user_id = ?
+			`).bind(
+				data.relationship || '',
+				data.name || '',
+				data.phone || '',
+				data.address || '',
+				data.email || '',
+				data.date_of_birth || '',
+				contactId,
+				userId
+			).run();
+
+			// Recalculate score for contacts section
+			const contactsResult = await db.prepare(
+				'SELECT * FROM key_contacts WHERE user_id = ?'
+			).bind(userId).all();
+
+			const score = calculateSectionScore('contacts', contactsResult.results || []);
+
+			await db.prepare(`
+				INSERT INTO section_completion (user_id, section_name, score, last_updated)
+				VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+				ON CONFLICT(user_id, section_name) DO UPDATE SET
+					score = excluded.score,
+					last_updated = CURRENT_TIMESTAMP
+			`).bind(userId, 'contacts', score).run();
+
+			return { success: true };
+		} catch (error) {
+			console.error('Error updating contact:', error);
+			return fail(500, { error: 'Failed to update contact' });
+		}
+	},
+
+	deleteContact: async ({ request, platform, locals }) => {
+		const userId = locals.user?.id;
+
+		if (!userId) {
+			return fail(401, { error: 'Not authenticated' });
+		}
+
+		const db = platform?.env?.DB;
+
+		if (!db) {
+			return fail(500, { error: 'Database not available' });
+		}
+
+		try {
+			const formData = await request.formData();
+			const contactId = formData.get('id');
+
+			if (!contactId) {
+				return fail(400, { error: 'Contact ID required' });
+			}
+
+			await db.prepare(
+				'DELETE FROM key_contacts WHERE id = ? AND user_id = ?'
+			).bind(contactId, userId).run();
+
+			// Recalculate score for contacts section
+			const contactsResult = await db.prepare(
+				'SELECT * FROM key_contacts WHERE user_id = ?'
+			).bind(userId).all();
+
+			const score = calculateSectionScore('contacts', contactsResult.results || []);
+
+			await db.prepare(`
+				INSERT INTO section_completion (user_id, section_name, score, last_updated)
+				VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+				ON CONFLICT(user_id, section_name) DO UPDATE SET
+					score = excluded.score,
+					last_updated = CURRENT_TIMESTAMP
+			`).bind(userId, 'contacts', score).run();
+
+			return { success: true };
+		} catch (error) {
+			console.error('Error deleting contact:', error);
+			return fail(500, { error: 'Failed to delete contact' });
+		}
+	},
+
+	addDocument: async ({ request, platform, locals }) => {
+		const userId = locals.user?.id;
+
+		if (!userId) {
+			return fail(401, { error: 'Not authenticated' });
+		}
+
+		const db = platform?.env?.DB;
+
+		if (!db) {
+			return fail(500, { error: 'Database not available' });
+		}
+
+		try {
+			const formData = await request.formData();
+			const data = Object.fromEntries(formData);
+
+			await db.prepare(`
+				INSERT INTO documents (
+					user_id, document_type, file_path, uploaded_at
+				) VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+			`).bind(
+				userId,
+				data.document_type || '',
+				data.file_path || ''
+			).run();
+
+			return { success: true };
+		} catch (error) {
+			console.error('Error adding document:', error);
+			return fail(500, { error: 'Failed to add document' });
+		}
+	},
+
+	updateDocument: async ({ request, platform, locals }) => {
+		const userId = locals.user?.id;
+
+		if (!userId) {
+			return fail(401, { error: 'Not authenticated' });
+		}
+
+		const db = platform?.env?.DB;
+
+		if (!db) {
+			return fail(500, { error: 'Database not available' });
+		}
+
+		try {
+			const formData = await request.formData();
+			const data = Object.fromEntries(formData);
+			const documentId = data.id;
+
+			if (!documentId) {
+				return fail(400, { error: 'Document ID required' });
+			}
+
+			await db.prepare(`
+				UPDATE documents SET
+					document_type = ?,
+					file_path = ?
+				WHERE id = ? AND user_id = ?
+			`).bind(
+				data.document_type || '',
+				data.file_path || '',
+				documentId,
+				userId
+			).run();
+
+			return { success: true };
+		} catch (error) {
+			console.error('Error updating document:', error);
+			return fail(500, { error: 'Failed to update document' });
+		}
+	},
+
+	deleteDocument: async ({ request, platform, locals }) => {
+		const userId = locals.user?.id;
+
+		if (!userId) {
+			return fail(401, { error: 'Not authenticated' });
+		}
+
+		const db = platform?.env?.DB;
+
+		if (!db) {
+			return fail(500, { error: 'Database not available' });
+		}
+
+		try {
+			const formData = await request.formData();
+			const documentId = formData.get('id');
+
+			if (!documentId) {
+				return fail(400, { error: 'Document ID required' });
+			}
+
+			await db.prepare(
+				'DELETE FROM documents WHERE id = ? AND user_id = ?'
+			).bind(documentId, userId).run();
+
+			return { success: true };
+		} catch (error) {
+			console.error('Error deleting document:', error);
+			return fail(500, { error: 'Failed to delete document' });
 		}
 	}
 };
