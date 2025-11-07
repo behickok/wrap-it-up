@@ -1,8 +1,20 @@
 @import "tailwindcss";
-@plugin "daisyui" {
-  themes: retro  --default;
+@import "tailwindcss";
+@plugin "daisyui";
+@plugin "daisyui/theme" {
+  name: "retro";
+  default: true;
+  --color-primary: oklch(0.6619 0.0939 191.51);
+  --text-primary: white
 }
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+:root {
+  --color-plan: var(--p);
+  --color-care: var(--s);
+  --color-connect: var(--a);
+  --color-support: var(--in);
+  --color-legacy: var(--wa);
+}
