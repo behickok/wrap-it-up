@@ -5,6 +5,7 @@
 	import CredentialsList from '$lib/components/CredentialsList.svelte';
 	import ContactsList from '$lib/components/ContactsList.svelte';
 	import DocumentsList from '$lib/components/DocumentsList.svelte';
+	import LegalDocumentsList from '$lib/components/LegalDocumentsList.svelte';
 	import AskAI from '$lib/components/AskAI.svelte';
 	import SectionNavigation from '$lib/components/SectionNavigation.svelte';
 
@@ -12,6 +13,8 @@
 
 	const section = $derived(SECTIONS.find(s => s.id === data.slug));
 	const sectionData = $derived(data.sectionData || {});
+	const standaloneSections = ['credentials', 'contacts', 'documents', 'legal'];
+	const isStandaloneSection = $derived(standaloneSections.includes(data.slug));
 
 	let formData = $state({ ...sectionData });
 	let saving = $state(false);
@@ -60,6 +63,23 @@
 			✗ {form.error}
 		</div>
 	{/if}
+
+	{#if isStandaloneSection}
+		<div class="card shadow-xl p-8 mb-6" style="background-color: var(--color-card);">
+			{#if data.slug === 'credentials'}
+				<CredentialsList credentials={Array.isArray(data.sectionData) ? data.sectionData : []} userId={data.userId} />
+
+			{:else if data.slug === 'contacts'}
+				<ContactsList contacts={Array.isArray(data.sectionData) ? data.sectionData : []} userId={data.userId} />
+
+			{:else if data.slug === 'legal'}
+				<LegalDocumentsList documents={Array.isArray(data.sectionData) ? data.sectionData : []} userId={data.userId} />
+
+			{:else if data.slug === 'documents'}
+				<DocumentsList documents={Array.isArray(data.sectionData) ? data.sectionData : []} userId={data.userId} />
+			{/if}
+		</div>
+	{:else}
 
 	<form method="POST" action="?/save" use:enhance={() => {
 		saving = true;
@@ -272,9 +292,6 @@
 					</div>
 				</div>
 
-			{:else if data.slug === 'credentials'}
-				<CredentialsList credentials={Array.isArray(data.sectionData) ? data.sectionData : []} userId={data.userId} />
-
 			{:else if data.slug === 'family'}
 				<div class="mb-10">
 					<h2 class="text-2xl font-semibold text-foreground mb-4 pb-3 border-b-2 border-border">Family History</h2>
@@ -397,9 +414,6 @@
 						/>
 					</div>
 				</div>
-
-			{:else if data.slug === 'contacts'}
-				<ContactsList contacts={Array.isArray(data.sectionData) ? data.sectionData : []} userId={data.userId} />
 
 			{:else if data.slug === 'medical'}
 				<div class="mb-10">
@@ -820,52 +834,6 @@
 					</div>
 				</div>
 
-			{:else if data.slug === 'legal'}
-				<div class="mb-10">
-					<h2 class="text-2xl font-semibold text-foreground mb-4 pb-3 border-b-2 border-border">Legal Documents</h2>
-					<p class="text-muted-foreground leading-relaxed mb-6">
-						Track important legal documents like wills, trusts, power of attorney, etc.
-					</p>
-					<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-						<FormField
-							label="Document Type"
-							name="document_type"
-							type="select"
-							bind:value={formData.document_type}
-							options={['Will', 'Trust', 'Power of Attorney', 'Healthcare Directive', 'Living Will', 'Deed', 'Birth Certificate', 'Marriage Certificate', 'Divorce Decree', 'Other']}
-						/>
-						<FormField
-							label="Location"
-							name="location"
-							type="textarea"
-							bind:value={formData.location}
-							placeholder="Where the document is stored"
-						/>
-						<FormField
-							label="Attorney Name"
-							name="attorney_name"
-							bind:value={formData.attorney_name}
-						/>
-						<FormField
-							label="Attorney Contact"
-							name="attorney_contact"
-							bind:value={formData.attorney_contact}
-							placeholder="Phone or email"
-						/>
-						<FormField
-							label="Notes"
-							name="notes"
-							type="textarea"
-							bind:value={formData.notes}
-							placeholder="Additional details or instructions"
-							rows={4}
-						/>
-					</div>
-				</div>
-
-			{:else if data.slug === 'documents'}
-				<DocumentsList documents={Array.isArray(data.sectionData) ? data.sectionData : []} userId={data.userId} />
-
 			{:else if data.slug === 'obituary'}
 				<div class="mb-10">
 					<h2 class="text-2xl font-semibold text-foreground mb-4 pb-3 border-b-2 border-border">Obituary Planning</h2>
@@ -1242,6 +1210,7 @@
 			<a href="/" class="btn btn-outline">Cancel</a>
 		</div>
 	</form>
+	{/if}
 
 	<!-- Bottom Navigation -->
 	<SectionNavigation currentSectionId={data.slug} />

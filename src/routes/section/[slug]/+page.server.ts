@@ -653,5 +653,154 @@ export const actions: Actions = {
 			console.error('Error deleting document:', error);
 			return fail(500, { error: 'Failed to delete document' });
 		}
+	},
+
+	addLegalDocument: async ({ request, platform, locals }) => {
+		const userId = locals.user?.id;
+
+		if (!userId) {
+			return fail(401, { error: 'Not authenticated' });
+		}
+
+		const db = platform?.env?.DB;
+
+		if (!db) {
+			return fail(500, { error: 'Database not available' });
+		}
+
+		try {
+			const formData = await request.formData();
+			const data = Object.fromEntries(formData);
+
+			await db.prepare(`
+				INSERT INTO legal_documents (
+					user_id, document_type, location, attorney_name, attorney_contact, notes
+				) VALUES (?, ?, ?, ?, ?, ?)
+			`).bind(
+				userId,
+				data.document_type || '',
+				data.location || '',
+				data.attorney_name || '',
+				data.attorney_contact || '',
+				data.notes || ''
+			).run();
+
+			// Recalculate score for legal section
+			const legalResult = await db.prepare(
+				'SELECT * FROM legal_documents WHERE user_id = ?'
+			).bind(userId).all();
+
+			const score = calculateSectionScore('legal', legalResult.results || []);
+			await db.prepare(`
+				INSERT OR REPLACE INTO section_completion (user_id, section_name, score, last_updated)
+				VALUES (?, ?, ?, datetime('now'))
+			`).bind(userId, 'legal', score).run();
+
+			return { success: true };
+		} catch (error) {
+			console.error('Error adding legal document:', error);
+			return fail(500, { error: 'Failed to add legal document' });
+		}
+	},
+
+	updateLegalDocument: async ({ request, platform, locals }) => {
+		const userId = locals.user?.id;
+
+		if (!userId) {
+			return fail(401, { error: 'Not authenticated' });
+		}
+
+		const db = platform?.env?.DB;
+
+		if (!db) {
+			return fail(500, { error: 'Database not available' });
+		}
+
+		try {
+			const formData = await request.formData();
+			const data = Object.fromEntries(formData);
+			const documentId = data.id;
+
+			if (!documentId) {
+				return fail(400, { error: 'Document ID required' });
+			}
+
+			await db.prepare(`
+				UPDATE legal_documents SET
+					document_type = ?,
+					location = ?,
+					attorney_name = ?,
+					attorney_contact = ?,
+					notes = ?
+				WHERE id = ? AND user_id = ?
+			`).bind(
+				data.document_type || '',
+				data.location || '',
+				data.attorney_name || '',
+				data.attorney_contact || '',
+				data.notes || '',
+				documentId,
+				userId
+			).run();
+
+			// Recalculate score for legal section
+			const legalResult = await db.prepare(
+				'SELECT * FROM legal_documents WHERE user_id = ?'
+			).bind(userId).all();
+
+			const score = calculateSectionScore('legal', legalResult.results || []);
+			await db.prepare(`
+				INSERT OR REPLACE INTO section_completion (user_id, section_name, score, last_updated)
+				VALUES (?, ?, ?, datetime('now'))
+			`).bind(userId, 'legal', score).run();
+
+			return { success: true };
+		} catch (error) {
+			console.error('Error updating legal document:', error);
+			return fail(500, { error: 'Failed to update legal document' });
+		}
+	},
+
+	deleteLegalDocument: async ({ request, platform, locals }) => {
+		const userId = locals.user?.id;
+
+		if (!userId) {
+			return fail(401, { error: 'Not authenticated' });
+		}
+
+		const db = platform?.env?.DB;
+
+		if (!db) {
+			return fail(500, { error: 'Database not available' });
+		}
+
+		try {
+			const formData = await request.formData();
+			const documentId = formData.get('id');
+
+			if (!documentId) {
+				return fail(400, { error: 'Document ID required' });
+			}
+
+			await db.prepare(
+				'DELETE FROM legal_documents WHERE id = ? AND user_id = ?'
+			).bind(documentId, userId).run();
+
+			// Recalculate score for legal section
+			const legalResult = await db.prepare(
+				'SELECT * FROM legal_documents WHERE user_id = ?'
+			).bind(userId).all();
+
+			const score = calculateSectionScore('legal', legalResult.results || []);
+			await db.prepare(`
+				INSERT OR REPLACE INTO section_completion (user_id, section_name, score, last_updated)
+				VALUES (?, ?, ?, datetime('now'))
+			`).bind(userId, 'legal', score).run();
+
+			return { success: true };
+		} catch (error) {
+			console.error('Error deleting legal document:', error);
+			return fail(500, { error: 'Failed to delete legal document' });
+		}
 	}
 };

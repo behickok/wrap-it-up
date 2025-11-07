@@ -3,11 +3,17 @@
 	import { SECTIONS } from '$lib/types';
 	import FormField from '$lib/components/FormField.svelte';
 	import AskAI from '$lib/components/AskAI.svelte';
+	import CredentialsList from '$lib/components/CredentialsList.svelte';
+	import LegalDocumentsList from '$lib/components/LegalDocumentsList.svelte';
+	import ContactsList from '$lib/components/ContactsList.svelte';
 
 	let { sectionId, data }: { sectionId: string; data: any } = $props();
 
 	const section = $derived(SECTIONS.find((s) => s.id === sectionId));
-	const sectionData = $derived(data?.sectionData?.[sectionId] || {});
+	const sectionData = $derived(data?.sectionData?.[sectionId] || data?.sectionData || {});
+	const userId = $derived(data?.userId || data?.user?.id);
+	const standaloneSections = ['credentials', 'contacts', 'legal'];
+	const isStandaloneSection = $derived(standaloneSections.includes(sectionId));
 
 	let formData = $state({ ...sectionData });
 	let saving = $state(false);
@@ -32,9 +38,22 @@
 		<AskAI sectionName={section?.name || ''} />
 	</div>
 
-	<form method="POST" action="/section/{sectionId}?/save">
+	{#if isStandaloneSection}
 		<div class="card shadow-xl p-8 mb-6" style="background-color: var(--color-card);">
-			{#if sectionId === 'personal'}
+			{#if sectionId === 'credentials'}
+				<CredentialsList credentials={Array.isArray(sectionData) ? sectionData : []} {userId} />
+
+			{:else if sectionId === 'contacts'}
+				<ContactsList contacts={Array.isArray(sectionData) ? sectionData : []} {userId} />
+
+			{:else if sectionId === 'legal'}
+				<LegalDocumentsList documents={Array.isArray(sectionData) ? sectionData : []} {userId} />
+			{/if}
+		</div>
+	{:else}
+		<form method="POST" action="/section/{sectionId}?/save">
+			<div class="card shadow-xl p-8 mb-6" style="background-color: var(--color-card);">
+				{#if sectionId === 'personal'}
 				<div class="mb-10">
 					<h3 class="text-2xl font-semibold text-foreground mb-4 pb-3 border-b-2 border-border">
 						Basic Information
@@ -247,57 +266,6 @@
 					</div>
 				</div>
 
-			{:else if sectionId === 'credentials'}
-				<div class="mb-10">
-					<h3 class="text-2xl font-semibold text-foreground mb-4 pb-3 border-b-2 border-border">
-						Usernames & Passwords
-					</h3>
-					<p class="text-muted-foreground leading-relaxed mb-6">
-						Store your important login credentials securely. This information will help your loved ones access important accounts when needed.
-					</p>
-					<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-						<FormField
-							label="Site Name"
-							name="site_name"
-							bind:value={formData.site_name}
-							placeholder="e.g., Bank of America, Gmail"
-						/>
-						<FormField
-							label="Web Address"
-							name="web_address"
-							bind:value={formData.web_address}
-							placeholder="https://www.example.com"
-						/>
-						<FormField
-							label="Username"
-							name="username"
-							bind:value={formData.username}
-							placeholder="Your username or email"
-						/>
-						<FormField
-							label="Password"
-							name="password"
-							type="password"
-							bind:value={formData.password}
-							placeholder="Your password"
-						/>
-						<FormField
-							label="Category"
-							name="category"
-							type="select"
-							bind:value={formData.category}
-							options={['email', 'banking', 'social', 'utilities', 'government', 'other']}
-						/>
-						<FormField
-							label="Other Information"
-							name="other_info"
-							type="textarea"
-							bind:value={formData.other_info}
-							placeholder="Security questions, recovery codes, notes"
-						/>
-					</div>
-				</div>
-
 			{:else if sectionId === 'family'}
 				<div class="mb-10">
 					<h3 class="text-2xl font-semibold text-foreground mb-4 pb-3 border-b-2 border-border">
@@ -421,55 +389,6 @@
 							type="textarea"
 							bind:value={formData.other_info}
 							placeholder="Feeding schedule, special needs, behaviors"
-						/>
-					</div>
-				</div>
-
-			{:else if sectionId === 'contacts'}
-				<div class="mb-10">
-					<h3 class="text-2xl font-semibold text-foreground mb-4 pb-3 border-b-2 border-border">
-						Key Contacts
-					</h3>
-					<p class="text-muted-foreground leading-relaxed mb-6">
-						List important people in your life who should be contacted or who can help with various matters.
-					</p>
-					<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-						<FormField
-							label="Relationship"
-							name="relationship"
-							bind:value={formData.relationship}
-							placeholder="e.g., Attorney, Executor, Close Friend"
-						/>
-						<FormField
-							label="Name"
-							name="name"
-							bind:value={formData.name}
-							placeholder="Full name"
-						/>
-						<FormField
-							label="Phone"
-							name="phone"
-							type="tel"
-							bind:value={formData.phone}
-						/>
-						<FormField
-							label="Email"
-							name="email"
-							type="email"
-							bind:value={formData.email}
-						/>
-						<FormField
-							label="Address"
-							name="address"
-							type="textarea"
-							bind:value={formData.address}
-							placeholder="Full address"
-						/>
-						<FormField
-							label="Date of Birth"
-							name="date_of_birth"
-							type="date"
-							bind:value={formData.date_of_birth}
 						/>
 					</div>
 				</div>
@@ -907,62 +826,6 @@
 					</div>
 				</div>
 
-			{:else if sectionId === 'legal'}
-				<div class="mb-10">
-					<h3 class="text-2xl font-semibold text-foreground mb-4 pb-3 border-b-2 border-border">
-						Legal Documents
-					</h3>
-					<p class="text-muted-foreground leading-relaxed mb-6">
-						Track important legal documents like wills, trusts, power of attorney, etc.
-					</p>
-					<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-						<FormField
-							label="Document Type"
-							name="document_type"
-							type="select"
-							bind:value={formData.document_type}
-							options={[
-								'Will',
-								'Trust',
-								'Power of Attorney',
-								'Healthcare Directive',
-								'Living Will',
-								'Deed',
-								'Birth Certificate',
-								'Marriage Certificate',
-								'Divorce Decree',
-								'Other'
-							]}
-						/>
-						<FormField
-							label="Location"
-							name="location"
-							type="textarea"
-							bind:value={formData.location}
-							placeholder="Where the document is stored"
-						/>
-						<FormField
-							label="Attorney Name"
-							name="attorney_name"
-							bind:value={formData.attorney_name}
-						/>
-						<FormField
-							label="Attorney Contact"
-							name="attorney_contact"
-							bind:value={formData.attorney_contact}
-							placeholder="Phone or email"
-						/>
-						<FormField
-							label="Notes"
-							name="notes"
-							type="textarea"
-							bind:value={formData.notes}
-							placeholder="Additional details or instructions"
-							rows={4}
-						/>
-					</div>
-				</div>
-
 			{:else if sectionId === 'obituary'}
 				<div class="mb-10">
 					<h3 class="text-2xl font-semibold text-foreground mb-4 pb-3 border-b-2 border-border">
@@ -1329,26 +1192,21 @@
 			{:else}
 				<div class="mb-10">
 					<p class="text-center py-12 text-muted-foreground text-lg">
-						Content for {section?.name} will be displayed here when you navigate to this section.
-						<br />
-						<a href="/section/{sectionId}" class="text-primary hover:underline mt-4 inline-block">
-							Go to full section page →
-						</a>
+						Content for {section?.name} is coming soon to the main dashboard experience.
 					</p>
 				</div>
 			{/if}
-		</div>
+			</div>
 
-		<div class="flex gap-4 justify-end">
-			<button type="submit" class="btn" style="background-color: var(--color-primary); color: var(--color-primary-foreground);" disabled={saving}>
-				{#if saving}
-					Saving...
-				{:else}
-					Save Progress
-				{/if}
-			</button>
-		</div>
-	</form>
+			<div class="flex gap-4 justify-end">
+				<button type="submit" class="btn" style="background-color: var(--color-primary); color: var(--color-primary-foreground);" disabled={saving}>
+					{#if saving}
+						Saving...
+					{:else}
+						Save Progress
+					{/if}
+				</button>
+			</div>
+		</form>
+	{/if}
 </div>
-
-
