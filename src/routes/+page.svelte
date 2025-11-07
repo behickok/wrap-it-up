@@ -4,8 +4,43 @@
 	import JourneyTabs from '$lib/components/JourneyTabs.svelte';
 	import JourneyVisual from '$lib/components/JourneyVisual.svelte';
 	import SectionContent from '$lib/components/SectionContent.svelte';
+	import { exportToPDF } from '$lib/pdfExport';
 
 	let { data } = $props();
+
+	let isExporting = $state(false);
+	let exportStatus = $state<{ type: 'success' | 'error'; message: string } | null>(null);
+
+	async function handleExport() {
+		isExporting = true;
+		exportStatus = null;
+
+		try {
+			const result = await exportToPDF();
+			if (result.success) {
+				exportStatus = {
+					type: 'success',
+					message: `PDF exported successfully: ${result.filename}`
+				};
+			} else {
+				exportStatus = {
+					type: 'error',
+					message: result.error || 'Failed to export PDF'
+				};
+			}
+		} catch (error) {
+			exportStatus = {
+				type: 'error',
+				message: 'An unexpected error occurred'
+			};
+		} finally {
+			isExporting = false;
+			// Clear status after 5 seconds
+			setTimeout(() => {
+				exportStatus = null;
+			}, 5000);
+		}
+	}
 
 	const readinessScore = $derived(data.readinessScore);
 	const motivationalMessage = $derived(getMotivationalMessage(readinessScore.total_score));
@@ -84,6 +119,44 @@
 </script>
 
 <div class="journey-dashboard">
+	<!-- Export Section -->
+	<div class="export-header">
+		<div class="export-info">
+			<h2 class="export-title">Your End-of-Life Planning Document</h2>
+			<p class="export-description">
+				Export your completed information to a professionally formatted PDF document
+			</p>
+		</div>
+		<button
+			class="btn btn-primary export-button"
+			onclick={handleExport}
+			disabled={isExporting}
+		>
+			{#if isExporting}
+				<span class="loading loading-spinner loading-sm"></span>
+				Generating PDF...
+			{:else}
+				<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+				</svg>
+				Export to PDF
+			{/if}
+		</button>
+	</div>
+
+	{#if exportStatus}
+		<div class="alert {exportStatus.type === 'success' ? 'alert-success' : 'alert-error'} mb-6">
+			<svg class="w-6 h-6 shrink-0 stroke-current" fill="none" viewBox="0 0 24 24">
+				{#if exportStatus.type === 'success'}
+					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+				{:else}
+					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+				{/if}
+			</svg>
+			<span>{exportStatus.message}</span>
+		</div>
+	{/if}
+
 	<div class="journey-visual-container mb-8 overflow-hidden rounded-2xl">
 		<JourneyVisual {activeCategory} />
 	</div>
@@ -166,6 +239,75 @@
 </div>
 
 <style>
+	/* Export Header */
+	.export-header {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		gap: 2rem;
+		padding: 2rem;
+		margin-bottom: 2rem;
+		background: linear-gradient(
+			135deg,
+			color-mix(in oklch, var(--color-primary) 12%, var(--color-base-100)),
+			color-mix(in oklch, var(--color-primary) 6%, var(--color-base-100))
+		);
+		border: 1px solid color-mix(in oklch, var(--color-primary) 30%, transparent 70%);
+		border-radius: 1rem;
+		box-shadow:
+			0 4px 6px -1px rgba(0, 0, 0, 0.06),
+			0 2px 4px -1px rgba(0, 0, 0, 0.04);
+	}
+
+	.export-info {
+		flex: 1;
+	}
+
+	.export-title {
+		font-size: 1.5rem;
+		font-weight: 700;
+		color: color-mix(in oklch, var(--color-base-content) 90%, transparent 10%);
+		margin-bottom: 0.5rem;
+	}
+
+	.export-description {
+		font-size: 0.9375rem;
+		color: color-mix(in oklch, var(--color-base-content) 70%, transparent 30%);
+	}
+
+	.export-button {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		padding: 0.75rem 1.5rem;
+		font-size: 1rem;
+		font-weight: 600;
+		white-space: nowrap;
+		transition: all 0.2s ease;
+	}
+
+	.export-button:disabled {
+		opacity: 0.7;
+		cursor: not-allowed;
+	}
+
+	@media (max-width: 768px) {
+		.export-header {
+			flex-direction: column;
+			align-items: stretch;
+			gap: 1rem;
+		}
+
+		.export-button {
+			width: 100%;
+			justify-content: center;
+		}
+
+		.export-title {
+			font-size: 1.25rem;
+		}
+	}
+
 	.journey-visual-container {
 		box-shadow:
 			0 10px 15px -3px rgba(0, 0, 0, 0.08),
