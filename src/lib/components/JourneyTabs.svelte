@@ -82,6 +82,16 @@
 			border-radius: 0;
 		}
 
+		.journey-tab:first-child {
+			border-top-left-radius: 1rem;
+			border-bottom-left-radius: 1rem;
+		}
+
+		.journey-tab:last-child {
+			border-top-right-radius: 1rem;
+			border-bottom-right-radius: 1rem;
+		}
+
 		.journey-tab::after {
 			content: '';
 			position: absolute;
