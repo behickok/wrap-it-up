@@ -57,3 +57,147 @@
   --color-support: var(--in);
   --color-legacy: var(--wa);
 }
+
+/* Glass Card Styles */
+.glass-card {
+  background: linear-gradient(
+    135deg,
+    color-mix(in oklch, var(--accent-color, var(--color-base-100)) 15%, white),
+    color-mix(in oklch, var(--accent-color, var(--color-base-100)) 8%, white)
+  );
+  backdrop-filter: blur(10px);
+  border: 1px solid color-mix(in oklch, var(--accent-color, var(--color-base-300)) 30%, transparent 70%);
+  border-radius: 1rem;
+  box-shadow:
+    0 4px 6px -1px rgba(0, 0, 0, 0.05),
+    0 2px 4px -1px rgba(0, 0, 0, 0.03),
+    inset 0 1px 0 0 color-mix(in oklch, var(--accent-color, white) 20%, transparent 80%);
+  transition: all 0.3s ease;
+}
+
+.card-button {
+  border: none;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+  min-width: 280px;
+}
+
+.card-button:hover .glass-card {
+  transform: translateY(-2px);
+  box-shadow:
+    0 10px 15px -3px rgba(0, 0, 0, 0.08),
+    0 4px 6px -2px rgba(0, 0, 0, 0.04),
+    inset 0 1px 0 0 color-mix(in oklch, var(--accent-color, white) 30%, transparent 70%);
+  border-color: color-mix(in oklch, var(--accent-color, var(--color-base-300)) 50%, transparent 50%);
+}
+
+.card-button.active .glass-card {
+  background: linear-gradient(
+    135deg,
+    color-mix(in oklch, var(--accent-color, var(--color-primary)) 25%, white),
+    color-mix(in oklch, var(--accent-color, var(--color-primary)) 15%, white)
+  );
+  border-color: color-mix(in oklch, var(--accent-color, var(--color-primary)) 60%, transparent 40%);
+  box-shadow:
+    0 10px 15px -3px color-mix(in oklch, var(--accent-color, black) 15%, transparent 85%),
+    0 4px 6px -2px color-mix(in oklch, var(--accent-color, black) 10%, transparent 90%),
+    inset 0 1px 0 0 color-mix(in oklch, var(--accent-color, white) 40%, transparent 60%);
+}
+
+.text-glass-title {
+  color: color-mix(in oklch, var(--accent-color, var(--color-base-content)) 80%, var(--color-base-content) 20%);
+}
+
+/* Section Navigation Styles */
+.section-navigation {
+  margin: 2rem 0;
+}
+
+.nav-link {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem;
+  border-radius: 0.75rem;
+  background: linear-gradient(
+    135deg,
+    color-mix(in oklch, var(--color-base-100) 98%, var(--color-primary)),
+    var(--color-base-100)
+  );
+  border: 1px solid var(--color-base-300);
+  text-decoration: none;
+  color: var(--color-base-content);
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.04);
+}
+
+.nav-link:hover {
+  transform: translateX(4px);
+  background: linear-gradient(
+    135deg,
+    color-mix(in oklch, var(--color-base-100) 95%, var(--color-primary)),
+    var(--color-base-100)
+  );
+  border-color: color-mix(in oklch, var(--color-primary) 40%, transparent 60%);
+  box-shadow:
+    0 4px 6px -1px rgba(0, 0, 0, 0.06),
+    0 2px 4px -1px rgba(0, 0, 0, 0.04);
+}
+
+.nav-link.prev-link:hover {
+  transform: translateX(-4px);
+}
+
+.nav-arrow {
+  color: color-mix(in oklch, var(--color-primary) 70%, var(--color-base-content) 30%);
+  transition: color 0.2s ease;
+}
+
+.nav-link:hover .nav-arrow {
+  color: var(--color-primary);
+}
+
+.nav-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.nav-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-base-content);
+  opacity: 0.6;
+  font-weight: 500;
+}
+
+.nav-title {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--color-base-content);
+  margin-top: 0.25rem;
+}
+
+.nav-category-indicator {
+  width: 100%;
+  height: 3px;
+  border-radius: 2px;
+  margin-top: 0.5rem;
+  opacity: 0.6;
+  transition: opacity 0.2s ease;
+}
+
+.nav-link:hover .nav-category-indicator {
+  opacity: 1;
+}
+
+.nav-placeholder {
+  width: 100%;
+  min-height: 4rem;
+}
+
+.current-indicator {
+  min-width: 120px;
+  text-align: center;
+}

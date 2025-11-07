@@ -42,7 +42,7 @@
 </script>
 
 <div class="journey-dashboard">
-	<div class="mb-8 overflow-hidden rounded-2xl shadow-md">
+	<div class="journey-visual-container mb-8 overflow-hidden rounded-2xl">
 		<JourneyVisual {activeCategory} />
 	</div>
 
@@ -87,7 +87,7 @@
 		{/if}
 	{/key}
 
-	<div class="card shadow-xl bg-gradient-to-br" style="background: linear-gradient(to bottom right, var(--color-accent), color-mix(in srgb, var(--color-accent) 50%, transparent));">
+	<div class="help-card card shadow-xl">
 		<div class="card-body">
 			<h2 class="card-title flex items-center gap-2">
 				<svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -100,10 +100,34 @@
 				</svg>
 				Need Help?
 			</h2>
-			<p class="leading-relaxed" style="color: var(--color-muted-foreground);">
+			<p class="leading-relaxed help-text">
 				Each section has an "Ask AI" feature to help you think through what information to
 				include. Use the journey tabs above to navigate between different life planning areas.
 			</p>
 		</div>
 	</div>
 </div>
+
+<style>
+	.journey-visual-container {
+		box-shadow:
+			0 10px 15px -3px rgba(0, 0, 0, 0.08),
+			0 4px 6px -2px rgba(0, 0, 0, 0.04),
+			inset 0 1px 0 0 rgba(255, 255, 255, 0.1);
+		border: 1px solid color-mix(in oklch, var(--color-base-300) 60%, transparent 40%);
+	}
+
+	.help-card {
+		background: linear-gradient(
+			135deg,
+			color-mix(in oklch, var(--color-accent) 12%, var(--color-base-100)),
+			color-mix(in oklch, var(--color-accent) 6%, var(--color-base-100))
+		);
+		border: 1px solid color-mix(in oklch, var(--color-accent) 30%, transparent 70%);
+	}
+
+	.help-text {
+		color: color-mix(in oklch, var(--color-base-content) 85%, transparent 15%);
+		opacity: 0.9;
+	}
+</style>
