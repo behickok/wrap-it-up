@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
         calculateContactsScore,
         calculateCredentialsScore,
+        calculateEmploymentScore,
         calculateFieldBasedScore,
         calculateFinancialScore,
         calculateInsuranceScore,
@@ -10,6 +11,7 @@ import {
 import type {
         BankAccount,
         Credential,
+        Employment,
         Insurance,
         KeyContact,
         Pet
@@ -274,6 +276,53 @@ describe('calculateFinancialScore', () => {
                 ];
 
                 expect(calculateFinancialScore(accounts)).toBe(94); // 30 base + 30 diversity + 24 completeness + 10 bonus
+        });
+});
+
+describe('calculateEmploymentScore', () => {
+        it('rewards current positions, diverse employers, and completeness', () => {
+                const jobs: Employment[] = [
+                        {
+                                user_id: 1,
+                                employer_name: 'Wrap It Up',
+                                address: '123 Memory Ln',
+                                phone: '555-0001',
+                                position: 'Lead Planner',
+                                hire_date: '2021-03-01',
+                                supervisor: 'Jordan',
+                                supervisor_contact: '555-2222',
+                                is_current: true
+                        },
+                        {
+                                user_id: 1,
+                                employer_name: 'Legacy Co',
+                                address: '456 Future Ave',
+                                phone: '555-0002',
+                                position: 'Archivist',
+                                hire_date: '2018-04-15',
+                                supervisor: 'Alex',
+                                supervisor_contact: '555-3333',
+                                is_current: false
+                        },
+                        {
+                                user_id: 1,
+                                employer_name: 'Care Labs',
+                                address: '789 Plan Rd',
+                                phone: '555-0003',
+                                position: 'Coordinator',
+                                hire_date: '2015-07-20',
+                                supervisor: 'Sam',
+                                supervisor_contact: '555-4444',
+                                is_current: false
+                        }
+                ];
+
+                // 30 base + 20 current + 20 diversity (3 employers) + 18 completeness
+                expect(calculateEmploymentScore(jobs)).toBe(88);
+        });
+
+        it('returns zero when no employment history is provided', () => {
+                expect(calculateEmploymentScore([])).toBe(0);
         });
 });
 

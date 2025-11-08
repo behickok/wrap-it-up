@@ -6,7 +6,15 @@ import {
         getCompletionColor,
         getMotivationalMessage
 } from './readinessScore';
-import type { BankAccount, Credential, Insurance, KeyContact, Pet, SectionCompletion } from './types';
+import type {
+        BankAccount,
+        Credential,
+        Employment,
+        Insurance,
+        KeyContact,
+        Pet,
+        SectionCompletion
+} from './types';
 import { SECTIONS } from './types';
 import {
         calculateCredentialsScore,
@@ -14,6 +22,7 @@ import {
         calculateFieldBasedScore,
         calculateFinancialScore,
         calculateInsuranceScore,
+        calculateEmploymentScore,
         calculatePetsScore,
         SECTION_FIELDS
 } from './scoringRules';
@@ -76,6 +85,10 @@ describe('calculateReadinessScore', () => {
 });
 
 describe('calculateSectionScore', () => {
+        it('returns zero when no data is provided', () => {
+                expect(calculateSectionScore('personal', undefined)).toBe(0);
+        });
+
         it('returns the credential scoring total for credential sections', () => {
                 const credentials: Credential[] = [
                         {
@@ -215,6 +228,38 @@ describe('calculateSectionScore', () => {
 
                 const expected = calculateFinancialScore(accounts);
                 const result = calculateSectionScore('financial', accounts);
+
+                expect(result).toBe(expected);
+        });
+
+        it('delegates to employment scoring for employment sections', () => {
+                const jobs: Employment[] = [
+                        {
+                                user_id: 1,
+                                employer_name: 'Wrap It Up',
+                                address: '123 Memory Ln',
+                                phone: '555-1234',
+                                position: 'Planner',
+                                hire_date: '2020-01-01',
+                                supervisor: 'Jordan',
+                                supervisor_contact: '555-8888',
+                                is_current: true
+                        },
+                        {
+                                user_id: 1,
+                                employer_name: 'Legacy Co',
+                                address: '789 Future Rd',
+                                phone: '555-2222',
+                                position: 'Archivist',
+                                hire_date: '2016-05-01',
+                                supervisor: 'Alex',
+                                supervisor_contact: '555-3333',
+                                is_current: false
+                        }
+                ];
+
+                const expected = calculateEmploymentScore(jobs);
+                const result = calculateSectionScore('employment', jobs);
 
                 expect(result).toBe(expected);
         });
