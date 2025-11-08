@@ -4,8 +4,8 @@
 	import FormField from '$lib/components/FormField.svelte';
 	import AskAI from '$lib/components/AskAI.svelte';
 	import CredentialsList from '$lib/components/CredentialsList.svelte';
-import LegalDocumentsList from '$lib/components/LegalDocumentsList.svelte';
-import ContactsList from '$lib/components/ContactsList.svelte';
+	import LegalDocumentsList from '$lib/components/LegalDocumentsList.svelte';
+	import ContactsList from '$lib/components/ContactsList.svelte';
 	import FinancialAccountsList from '$lib/components/FinancialAccountsList.svelte';
 	import InsuranceList from '$lib/components/InsuranceList.svelte';
 	import EmploymentList from '$lib/components/EmploymentList.svelte';
@@ -21,7 +21,10 @@ import ContactsList from '$lib/components/ContactsList.svelte';
 	const standaloneSections = ['credentials', 'contacts', 'legal', 'financial', 'insurance', 'employment', 'property'];
 	const isStandaloneSection = $derived(standaloneSections.includes(sectionId));
 
-	let formData = $state({ ...sectionData, ...(sectionData?.history ?? {}) });
+	let formData = $state<Record<string, any>>({});
+	$effect(() => {
+		formData = { ...sectionData, ...(sectionData?.history ?? {}) };
+	});
 	const physiciansList = $derived(
 		Array.isArray(formData?.physicians) ? formData.physicians : []
 	);

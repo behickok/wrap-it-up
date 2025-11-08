@@ -14,7 +14,7 @@
 		"lint": "prettier --check . && eslint .",
 		"test:unit": "vitest",
 		"test": "npm run test:unit -- --run && npm run test:e2e",
-		"test:e2e": "playwright test",
+		"test:e2e": "cross-env PLAYWRIGHT_BYPASS_AUTH=true playwright test",
 		"deploy": "npm run build && wrangler pages deploy"
 	},
 	"devDependencies": {
@@ -29,7 +29,9 @@
 		"@types/node": "^22",
 		"@vitest/browser": "^3.2.4",
 		"autoprefixer": "^10.4.21",
+		"better-sqlite3": "^12.4.1",
 		"clsx": "^2.1.1",
+		"cross-env": "^10.1.0",
 		"daisyui": "^5.4.5",
 		"eslint": "^9.36.0",
 		"eslint-config-prettier": "^10.1.8",

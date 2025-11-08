@@ -16,10 +16,10 @@ INSERT INTO personal_info (
 )
 VALUES (
 	1, 'self', 'Jordan Avery Wells', 'Harper', '1984-05-18', 'Denver, CO, USA',
-	'742 Evergreen Terrace, Denver, CO 80203',
-	'(303) 555-0119', '(720) 555-0124', 'jordan.wells@example.com', 'CO-555-8820',
-	'555-88-2019', 'XJ482993', 'Product Manager', 'Northwind Logistics', 'MBA, University of Colorado'
-)
+'742 Evergreen Terrace, Denver, CO 80203',
+'(303) 555-0119', '(720) 555-0124', 'jordan.wells@example.com', 'CO-555-8820',
+'555-88-2019', 'XJ482993', 'Product Manager', 'Northwind Logistics', 'MBA, University of Colorado'
+);
 
 -- Additional personal records for family members ---------------------------
 INSERT OR IGNORE INTO personal_info (
@@ -326,10 +326,10 @@ VALUES (
 	'Life has been a collection of small, meaningful moments—walks with Casey, family letters, and building community at work.',
 	'Lead with kindness, choose collaboration over competition, and take breaks before burnout sneaks in.',
 	'Label the analog photo boxes and finish digitizing 2010-2014 albums.',
-	'Passwords stored in Wrap It Up; archive creative writing in shared Drive folder.',
-	'Remember me through the traditions we built together—Sunday hikes, handwritten letters, and kitchen dance parties.',
-	'Share digital photo albums with family and rotate Jordan’s sketches at the memorial.'
-)
+'Passwords stored in Wrap It Up; archive creative writing in shared Drive folder.',
+'Remember me through the traditions we built together—Sunday hikes, handwritten letters, and kitchen dance parties.',
+'Share digital photo albums with family and rotate Jordan’s sketches at the memorial.'
+);
 
 
 -- Obituary ----------------------------------------------------------------

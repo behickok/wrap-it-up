@@ -349,20 +349,6 @@
 		border: 1px solid color-mix(in oklch, var(--color-base-300) 60%, transparent 40%);
 	}
 
-	.help-card {
-		background: linear-gradient(
-			135deg,
-			color-mix(in oklch, var(--color-accent) 12%, var(--color-base-100)),
-			color-mix(in oklch, var(--color-accent) 6%, var(--color-base-100))
-		);
-		border: 1px solid color-mix(in oklch, var(--color-accent) 30%, transparent 70%);
-	}
-
-	.help-text {
-		color: color-mix(in oklch, var(--color-base-content) 85%, transparent 15%);
-		opacity: 0.9;
-	}
-
 	/* Sections layout with sidebar */
 	.sections-layout {
 		display: flex;

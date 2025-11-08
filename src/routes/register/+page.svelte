@@ -127,11 +127,9 @@
 						onkeydown={handleKeydown}
 						class="input input-bordered w-full"
 					/>
-					<label class="label">
-						<span class="label-text-alt" style="color: var(--color-muted-foreground);">
-							Must be 8+ characters with uppercase, lowercase, and number
-						</span>
-					</label>
+					<p class="label-text-alt px-1 pt-1" style="color: var(--color-muted-foreground);">
+						Must be 8+ characters with uppercase, lowercase, and number
+					</p>
 				</div>
 
 				<div class="form-control">

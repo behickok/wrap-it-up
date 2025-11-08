@@ -4,10 +4,11 @@
 		sectionName
 	} = $props();
 
-	let question = $state('');
-	let answer = $state('');
-	let loading = $state(false);
-	let open = $state(false);
+let question = $state('');
+let answer = $state('');
+let loading = $state(false);
+let open = $state(false);
+let dialogRef: HTMLDialogElement | null = null;
 
 	async function askAI() {
 		if (!question.trim()) return;
@@ -40,6 +41,19 @@
 			loading = false;
 		}
 	}
+	$effect(() => {
+		if (!dialogRef) return;
+
+		if (open && !dialogRef.open) {
+			dialogRef.showModal();
+		} else if (!open && dialogRef.open) {
+			dialogRef.close();
+		}
+	});
+
+	function handleDialogClose() {
+		open = false;
+	}
 </script>
 
 <button class="btn inline-flex items-center gap-2" style="background-color: var(--color-primary); color: var(--color-primary-foreground);" onclick={() => open = true}>
@@ -51,9 +65,15 @@
 	Ask AI for Help
 </button>
 
-<dialog class="modal" class:modal-open={open}>
+<dialog
+	bind:this={dialogRef}
+	class="modal"
+	class:modal-open={open}
+	aria-labelledby="ask-ai-title"
+	onclose={handleDialogClose}
+>
 	<div class="modal-box max-w-[600px]">
-		<h3 class="font-bold text-lg">Ask AI for Help</h3>
+		<h3 id="ask-ai-title" class="font-bold text-lg">Ask AI for Help</h3>
 		<p class="py-2" style="color: var(--color-muted-foreground);">
 			Need help filling out the {sectionName} section? Ask me anything!
 		</p>

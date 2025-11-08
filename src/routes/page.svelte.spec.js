@@ -59,10 +59,10 @@ describe('/+page.svelte', () => {
 	it('shows journey tabs for each planning category', async () => {
 		render(Page, { props: { data: createPageData() } });
 
-		const planTab = page.getByRole('tab', { name: /Plan/ });
+		const planTab = page.getByRole('tab', { name: /Plan Legal & Financial Foundation/ });
 		await expect.element(planTab).toBeInTheDocument();
 
-		const legacyTab = page.getByRole('tab', { name: /Legacy/ });
+		const legacyTab = page.getByRole('tab', { name: /Legacy End-of-Life Planning/ });
 		await expect.element(legacyTab).toBeInTheDocument();
 	});
 

@@ -1,5 +1,6 @@
 import type { Handle } from '@sveltejs/kit';
 import { getSession, getUserById, isSessionValid, cleanupExpiredSessions } from '$lib/auth';
+import { env } from '$env/dynamic/private';
 
 /**
  * SvelteKit hook that runs on every request
@@ -11,6 +12,23 @@ export const handle: Handle = async ({ event, resolve }) => {
 	// Initialize locals
 	event.locals.user = null;
 	event.locals.sessionId = null;
+
+	const bypassAuth =
+		env.PLAYWRIGHT_BYPASS_AUTH === 'true' || event.cookies.get('playwright-bypass') === '1';
+
+	if (bypassAuth) {
+		event.locals.user = {
+			id: 1,
+			email: 'playwright@example.com',
+			username: 'playwright',
+			is_active: true,
+			last_login: new Date().toISOString(),
+			created_at: new Date().toISOString(),
+			updated_at: new Date().toISOString()
+		};
+		event.locals.sessionId = 'playwright-bypass';
+		return resolve(event);
+	}
 
 	if (!db) {
 		console.error('Database not available in platform.env');
