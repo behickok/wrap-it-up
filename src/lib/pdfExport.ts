@@ -1,6 +1,27 @@
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
 import { SECTIONS, JOURNEY_CATEGORIES } from '$lib/types';
+
+type JsPDFConstructor = typeof import('jspdf').default;
+type AutoTablePlugin = typeof import('jspdf-autotable').default;
+
+let jsPDFModule: JsPDFConstructor | null = null;
+let autoTableModule: AutoTablePlugin | null = null;
+
+async function loadPdfLibraries() {
+	if (!jsPDFModule || !autoTableModule) {
+		const [{ default: jsPDF }, { default: autoTable }] = await Promise.all([
+			import('jspdf'),
+			import('jspdf-autotable')
+		]);
+
+		jsPDFModule = jsPDF;
+		autoTableModule = autoTable;
+	}
+
+	return {
+		jsPDF: jsPDFModule!,
+		autoTable: autoTableModule!
+	};
+}
 
 interface ExportData {
 	user: {
@@ -220,6 +241,15 @@ function getFieldLabel(fieldName: string): string {
 
 export async function exportToPDF() {
 	try {
+		if (typeof window === 'undefined') {
+			return {
+				success: false,
+				error: 'PDF export is only available in the browser'
+			};
+		}
+
+		const { jsPDF, autoTable } = await loadPdfLibraries();
+
 		// Fetch the data from API
 		const response = await fetch('/api/export-data');
 		if (!response.ok) {

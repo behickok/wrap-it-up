@@ -48,6 +48,7 @@
 	let activeCategory = $state<JourneyCategory>('plan');
 	let activeSection = $state<string>('legal'); // First section in 'plan' category
 	let isUserScrolling = $state(false);
+	let showScrollTop = $state(false);
 
 	const sectionsInCategory = $derived(
 		SECTIONS.filter((section) => section.category === activeCategory)
@@ -79,6 +80,8 @@
 				isUserScrolling = false;
 			}, 150);
 
+			showScrollTop = window.scrollY > 400;
+
 			const sectionElements = sectionsInCategory.map(section => ({
 				id: section.id,
 				element: document.getElementById(`section-${section.id}`)
@@ -98,6 +101,8 @@
 			}
 		};
 
+		handleScroll();
+
 		window.addEventListener('scroll', handleScroll, { passive: true });
 
 		return () => {
@@ -115,6 +120,11 @@
 			0
 		);
 		return Math.round(totalScore / categorySections.length);
+	}
+
+	function scrollToTop() {
+		if (typeof window === 'undefined') return;
+		window.scrollTo({ top: 0, behavior: 'smooth' });
 	}
 </script>
 
@@ -238,6 +248,29 @@
 	</div> -->
 </div>
 
+{#if showScrollTop}
+	<button
+		type="button"
+		aria-label="Scroll to top"
+		class="scroll-to-top-button"
+		onclick={scrollToTop}
+	>
+		<svg
+			class="w-5 h-5"
+			fill="none"
+			stroke="currentColor"
+			viewBox="0 0 24 24"
+		>
+			<path
+				stroke-linecap="round"
+				stroke-linejoin="round"
+				stroke-width="2"
+				d="M5 15l7-7 7 7"
+			/>
+		</svg>
+	</button>
+{/if}
+
 <style>
 	/* Export Header */
 	.export-header {
@@ -336,6 +369,7 @@
 		gap: 2rem;
 		align-items: flex-start;
 		margin-bottom: 2rem;
+		position: relative;
 	}
 
 	/* Sidebar Navigation */
@@ -345,6 +379,7 @@
 		position: sticky;
 		top: 4rem;
 		align-self: flex-start;
+		z-index: 5;
 	}
 
 	.sidebar-sticky {
@@ -506,6 +541,45 @@
 
 		.section-menu-item {
 			min-width: 100%;
+		}
+	}
+
+	.scroll-to-top-button {
+		position: fixed;
+		bottom: 1.5rem;
+		right: 1.5rem;
+		z-index: 50;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 3rem;
+		height: 3rem;
+		border-radius: 999px;
+		background: color-mix(in oklch, var(--color-primary) 90%, white 10%);
+		color: var(--color-primary-content);
+		border: 1px solid color-mix(in oklch, var(--color-primary) 30%, transparent 70%);
+		box-shadow:
+			0 10px 15px -3px rgba(0, 0, 0, 0.15),
+			0 4px 6px -2px rgba(0, 0, 0, 0.05);
+		transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+	}
+
+	.scroll-to-top-button:hover {
+		transform: translateY(-2px);
+		box-shadow:
+			0 12px 20px -3px rgba(0, 0, 0, 0.2),
+			0 4px 6px -2px rgba(0, 0, 0, 0.08);
+	}
+
+	.scroll-to-top-button:focus-visible {
+		outline: 3px solid color-mix(in oklch, var(--color-primary) 40%, white 60%);
+		outline-offset: 2px;
+	}
+
+	@media (max-width: 640px) {
+		.scroll-to-top-button {
+			bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+			right: 1rem;
 		}
 	}
 </style>

@@ -75,6 +75,20 @@ CREATE TABLE IF NOT EXISTS family_members (
     FOREIGN KEY (personal_info_id) REFERENCES personal_info(id)
 );
 
+CREATE TABLE IF NOT EXISTS family_history (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL UNIQUE,
+    parents_names TEXT,
+    siblings_names TEXT,
+    children_names TEXT,
+    grandchildren_names TEXT,
+    spouse_info TEXT,
+    family_stories TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id)
+);
+
 -- Section 4: Pets
 CREATE TABLE IF NOT EXISTS pets (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -377,12 +391,18 @@ CREATE TABLE IF NOT EXISTS funeral (
     FOREIGN KEY (user_id) REFERENCES users(id)
 );
 
--- Section 17: Conclusion
+-- Section 17: Final Thoughts & Reflections
 CREATE TABLE IF NOT EXISTS conclusion (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id INTEGER NOT NULL,
+    user_id INTEGER NOT NULL UNIQUE,
+    life_reflections TEXT,
+    advice_for_loved_ones TEXT,
+    unfinished_business TEXT,
+    digital_legacy TEXT,
     final_thoughts TEXT,
     additional_notes TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id)
 );
 

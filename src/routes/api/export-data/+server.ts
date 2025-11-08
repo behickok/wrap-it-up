@@ -34,7 +34,7 @@ export const GET: RequestHandler = async ({ platform, locals }) => {
 			funeral
 		] = await Promise.all([
 			db
-				.prepare('SELECT * FROM personal_information WHERE user_id = ?')
+				.prepare('SELECT * FROM personal_info WHERE user_id = ?')
 				.bind(user.id)
 				.all()
 				.then((r) => r.results),
@@ -54,7 +54,7 @@ export const GET: RequestHandler = async ({ platform, locals }) => {
 				.all()
 				.then((r) => r.results),
 			db
-				.prepare('SELECT * FROM medical_information WHERE user_id = ?')
+				.prepare('SELECT * FROM medical_info WHERE user_id = ?')
 				.bind(user.id)
 				.all()
 				.then((r) => r.results),

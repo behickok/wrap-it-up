@@ -12,7 +12,8 @@ import type {
 	Pet,
 	KeyContact,
 	Insurance,
-	BankAccount
+	BankAccount,
+	Employment
 } from './types';
 
 // ============================================================================
@@ -317,6 +318,50 @@ export function calculateFinancialScore(accounts: BankAccount[]): number {
 			account.institution_name?.trim() &&
 			account.account_type?.trim() &&
 			account.account_number?.trim();
+		if (isComplete) {
+			completeCount++;
+		}
+	});
+	score += Math.min(completeCount * 6, 30);
+
+	return Math.min(score, 100);
+}
+
+// ============================================================================
+// EMPLOYMENT SCORING (0-100 points)
+// ============================================================================
+
+export function calculateEmploymentScore(records: Employment[]): number {
+	if (!records || records.length === 0) return 0;
+
+	let score = 0;
+
+	// Base points: any employment history
+	score += 30;
+
+	// Current employment bonus
+	if (records.some((r) => r.is_current)) {
+		score += 20;
+	}
+
+	// Diversity: multiple employers/roles
+	const employers = new Set(records.map((r) => r.employer_name?.trim()).filter(Boolean));
+	if (employers.size >= 2) {
+		score += 15;
+	}
+	if (employers.size >= 3) {
+		score += 5;
+	}
+
+	// Completeness bonus
+	let completeCount = 0;
+	records.forEach((record) => {
+		const isComplete =
+			record.employer_name?.trim() &&
+			record.position?.trim() &&
+			record.hire_date?.trim() &&
+			record.supervisor?.trim() &&
+			record.supervisor_contact?.trim();
 		if (isComplete) {
 			completeCount++;
 		}

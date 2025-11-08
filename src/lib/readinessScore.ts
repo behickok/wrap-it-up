@@ -1,12 +1,13 @@
 import { SECTIONS, type ReadinessScore, type SectionCompletion } from './types';
 import {
-        calculateContactsScore,
-        calculateCredentialsScore,
-        calculateFieldBasedScore,
-        calculateFinancialScore,
-        calculateInsuranceScore,
-        calculatePetsScore,
-        SECTION_FIELDS
+	calculateContactsScore,
+	calculateCredentialsScore,
+	calculateEmploymentScore,
+	calculateFieldBasedScore,
+	calculateFinancialScore,
+	calculateInsuranceScore,
+	calculatePetsScore,
+	SECTION_FIELDS
 } from './scoringRules';
 
 /**
@@ -82,10 +83,14 @@ export function calculateSectionScore(sectionName: string, data: any): number {
 				? calculateFinancialScore(data)
 				: calculateFinancialScore([data]);
 
+		case 'employment':
+			return Array.isArray(data)
+				? calculateEmploymentScore(data)
+				: calculateEmploymentScore([data]);
+
 		// Fixed-field sections with field-based scoring
 		case 'personal':
 		case 'medical':
-		case 'employment':
 		case 'residence':
 		case 'legal':
 		case 'final-days':

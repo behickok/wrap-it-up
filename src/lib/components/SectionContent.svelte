@@ -4,18 +4,31 @@
 	import FormField from '$lib/components/FormField.svelte';
 	import AskAI from '$lib/components/AskAI.svelte';
 	import CredentialsList from '$lib/components/CredentialsList.svelte';
-	import LegalDocumentsList from '$lib/components/LegalDocumentsList.svelte';
-	import ContactsList from '$lib/components/ContactsList.svelte';
+import LegalDocumentsList from '$lib/components/LegalDocumentsList.svelte';
+import ContactsList from '$lib/components/ContactsList.svelte';
+	import FinancialAccountsList from '$lib/components/FinancialAccountsList.svelte';
+	import InsuranceList from '$lib/components/InsuranceList.svelte';
+	import EmploymentList from '$lib/components/EmploymentList.svelte';
+	import PhysiciansList from '$lib/components/PhysiciansList.svelte';
+	import VehiclesList from '$lib/components/VehiclesList.svelte';
+	import FamilyMembersList from '$lib/components/FamilyMembersList.svelte';
 
 	let { sectionId, data }: { sectionId: string; data: any } = $props();
 
 	const section = $derived(SECTIONS.find((s) => s.id === sectionId));
 	const sectionData = $derived(data?.sectionData?.[sectionId] || data?.sectionData || {});
 	const userId = $derived(data?.userId || data?.user?.id);
-	const standaloneSections = ['credentials', 'contacts', 'legal'];
+	const standaloneSections = ['credentials', 'contacts', 'legal', 'financial', 'insurance', 'employment', 'property'];
 	const isStandaloneSection = $derived(standaloneSections.includes(sectionId));
 
-	let formData = $state({ ...sectionData });
+	let formData = $state({ ...sectionData, ...(sectionData?.history ?? {}) });
+	const physiciansList = $derived(
+		Array.isArray(formData?.physicians) ? formData.physicians : []
+	);
+	const familyMembersList = $derived(
+		Array.isArray(sectionData?.members) ? sectionData.members : []
+	);
+	const familyHistory = $derived(sectionData?.history || {});
 	let saving = $state(false);
 
 	function getCategoryColor(category: string): string {
@@ -48,10 +61,35 @@
 
 			{:else if sectionId === 'legal'}
 				<LegalDocumentsList documents={Array.isArray(sectionData) ? sectionData : []} {userId} />
+
+			{:else if sectionId === 'financial'}
+				<FinancialAccountsList accounts={Array.isArray(sectionData) ? sectionData : []} {userId} />
+
+			{:else if sectionId === 'insurance'}
+				<InsuranceList policies={Array.isArray(sectionData) ? sectionData : []} {userId} />
+
+			{:else if sectionId === 'employment'}
+				<EmploymentList jobs={Array.isArray(sectionData) ? sectionData : []} {userId} />
+
+			{:else if sectionId === 'property'}
+				<VehiclesList vehicles={Array.isArray(sectionData) ? sectionData : []} />
 			{/if}
 		</div>
 	{:else}
-		<form method="POST" action="/section/{sectionId}?/save">
+		<form
+			method="POST"
+			action="/section/{sectionId}?/save"
+				use:enhance={() => {
+					saving = true;
+					return async ({ update }) => {
+						try {
+							await update();
+						} finally {
+							saving = false;
+						}
+					};
+				}}
+			>
 			<div class="card shadow-xl p-8 mb-6" style="background-color: var(--color-card);">
 				{#if sectionId === 'personal'}
 				<div class="mb-10">
@@ -319,6 +357,8 @@
 							rows={6}
 						/>
 					</div>
+
+					<FamilyMembersList members={familyMembersList} />
 				</div>
 
 			{:else if sectionId === 'pets'}
@@ -436,7 +476,7 @@
 							name="sex"
 							type="select"
 							bind:value={formData.sex}
-							options={['Male', 'Female', 'Other']}
+							options={['Male', 'Female', 'Non-binary', 'Other']}
 						/>
 						<FormField
 							label="Medical Conditions"
@@ -472,6 +512,9 @@
 					<h3 class="text-2xl font-semibold text-foreground mb-4 pb-3 border-b-2 border-border">
 						Physician Information
 					</h3>
+					<p class="text-muted-foreground leading-relaxed mb-6">
+						Track your primary physician below. Additional physicians will appear in your directory.
+					</p>
 					<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 						<FormField
 							label="Physician Name"
@@ -497,65 +540,8 @@
 							bind:value={formData.physician_address}
 						/>
 					</div>
-				</div>
 
-			{:else if sectionId === 'employment'}
-				<div class="mb-10">
-					<h3 class="text-2xl font-semibold text-foreground mb-4 pb-3 border-b-2 border-border">
-						Employment Information
-					</h3>
-					<p class="text-muted-foreground leading-relaxed mb-6">
-						Document your current and past employment history.
-					</p>
-					<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-						<FormField
-							label="Employer Name"
-							name="employer_name"
-							bind:value={formData.employer_name}
-						/>
-						<FormField
-							label="Position/Title"
-							name="position"
-							bind:value={formData.position}
-						/>
-						<FormField
-							label="Hire Date"
-							name="hire_date"
-							type="date"
-							bind:value={formData.hire_date}
-						/>
-						<FormField
-							label="Current Employment"
-							name="is_current"
-							type="select"
-							bind:value={formData.is_current}
-							options={['Yes', 'No']}
-						/>
-						<FormField
-							label="Address"
-							name="address"
-							type="textarea"
-							bind:value={formData.address}
-							placeholder="Company address"
-						/>
-						<FormField
-							label="Phone"
-							name="phone"
-							type="tel"
-							bind:value={formData.phone}
-						/>
-						<FormField
-							label="Supervisor Name"
-							name="supervisor"
-							bind:value={formData.supervisor}
-						/>
-						<FormField
-							label="Supervisor Contact"
-							name="supervisor_contact"
-							bind:value={formData.supervisor_contact}
-							placeholder="Phone or email"
-						/>
-					</div>
+					<PhysiciansList physicians={physiciansList} />
 				</div>
 
 			{:else if sectionId === 'residence'}
@@ -656,129 +642,6 @@
 							type="number"
 							bind:value={formData.hoa_dues}
 							placeholder="Monthly/annual amount"
-						/>
-					</div>
-				</div>
-
-			{:else if sectionId === 'property'}
-				<div class="mb-10">
-					<h3 class="text-2xl font-semibold text-foreground mb-4 pb-3 border-b-2 border-border">
-						Vehicles & Property
-					</h3>
-					<p class="text-muted-foreground leading-relaxed mb-6">
-						Document your vehicles and other significant property.
-					</p>
-					<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-						<FormField
-							label="Names on Title"
-							name="names_on_title"
-							bind:value={formData.names_on_title}
-							placeholder="Owner name(s)"
-						/>
-						<FormField
-							label="Make"
-							name="make"
-							bind:value={formData.make}
-							placeholder="e.g., Toyota, Ford"
-						/>
-						<FormField
-							label="Model"
-							name="model"
-							bind:value={formData.model}
-							placeholder="e.g., Camry, F-150"
-						/>
-						<FormField
-							label="Year"
-							name="year"
-							type="number"
-							bind:value={formData.year}
-						/>
-						<FormField
-							label="VIN"
-							name="vin"
-							bind:value={formData.vin}
-							placeholder="Vehicle Identification Number"
-						/>
-						<FormField
-							label="Registration Dates"
-							name="registration_dates"
-							bind:value={formData.registration_dates}
-							placeholder="When registration expires"
-						/>
-						<FormField
-							label="Title Location"
-							name="title_location"
-							type="textarea"
-							bind:value={formData.title_location}
-							placeholder="Where the title is kept"
-						/>
-					</div>
-				</div>
-
-			{:else if sectionId === 'insurance'}
-				<div class="mb-10">
-					<h3 class="text-2xl font-semibold text-foreground mb-4 pb-3 border-b-2 border-border">
-						Insurance Policies
-					</h3>
-					<p class="text-muted-foreground leading-relaxed mb-6">
-						Document all your insurance policies (life, health, auto, home, etc.).
-					</p>
-					<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-						<FormField
-							label="Insurance Type"
-							name="insurance_type"
-							type="select"
-							bind:value={formData.insurance_type}
-							options={['Life', 'Health', 'Auto', 'Home', 'Disability', 'Long-term Care', 'Other']}
-						/>
-						<FormField
-							label="Provider"
-							name="provider"
-							bind:value={formData.provider}
-							placeholder="Insurance company name"
-						/>
-						<FormField
-							label="Policy Number"
-							name="policy_number"
-							bind:value={formData.policy_number}
-						/>
-						<FormField
-							label="Coverage Amount"
-							name="coverage_amount"
-							type="number"
-							bind:value={formData.coverage_amount}
-							placeholder="0.00"
-						/>
-						<FormField
-							label="Beneficiary"
-							name="beneficiary"
-							bind:value={formData.beneficiary}
-							placeholder="Primary beneficiary name"
-						/>
-						<FormField
-							label="Agent Name"
-							name="agent_name"
-							bind:value={formData.agent_name}
-						/>
-						<FormField
-							label="Agent Phone"
-							name="agent_phone"
-							type="tel"
-							bind:value={formData.agent_phone}
-						/>
-						<FormField
-							label="Premium Amount"
-							name="premium_amount"
-							type="number"
-							bind:value={formData.premium_amount}
-							placeholder="0.00"
-						/>
-						<FormField
-							label="Premium Frequency"
-							name="premium_frequency"
-							type="select"
-							bind:value={formData.premium_frequency}
-							options={['Monthly', 'Quarterly', 'Semi-Annual', 'Annual']}
 						/>
 					</div>
 				</div>

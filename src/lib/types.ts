@@ -96,6 +96,19 @@ export interface Document {
 	uploaded_at?: string;
 }
 
+export interface FamilyMember {
+	id?: number;
+	user_id: number;
+	relationship: string;
+	personal_info_id?: number;
+	legal_name?: string;
+	date_of_birth?: string;
+	mobile_phone?: string;
+	email?: string;
+	address?: string;
+	occupation?: string;
+}
+
 export interface MedicalInfo {
 	id?: number;
 	user_id: number;
@@ -109,6 +122,7 @@ export interface MedicalInfo {
 	preferred_hospital: string;
 	preferred_pharmacy: string;
 	allergies: string;
+	physicians?: Physician[];
 }
 
 export interface Physician {
