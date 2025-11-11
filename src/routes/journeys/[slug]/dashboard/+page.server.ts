@@ -1,6 +1,7 @@
 import { error, redirect, fail } from '@sveltejs/kit';
 import type { PageServerLoad, Actions } from './$types';
 import { calculateSectionScore } from '$lib/readinessScore';
+import { recalculateAndUpdateProgress } from '$lib/journeyProgress';
 
 export const load: PageServerLoad = async ({ locals, platform, params }) => {
 	if (!locals.user) {
@@ -207,7 +208,213 @@ export const load: PageServerLoad = async ({ locals, platform, params }) => {
 	}
 };
 
-// Form actions will be added to handle section updates
+// Helper functions
+function getUserId(locals: App.Locals) {
+	return locals.user?.id ?? null;
+}
+
+function getDb(platform: Readonly<App.Platform> | undefined) {
+	return platform?.env?.DB;
+}
+
+// Form actions - now journey-aware
 export const actions: Actions = {
-	// Placeholder - will be expanded with actual form actions
+	addCredential: async ({ request, platform, locals }) => {
+		try {
+			const userId = getUserId(locals);
+			if (!userId) return fail(401, { error: 'Not authenticated' });
+
+			const db = getDb(platform);
+			if (!db) return fail(500, { error: 'Database not available' });
+
+			const formData = await request.formData();
+			const data = Object.fromEntries(formData);
+
+			await db.prepare(`
+				INSERT INTO credentials (
+					user_id, site_name, web_address, username, password, category, other_info
+				) VALUES (?, ?, ?, ?, ?, ?, ?)
+			`).bind(
+				userId,
+				data.site_name || '',
+				data.web_address || '',
+				data.username || '',
+				data.password || '',
+				data.category || 'other',
+				data.other_info || ''
+			).run();
+
+			// Update progress across all journeys
+			await recalculateAndUpdateProgress(db, userId, 'credentials');
+
+			return { success: true };
+		} catch (error) {
+			console.error('Error adding credential:', error);
+			return fail(500, { error: 'Failed to add credential' });
+		}
+	},
+
+	updateCredential: async ({ request, platform, locals }) => {
+		try {
+			const userId = getUserId(locals);
+			if (!userId) return fail(401, { error: 'Not authenticated' });
+
+			const db = getDb(platform);
+			if (!db) return fail(500, { error: 'Database not available' });
+
+			const formData = await request.formData();
+			const data = Object.fromEntries(formData);
+			const credentialId = data.id;
+
+			if (!credentialId) return fail(400, { error: 'Credential ID required' });
+
+			await db.prepare(`
+				UPDATE credentials SET
+					site_name = ?, web_address = ?, username = ?,
+					password = ?, category = ?, other_info = ?
+				WHERE id = ? AND user_id = ?
+			`).bind(
+				data.site_name || '',
+				data.web_address || '',
+				data.username || '',
+				data.password || '',
+				data.category || 'other',
+				data.other_info || '',
+				credentialId,
+				userId
+			).run();
+
+			await recalculateAndUpdateProgress(db, userId, 'credentials');
+
+			return { success: true };
+		} catch (error) {
+			console.error('Error updating credential:', error);
+			return fail(500, { error: 'Failed to update credential' });
+		}
+	},
+
+	deleteCredential: async ({ request, platform, locals }) => {
+		try {
+			const userId = getUserId(locals);
+			if (!userId) return fail(401, { error: 'Not authenticated' });
+
+			const db = getDb(platform);
+			if (!db) return fail(500, { error: 'Database not available' });
+
+			const formData = await request.formData();
+			const credentialId = formData.get('id');
+
+			if (!credentialId) return fail(400, { error: 'Credential ID required' });
+
+			await db.prepare('DELETE FROM credentials WHERE id = ? AND user_id = ?')
+				.bind(credentialId, userId)
+				.run();
+
+			await recalculateAndUpdateProgress(db, userId, 'credentials');
+
+			return { success: true };
+		} catch (error) {
+			console.error('Error deleting credential:', error);
+			return fail(500, { error: 'Failed to delete credential' });
+		}
+	},
+
+	addContact: async ({ request, platform, locals }) => {
+		try {
+			const userId = getUserId(locals);
+			if (!userId) return fail(401, { error: 'Not authenticated' });
+
+			const db = getDb(platform);
+			if (!db) return fail(500, { error: 'Database not available' });
+
+			const formData = await request.formData();
+			const data = Object.fromEntries(formData);
+
+			await db.prepare(`
+				INSERT INTO key_contacts (
+					user_id, relationship, name, phone, address, email, date_of_birth
+				) VALUES (?, ?, ?, ?, ?, ?, ?)
+			`).bind(
+				userId,
+				data.relationship || '',
+				data.name || '',
+				data.phone || '',
+				data.address || '',
+				data.email || '',
+				data.date_of_birth || ''
+			).run();
+
+			await recalculateAndUpdateProgress(db, userId, 'contacts');
+
+			return { success: true };
+		} catch (error) {
+			console.error('Error adding contact:', error);
+			return fail(500, { error: 'Failed to add contact' });
+		}
+	},
+
+	updateContact: async ({ request, platform, locals }) => {
+		try {
+			const userId = getUserId(locals);
+			if (!userId) return fail(401, { error: 'Not authenticated' });
+
+			const db = getDb(platform);
+			if (!db) return fail(500, { error: 'Database not available' });
+
+			const formData = await request.formData();
+			const data = Object.fromEntries(formData);
+			const contactId = data.id;
+
+			if (!contactId) return fail(400, { error: 'Contact ID required' });
+
+			await db.prepare(`
+				UPDATE key_contacts SET
+					relationship = ?, name = ?, phone = ?,
+					address = ?, email = ?, date_of_birth = ?
+				WHERE id = ? AND user_id = ?
+			`).bind(
+				data.relationship || '',
+				data.name || '',
+				data.phone || '',
+				data.address || '',
+				data.email || '',
+				data.date_of_birth || '',
+				contactId,
+				userId
+			).run();
+
+			await recalculateAndUpdateProgress(db, userId, 'contacts');
+
+			return { success: true };
+		} catch (error) {
+			console.error('Error updating contact:', error);
+			return fail(500, { error: 'Failed to update contact' });
+		}
+	},
+
+	deleteContact: async ({ request, platform, locals }) => {
+		try {
+			const userId = getUserId(locals);
+			if (!userId) return fail(401, { error: 'Not authenticated' });
+
+			const db = getDb(platform);
+			if (!db) return fail(500, { error: 'Database not available' });
+
+			const formData = await request.formData();
+			const contactId = formData.get('id');
+
+			if (!contactId) return fail(400, { error: 'Contact ID required' });
+
+			await db.prepare('DELETE FROM key_contacts WHERE id = ? AND user_id = ?')
+				.bind(contactId, userId)
+				.run();
+
+			await recalculateAndUpdateProgress(db, userId, 'contacts');
+
+			return { success: true };
+		} catch (error) {
+			console.error('Error deleting contact:', error);
+			return fail(500, { error: 'Failed to delete contact' });
+		}
+	}
 };
