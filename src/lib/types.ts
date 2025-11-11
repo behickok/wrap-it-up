@@ -396,7 +396,7 @@ export interface Category {
 	created_at: string;
 }
 
-export interface JourneyCategory {
+export interface JourneyCategoryMapping {
 	id: number;
 	journey_id: number;
 	category_id: number;
