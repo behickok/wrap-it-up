@@ -5,8 +5,27 @@
 	import JourneyVisual from '$lib/components/JourneyVisual.svelte';
 	import SectionContent from '$lib/components/SectionContent.svelte';
 	import { exportToPDF } from '$lib/pdfExport';
+	import { goto } from '$app/navigation';
+	import { onMount } from 'svelte';
 
 	let { data } = $props();
+
+	// Check if user should be redirected to a specific journey
+	onMount(() => {
+		const userJourneys = data.userJourneys || [];
+
+		// If user only has Care journey, redirect there for backward compatibility
+		if (userJourneys.length === 1 && userJourneys[0].journey_slug === 'care') {
+			// Keep them on legacy dashboard for now
+			return;
+		}
+
+		// If user has any journeys, suggest going to journey library
+		if (userJourneys.length > 0) {
+			// Stay on this page but show the journey picker
+			return;
+		}
+	});
 
 	let isExporting = $state(false);
 	let exportStatus = $state<{ type: 'success' | 'error'; message: string } | null>(null);

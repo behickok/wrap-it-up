@@ -371,3 +371,262 @@ export const SECTIONS = [
 	{ id: 'obituary', name: 'Obituary Planning', weight: 5, category: 'legacy' as JourneyCategory },
 	{ id: 'conclusion', name: 'Final Thoughts & Reflections', weight: 4, category: 'legacy' as JourneyCategory }
 ] as const;
+
+// ============================================================================
+// MULTI-JOURNEY PLATFORM TYPES
+// ============================================================================
+
+// Journey System Types
+export interface Journey {
+	id: number;
+	slug: string;
+	name: string;
+	description: string | null;
+	icon: string | null;
+	is_active: boolean;
+	created_at: string;
+	updated_at: string;
+}
+
+export interface Category {
+	id: number;
+	name: string;
+	description: string | null;
+	icon: string | null;
+	created_at: string;
+}
+
+export interface JourneyCategoryMapping {
+	id: number;
+	journey_id: number;
+	category_id: number;
+	display_order: number;
+	created_at: string;
+}
+
+export interface Section {
+	id: number;
+	slug: string;
+	name: string;
+	description: string | null;
+	scoring_type: 'field_count' | 'list_items' | 'custom';
+	weight: number;
+	created_at: string;
+}
+
+export interface JourneySection {
+	id: number;
+	journey_id: number;
+	section_id: number;
+	category_id: number;
+	display_order: number;
+	is_required: boolean;
+	weight_override: number | null;
+	created_at: string;
+}
+
+// Service Tier Types
+export type ServiceTierSlug = 'essentials' | 'guided' | 'premium';
+
+export interface ServiceTier {
+	id: number;
+	slug: ServiceTierSlug;
+	name: string;
+	description: string | null;
+	price_monthly: number;
+	price_annual: number;
+	display_order: number;
+	is_active: boolean;
+	features_json: string | null; // JSON array of feature descriptions
+	created_at: string;
+	updated_at: string;
+}
+
+export interface TierFeature {
+	id: number;
+	tier_id: number;
+	feature_key: string;
+	is_enabled: boolean;
+	config_json: string | null;
+	created_at: string;
+}
+
+// Parsed features from JSON
+export interface ParsedServiceTier extends Omit<ServiceTier, 'features_json'> {
+	features: string[];
+}
+
+// User Journey Types
+export type UserJourneyStatus = 'active' | 'paused' | 'completed' | 'cancelled';
+
+export interface UserJourney {
+	id: number;
+	user_id: number;
+	journey_id: number;
+	tier_id: number;
+	status: UserJourneyStatus;
+	started_at: string;
+	completed_at: string | null;
+	created_at: string;
+	updated_at: string;
+}
+
+export interface UserJourneyProgress {
+	id: number;
+	user_journey_id: number;
+	section_id: number;
+	score: number;
+	is_completed: boolean;
+	last_updated: string;
+}
+
+// Extended types with joined data
+export interface UserJourneyWithDetails extends UserJourney {
+	journey: Journey;
+	tier: ServiceTier;
+	progress: UserJourneyProgress[];
+	overall_score?: number;
+}
+
+// Mentor System Types
+export interface Mentor {
+	id: number;
+	user_id: number;
+	display_name: string;
+	bio: string | null;
+	expertise_areas: string | null; // comma-separated journey slugs
+	hourly_rate: number;
+	is_available: boolean;
+	availability_json: string | null; // JSON calendar data
+	rating_average: number;
+	review_count: number;
+	created_at: string;
+	updated_at: string;
+}
+
+export interface MentorJourney {
+	id: number;
+	mentor_id: number;
+	journey_id: number;
+	created_at: string;
+}
+
+export type MentorReviewStatus = 'pending' | 'assigned' | 'in_review' | 'completed' | 'cancelled';
+
+export interface MentorReview {
+	id: number;
+	user_journey_id: number;
+	section_id: number;
+	mentor_id: number | null;
+	status: MentorReviewStatus;
+	submitted_at: string;
+	assigned_at: string | null;
+	completed_at: string | null;
+	feedback: string | null;
+	created_at: string;
+	updated_at: string;
+}
+
+export interface ReviewComment {
+	id: number;
+	review_id: number;
+	user_id: number;
+	is_mentor: boolean;
+	comment: string;
+	created_at: string;
+}
+
+export type MentorSessionStatus = 'scheduled' | 'completed' | 'cancelled' | 'no_show';
+
+export interface MentorSession {
+	id: number;
+	user_journey_id: number;
+	mentor_id: number;
+	status: MentorSessionStatus;
+	scheduled_at: string;
+	duration_minutes: number;
+	meeting_link: string | null;
+	prep_notes: string | null;
+	session_notes: string | null;
+	created_at: string;
+	updated_at: string;
+}
+
+export interface SessionRating {
+	id: number;
+	session_id: number;
+	rating: number; // 1-5
+	feedback: string | null;
+	created_at: string;
+}
+
+// Extended types with joined data
+export interface MentorWithDetails extends Mentor {
+	user: User;
+	journeys: Journey[];
+}
+
+export interface MentorReviewWithDetails extends MentorReview {
+	user_journey: UserJourney;
+	section: Section;
+	mentor: Mentor | null;
+	comments: ReviewComment[];
+}
+
+export interface MentorSessionWithDetails extends MentorSession {
+	user_journey: UserJourney;
+	mentor: MentorWithDetails;
+	rating: SessionRating | null;
+}
+
+// Feature flag helper type
+export type FeatureKey =
+	| 'form_access'
+	| 'ai_assistance'
+	| 'progress_tracking'
+	| 'pdf_export'
+	| 'auto_save'
+	| 'mentor_review'
+	| 'review_feedback'
+	| 'email_notifications'
+	| 'session_booking'
+	| 'dedicated_guide'
+	| 'priority_support';
+
+// Helper function to check if user has access to a feature
+export function hasFeature(tier: ServiceTier, feature: FeatureKey): boolean {
+	// This would query tier_features table in practice
+	// For now, basic tier logic:
+	const essentialsFeatures: FeatureKey[] = [
+		'form_access',
+		'ai_assistance',
+		'progress_tracking',
+		'pdf_export',
+		'auto_save'
+	];
+
+	const guidedFeatures: FeatureKey[] = [
+		...essentialsFeatures,
+		'mentor_review',
+		'review_feedback',
+		'email_notifications'
+	];
+
+	const premiumFeatures: FeatureKey[] = [
+		...guidedFeatures,
+		'session_booking',
+		'dedicated_guide',
+		'priority_support'
+	];
+
+	switch (tier.slug) {
+		case 'essentials':
+			return essentialsFeatures.includes(feature);
+		case 'guided':
+			return guidedFeatures.includes(feature);
+		case 'premium':
+			return premiumFeatures.includes(feature);
+		default:
+			return false;
+	}
+}
