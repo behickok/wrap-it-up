@@ -1,5 +1,6 @@
-import { error, redirect } from '@sveltejs/kit';
-import type { PageServerLoad } from './$types';
+import { error, redirect, fail } from '@sveltejs/kit';
+import type { PageServerLoad, Actions } from './$types';
+import { calculateSectionScore } from '$lib/readinessScore';
 
 export const load: PageServerLoad = async ({ locals, platform, params }) => {
 	if (!locals.user) {
@@ -38,38 +39,175 @@ export const load: PageServerLoad = async ({ locals, platform, params }) => {
 			.first();
 
 		if (!subscriptionResult) {
-			// Not subscribed, redirect to journey detail page
 			throw redirect(303, `/journeys/${slug}`);
 		}
 
 		const subscription = subscriptionResult as any;
+		const userId = locals.user.id;
 
-		// Get journey progress
+		// Get categories for this journey
+		const categoriesResult = await db
+			.prepare(
+				`SELECT c.*, jc.display_order
+				 FROM categories c
+				 JOIN journey_categories jc ON c.id = jc.category_id
+				 WHERE jc.journey_id = ?
+				 ORDER BY jc.display_order`
+			)
+			.bind(journey.id)
+			.all();
+
+		const categories = categoriesResult.results || [];
+
+		// Get sections for this journey
+		const sectionsResult = await db
+			.prepare(
+				`SELECT s.*, js.is_required, js.weight_override, js.category_id, js.display_order
+				 FROM sections s
+				 JOIN journey_sections js ON s.id = js.section_id
+				 WHERE js.journey_id = ?
+				 ORDER BY js.category_id, js.display_order`
+			)
+			.bind(journey.id)
+			.all();
+
+		const sections = sectionsResult.results || [];
+
+		// Group sections by category
+		const sectionsByCategory: Record<number, any[]> = {};
+		for (const section of sections) {
+			const categoryId = (section as any).category_id;
+			if (!sectionsByCategory[categoryId]) {
+				sectionsByCategory[categoryId] = [];
+			}
+			sectionsByCategory[categoryId].push(section);
+		}
+
+		// Get progress for all sections
 		const progressResult = await db
 			.prepare(
-				`SELECT COUNT(*) as completed,
-				 (SELECT COUNT(*) FROM journey_sections WHERE journey_id = ?) as total
-				 FROM user_journey_progress
-				 WHERE user_journey_id = ? AND is_completed = 1`
+				`SELECT ujp.section_id, ujp.score, ujp.is_completed
+				 FROM user_journey_progress ujp
+				 WHERE ujp.user_journey_id = ?`
 			)
-			.bind(journey.id, subscription.id)
-			.first();
+			.bind(subscription.id)
+			.all();
 
-		const progress = progressResult as any;
-		const completionPercentage = progress.total > 0
-			? Math.round((progress.completed / progress.total) * 100)
-			: 0;
+		const progressMap: Record<number, any> = {};
+		for (const prog of (progressResult.results || [])) {
+			const p = prog as any;
+			progressMap[p.section_id] = {
+				score: p.score,
+				is_completed: p.is_completed
+			};
+		}
+
+		// Calculate overall progress
+		const completedCount = Object.values(progressMap).filter((p: any) => p.is_completed).length;
+		const totalCount = sections.length;
+		const completionPercentage = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
+
+		// Load all section data (reuse existing queries from +page.server.ts)
+		const [
+			personalResult,
+			credentialsResult,
+			contactsResult,
+			legalResult,
+			documentsResult,
+			finalDaysResult,
+			afterDeathResult,
+			funeralResult,
+			obituaryResult,
+			conclusionResult,
+			bankAccountsResult,
+			insuranceResult,
+			employmentResult,
+			medicalResult,
+			physiciansResult,
+			residenceResult,
+			vehiclesResult,
+			familyMembersResult,
+			familyHistoryResult,
+			petsResult
+		] = await Promise.all([
+			db.prepare('SELECT * FROM personal_info WHERE user_id = ? AND person_type = ?').bind(userId, 'self').first(),
+			db.prepare('SELECT * FROM credentials WHERE user_id = ?').bind(userId).all(),
+			db.prepare('SELECT * FROM key_contacts WHERE user_id = ?').bind(userId).all(),
+			db.prepare('SELECT * FROM legal_documents WHERE user_id = ?').bind(userId).all(),
+			db.prepare('SELECT * FROM documents WHERE user_id = ?').bind(userId).all(),
+			db.prepare('SELECT * FROM final_days WHERE user_id = ?').bind(userId).first(),
+			db.prepare('SELECT * FROM after_death WHERE user_id = ?').bind(userId).first(),
+			db.prepare('SELECT * FROM funeral WHERE user_id = ?').bind(userId).first(),
+			db.prepare('SELECT * FROM obituary WHERE user_id = ?').bind(userId).first(),
+			db.prepare('SELECT * FROM conclusion WHERE user_id = ?').bind(userId).first(),
+			db.prepare('SELECT * FROM bank_accounts WHERE user_id = ?').bind(userId).all(),
+			db.prepare('SELECT * FROM insurance WHERE user_id = ?').bind(userId).all(),
+			db.prepare('SELECT * FROM employment WHERE user_id = ?').bind(userId).all(),
+			db.prepare('SELECT * FROM medical_info WHERE user_id = ?').bind(userId).first(),
+			db.prepare('SELECT * FROM physicians WHERE user_id = ? ORDER BY id ASC').bind(userId).all(),
+			db.prepare('SELECT * FROM primary_residence WHERE user_id = ?').bind(userId).first(),
+			db.prepare('SELECT * FROM vehicles WHERE user_id = ?').bind(userId).all(),
+			db.prepare(
+				`SELECT fm.id, fm.user_id, fm.relationship, fm.personal_info_id,
+					pi.legal_name, pi.date_of_birth, pi.mobile_phone, pi.email, pi.address, pi.occupation
+				 FROM family_members fm
+				 LEFT JOIN personal_info pi ON pi.id = fm.personal_info_id
+				 WHERE fm.user_id = ?
+				 ORDER BY fm.relationship, pi.legal_name`
+			).bind(userId).all(),
+			db.prepare('SELECT * FROM family_history WHERE user_id = ?').bind(userId).first(),
+			db.prepare('SELECT * FROM pets WHERE user_id = ?').bind(userId).all()
+		]);
+
+		const physicians = physiciansResult?.results || [];
+		const familyMembers = familyMembersResult?.results || [];
 
 		return {
 			journey,
 			subscription,
+			categories,
+			sections,
+			sectionsByCategory,
+			progressMap,
 			completionPercentage,
-			sectionsCompleted: progress.completed || 0,
-			sectionsTotal: progress.total || 0
+			sectionsCompleted: completedCount,
+			sectionsTotal: totalCount,
+			// Section data for forms
+			sectionData: {
+				personal: personalResult || {},
+				credentials: credentialsResult?.results || [],
+				contacts: contactsResult?.results || [],
+				legal: legalResult?.results || [],
+				documents: documentsResult?.results || [],
+				'final-days': finalDaysResult || {},
+				'after-death': afterDeathResult || {},
+				funeral: funeralResult || {},
+				obituary: obituaryResult || {},
+				conclusion: conclusionResult || {},
+				financial: bankAccountsResult?.results || [],
+				insurance: insuranceResult?.results || [],
+				employment: employmentResult?.results || [],
+				medical: medicalResult || {},
+				physicians: physicians,
+				residence: residenceResult || {},
+				vehicles: vehiclesResult?.results || [],
+				family: {
+					members: familyMembers,
+					history: familyHistoryResult || null
+				},
+				pets: petsResult?.results || [],
+				property: [] // placeholder for now
+			},
+			userId: locals.user.id
 		};
 	} catch (err) {
 		if (err instanceof Response) throw err;
 		console.error('Error loading journey dashboard:', err);
 		throw error(500, 'Failed to load dashboard');
 	}
+};
+
+// Form actions will be added to handle section updates
+export const actions: Actions = {
+	// Placeholder - will be expanded with actual form actions
 };
