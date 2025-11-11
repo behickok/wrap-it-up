@@ -66,6 +66,14 @@
 						>
 							📚 Journeys
 						</a>
+						{#if $page.data?.isMentor}
+							<a
+								href="/mentor/dashboard"
+								class="btn btn-sm bg-white/20 hover:bg-white/30 border border-white/30 backdrop-blur-sm transition-all duration-300 hover:scale-105 shrink-0"
+							>
+								👨‍🏫 Mentor
+							</a>
+						{/if}
 						<span class="font-semibold text-sm md:text-base opacity-95 truncate max-w-[120px] md:max-w-none">@{$page.data.user.username}</span>
 						<button
 							onclick={handleLogout}

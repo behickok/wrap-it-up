@@ -19,7 +19,8 @@ export const load: LayoutServerLoad = async ({ platform, locals, url }) => {
 				sections: {}
 			},
 			user: null,
-			userJourneys: []
+			userJourneys: [],
+			isMentor: false
 		};
 	}
 
@@ -34,7 +35,8 @@ export const load: LayoutServerLoad = async ({ platform, locals, url }) => {
 					sections: {}
 				},
 				user: locals.user,
-				userJourneys: []
+				userJourneys: [],
+				isMentor: false
 			};
 		}
 
@@ -59,10 +61,16 @@ export const load: LayoutServerLoad = async ({ platform, locals, url }) => {
 			ORDER BY uj.started_at DESC
 		`).bind(userId).all();
 
+		// Check if user is a mentor
+		const mentor = await db.prepare('SELECT * FROM mentors WHERE user_id = ?')
+			.bind(userId)
+			.first();
+
 		return {
 			readinessScore,
 			user: locals.user,
-			userJourneys: userJourneysResult.results || []
+			userJourneys: userJourneysResult.results || [],
+			isMentor: !!mentor
 		};
 	} catch (error) {
 		console.error('Error loading layout data:', error);
@@ -72,7 +80,8 @@ export const load: LayoutServerLoad = async ({ platform, locals, url }) => {
 				sections: {}
 			},
 			user: locals.user,
-			userJourneys: []
+			userJourneys: [],
+			isMentor: false
 		};
 	}
 };

@@ -103,6 +103,27 @@ export const load: PageServerLoad = async ({ locals, platform, params }) => {
 			};
 		}
 
+		// Get reviews for sections (Guided/Premium tier feature)
+		const reviewsResult = await db
+			.prepare(
+				`SELECT mr.id, mr.section_id, mr.status, mr.submitted_at,
+				        mr.completed_at, mr.feedback
+				 FROM mentor_reviews mr
+				 WHERE mr.user_journey_id = ?
+				 ORDER BY mr.submitted_at DESC`
+			)
+			.bind(subscription.id)
+			.all();
+
+		const reviewsMap: Record<number, any> = {};
+		for (const review of (reviewsResult.results || [])) {
+			const r = review as any;
+			// Keep only the most recent review per section
+			if (!reviewsMap[r.section_id]) {
+				reviewsMap[r.section_id] = r;
+			}
+		}
+
 		// Calculate overall progress
 		const completedCount = Object.values(progressMap).filter((p: any) => p.is_completed).length;
 		const totalCount = sections.length;
@@ -163,6 +184,11 @@ export const load: PageServerLoad = async ({ locals, platform, params }) => {
 		const physicians = physiciansResult?.results || [];
 		const familyMembers = familyMembersResult?.results || [];
 
+		// Get available mentors (for Premium tier session booking)
+		const mentorsResult = await db
+			.prepare('SELECT id, display_name, bio, hourly_rate FROM mentors WHERE is_available = 1')
+			.all();
+
 		return {
 			journey,
 			subscription,
@@ -170,9 +196,11 @@ export const load: PageServerLoad = async ({ locals, platform, params }) => {
 			sections,
 			sectionsByCategory,
 			progressMap,
+			reviewsMap,
 			completionPercentage,
 			sectionsCompleted: completedCount,
 			sectionsTotal: totalCount,
+			mentors: mentorsResult?.results || [],
 			// Section data for forms
 			sectionData: {
 				personal: personalResult || {},
@@ -415,6 +443,171 @@ export const actions: Actions = {
 		} catch (error) {
 			console.error('Error deleting contact:', error);
 			return fail(500, { error: 'Failed to delete contact' });
+		}
+	},
+
+	// Review submission (Guided/Premium tier feature)
+	submitForReview: async ({ request, platform, locals, params }) => {
+		try {
+			const userId = getUserId(locals);
+			if (!userId) return fail(401, { error: 'Not authenticated' });
+
+			const db = getDb(platform);
+			if (!db) return fail(500, { error: 'Database not available' });
+
+			const formData = await request.formData();
+			const userJourneyId = Number(formData.get('user_journey_id'));
+			const sectionId = Number(formData.get('section_id'));
+			const notes = formData.get('notes') || '';
+
+			// Verify user owns this journey and has review access
+			const journeyCheck = await db
+				.prepare(
+					`SELECT uj.id, st.slug as tier_slug
+					 FROM user_journeys uj
+					 JOIN service_tiers st ON uj.tier_id = st.id
+					 WHERE uj.id = ? AND uj.user_id = ?`
+				)
+				.bind(userJourneyId, userId)
+				.first();
+
+			if (!journeyCheck) {
+				return fail(403, { error: 'Journey not found or access denied' });
+			}
+
+			const tierSlug = (journeyCheck as any).tier_slug;
+			if (tierSlug !== 'guided' && tierSlug !== 'premium') {
+				return fail(403, { error: 'Review feature requires Guided or Premium tier' });
+			}
+
+			// Check if there's already a pending/in-review submission
+			const existingReview = await db
+				.prepare(
+					`SELECT id FROM mentor_reviews
+					 WHERE user_journey_id = ? AND section_id = ?
+					 AND status IN ('pending', 'in_review')`
+				)
+				.bind(userJourneyId, sectionId)
+				.first();
+
+			if (existingReview) {
+				return fail(400, { error: 'A review is already in progress for this section' });
+			}
+
+			// Create review request
+			await db
+				.prepare(
+					`INSERT INTO mentor_reviews
+					 (user_journey_id, section_id, status, submitted_at)
+					 VALUES (?, ?, 'pending', datetime('now'))`
+				)
+				.bind(userJourneyId, sectionId)
+				.run();
+
+			return { success: true, message: 'Review request submitted successfully' };
+		} catch (error) {
+			console.error('Error submitting review:', error);
+			return fail(500, { error: 'Failed to submit review request' });
+		}
+	},
+
+	requestReReview: async ({ request, platform, locals }) => {
+		try {
+			const userId = getUserId(locals);
+			if (!userId) return fail(401, { error: 'Not authenticated' });
+
+			const db = getDb(platform);
+			if (!db) return fail(500, { error: 'Database not available' });
+
+			const formData = await request.formData();
+			const reviewId = Number(formData.get('review_id'));
+
+			// Verify ownership and mark as completed -> pending new review
+			const review = await db
+				.prepare(
+					`SELECT mr.user_journey_id, mr.section_id
+					 FROM mentor_reviews mr
+					 JOIN user_journeys uj ON mr.user_journey_id = uj.id
+					 WHERE mr.id = ? AND uj.user_id = ?`
+				)
+				.bind(reviewId, userId)
+				.first();
+
+			if (!review) {
+				return fail(403, { error: 'Review not found or access denied' });
+			}
+
+			const { user_journey_id, section_id } = review as any;
+
+			// Create new review request
+			await db
+				.prepare(
+					`INSERT INTO mentor_reviews
+					 (user_journey_id, section_id, status, submitted_at)
+					 VALUES (?, ?, 'pending', datetime('now'))`
+				)
+				.bind(user_journey_id, section_id)
+				.run();
+
+			return { success: true, message: 'Re-review requested successfully' };
+		} catch (error) {
+			console.error('Error requesting re-review:', error);
+			return fail(500, { error: 'Failed to request re-review' });
+		}
+	},
+
+	bookSession: async ({ request, platform, locals }) => {
+		try {
+			const userId = getUserId(locals);
+			if (!userId) return fail(401, { error: 'Not authenticated' });
+
+			const db = getDb(platform);
+			if (!db) return fail(500, { error: 'Database not available' });
+
+			const formData = await request.formData();
+			const userJourneyId = Number(formData.get('user_journey_id'));
+			const mentorId = Number(formData.get('mentor_id'));
+			const sessionDate = formData.get('session_date') as string;
+			const sessionTime = formData.get('session_time') as string;
+			const notes = (formData.get('notes') as string) || null;
+
+			// Verify subscription has Premium access
+			const subscription = await db
+				.prepare(
+					`SELECT uj.id, st.slug as tier_slug
+					 FROM user_journeys uj
+					 JOIN service_tiers st ON uj.tier_id = st.id
+					 WHERE uj.id = ? AND uj.user_id = ?`
+				)
+				.bind(userJourneyId, userId)
+				.first();
+
+			if (!subscription) {
+				return fail(403, { error: 'Journey subscription not found' });
+			}
+
+			const tierSlug = (subscription as any).tier_slug;
+			if (tierSlug !== 'premium') {
+				return fail(403, { error: 'Session booking requires Premium tier' });
+			}
+
+			// Combine date and time into a datetime
+			const scheduledAt = `${sessionDate} ${sessionTime}:00`;
+
+			// Create session booking
+			await db
+				.prepare(
+					`INSERT INTO mentor_sessions
+					 (user_journey_id, mentor_id, scheduled_at, duration_minutes, status, notes, created_at)
+					 VALUES (?, ?, ?, 60, 'pending', ?, datetime('now'))`
+				)
+				.bind(userJourneyId, mentorId, scheduledAt, notes)
+				.run();
+
+			return { success: true, message: 'Session booked successfully! Your mentor will confirm shortly.' };
+		} catch (error) {
+			console.error('Error booking session:', error);
+			return fail(500, { error: 'Failed to book session' });
 		}
 	}
 };

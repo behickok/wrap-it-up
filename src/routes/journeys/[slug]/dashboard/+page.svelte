@@ -4,6 +4,8 @@
 	import { exportToPDF } from '$lib/pdfExport';
 	import { getMotivationalMessage } from '$lib/readinessScore';
 	import SectionContent from '$lib/components/SectionContent.svelte';
+	import SubmitForReview from '$lib/components/SubmitForReview.svelte';
+	import BookSession from '$lib/components/BookSession.svelte';
 
 	let { data }: { data: PageData } = $props();
 
@@ -127,6 +129,10 @@
 	function getSectionProgress(sectionId: number): any {
 		return data.progressMap[sectionId] || { score: 0, is_completed: false };
 	}
+
+	function getSectionReview(sectionId: number): any {
+		return data.reviewsMap?.[sectionId] || null;
+	}
 </script>
 
 <svelte:head>
@@ -157,6 +163,12 @@
 			<a href="/journeys" class="btn btn-ghost btn-sm">
 				← All Journeys
 			</a>
+			<BookSession
+				userJourneyId={data.subscription.id}
+				journeyName={data.journey.name}
+				tierSlug={data.subscription.tier_slug}
+				mentors={data.mentors || []}
+			/>
 			{#if data.journey.slug === 'care'}
 				<button
 					class="btn btn-primary export-button"
@@ -238,10 +250,22 @@
 			{#each sectionsInCategory as section}
 				<section id="section-{section.slug}" class="content-section">
 					<div class="section-header">
-						<h2 class="section-title">{section.name}</h2>
-						{#if section.description}
-							<p class="section-description">{section.description}</p>
-						{/if}
+						<div class="section-header-top">
+							<div>
+								<h2 class="section-title">{section.name}</h2>
+								{#if section.description}
+									<p class="section-description">{section.description}</p>
+								{/if}
+							</div>
+							{@const review = getSectionReview(section.id)}
+							<SubmitForReview
+								sectionId={section.id}
+								sectionName={section.name}
+								userJourneyId={data.subscription.id}
+								tierSlug={data.subscription.tier_slug}
+								currentReview={review}
+							/>
+						</div>
 						{@const progress = getSectionProgress(section.id)}
 						<div class="section-progress">
 							<div class="progress-label">
@@ -451,6 +475,21 @@
 		border-bottom: 1px solid hsl(var(--b2));
 	}
 
+	.section-header-top {
+		display: flex;
+		justify-content: space-between;
+		align-items: flex-start;
+		gap: 1rem;
+		margin-bottom: 1rem;
+	}
+
+	@media (max-width: 768px) {
+		.section-header-top {
+			flex-direction: column;
+			align-items: stretch;
+		}
+	}
+
 	.section-title {
 		font-size: 1.5rem;
 		font-weight: 700;
@@ -459,7 +498,7 @@
 
 	.section-description {
 		color: hsl(var(--bc) / 0.7);
-		margin-bottom: 1rem;
+		margin-bottom: 0;
 	}
 
 	.section-progress {
