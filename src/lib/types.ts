@@ -957,3 +957,213 @@ export interface FormSubmissionData {
 	section_id: number;
 	data: Record<string, any>;
 }
+
+// ============================================================================
+// ROLE-BASED ACCESS CONTROL TYPES
+// ============================================================================
+
+// Role names
+export type RoleName = 'participant' | 'creator' | 'mentor' | 'coach' | 'admin';
+
+// Permission names
+export type PermissionName =
+	// Journey permissions
+	| 'journey.create'
+	| 'journey.edit_own'
+	| 'journey.edit_any'
+	| 'journey.delete_own'
+	| 'journey.delete_any'
+	| 'journey.publish'
+	| 'journey.view_all'
+	// Data permissions
+	| 'data.view_own'
+	| 'data.edit_own'
+	| 'data.view_shared'
+	| 'data.edit_shared'
+	| 'data.export_own'
+	| 'data.delete_own'
+	// Analytics permissions
+	| 'analytics.view_own'
+	| 'analytics.view_all'
+	| 'analytics.export'
+	// User management permissions
+	| 'user.manage_roles'
+	| 'user.view_all'
+	| 'user.impersonate'
+	// Mentor permissions
+	| 'mentor.receive_reviews'
+	| 'mentor.provide_feedback'
+	// Coach permissions
+	| 'coach.add_clients'
+	| 'coach.access_client_data'
+	| 'coach.edit_client_data'
+	// System permissions
+	| 'system.manage_settings'
+	| 'system.manage_permissions';
+
+// Role definition
+export interface Role {
+	id: number;
+	name: RoleName;
+	display_name: string;
+	description: string | null;
+	is_active: boolean;
+	created_at: string;
+}
+
+// User role assignment
+export interface UserRole {
+	id: number;
+	user_id: number;
+	role_id: number;
+	granted_at: string;
+	granted_by: number | null;
+}
+
+// Permission definition
+export interface Permission {
+	id: number;
+	name: PermissionName;
+	display_name: string;
+	description: string | null;
+	category: string;
+	created_at: string;
+}
+
+// Role-permission mapping
+export interface RolePermission {
+	id: number;
+	role_id: number;
+	permission_id: number;
+	created_at: string;
+}
+
+// Coach profile
+export interface Coach {
+	id: number;
+	user_id: number;
+	display_name: string;
+	bio: string | null;
+	specialties: string | null; // JSON array
+	is_available: boolean;
+	hourly_rate: number;
+	rating_average: number;
+	review_count: number;
+	created_at: string;
+	updated_at: string;
+}
+
+// Coach-client relationship
+export type CoachClientStatus = 'pending' | 'active' | 'paused' | 'ended';
+export type AccessLevel = 'view' | 'edit' | 'full';
+
+export interface CoachClient {
+	id: number;
+	coach_id: number;
+	client_user_id: number;
+	status: CoachClientStatus;
+	access_level: AccessLevel;
+	journey_id: number | null;
+	notes: string | null;
+	started_at: string;
+	ended_at: string | null;
+	created_at: string;
+	updated_at: string;
+}
+
+// Coach access log
+export interface CoachAccessLog {
+	id: number;
+	coach_client_id: number;
+	action: string;
+	section_id: number | null;
+	details: string | null;
+	accessed_at: string;
+}
+
+// Section sharing
+export type SectionAccessType = 'view' | 'comment' | 'edit';
+
+export interface SectionShare {
+	id: number;
+	user_id: number;
+	shared_with_user_id: number;
+	section_id: number;
+	access_type: SectionAccessType;
+	message: string | null;
+	expires_at: string | null;
+	created_at: string;
+}
+
+// Journey analytics
+export interface JourneyAnalytics {
+	id: number;
+	journey_id: number;
+	metric_date: string;
+	// Engagement
+	total_users: number;
+	active_users: number;
+	new_users: number;
+	completed_users: number;
+	// Progress
+	avg_completion_percentage: number;
+	avg_score: number;
+	total_sections_completed: number;
+	// Retention
+	retention_7day: number;
+	retention_30day: number;
+	// Other
+	total_sessions: number;
+	avg_session_duration_minutes: number;
+	created_at: string;
+}
+
+// Section analytics
+export interface SectionAnalytics {
+	id: number;
+	section_id: number;
+	journey_id: number;
+	metric_date: string;
+	total_completions: number;
+	avg_completion_time_minutes: number;
+	avg_score: number;
+	incomplete_field_count: number;
+	common_incomplete_fields: string | null; // JSON array
+	created_at: string;
+}
+
+// Analytics event
+export type AnalyticsEventType =
+	| 'journey_started'
+	| 'section_viewed'
+	| 'section_completed'
+	| 'data_saved'
+	| 'journey_completed';
+
+export interface AnalyticsEvent {
+	id: number;
+	user_id: number | null;
+	journey_id: number | null;
+	section_id: number | null;
+	event_type: AnalyticsEventType;
+	event_data: string | null; // JSON
+	session_id: string | null;
+	created_at: string;
+}
+
+// Extended types with joined data
+export interface UserWithRoles extends User {
+	roles: Role[];
+	permissions: Permission[];
+}
+
+export interface CoachWithDetails extends Coach {
+	user: User;
+	clients: CoachClient[];
+}
+
+export interface CoachClientWithDetails extends CoachClient {
+	coach: Coach;
+	client: User;
+	journey?: Journey;
+}
