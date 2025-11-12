@@ -771,3 +771,189 @@ export function hasFeature(tier: ServiceTier, feature: FeatureKey): boolean {
 			return false;
 	}
 }
+
+// ============================================================================
+// GENERIC FORM SYSTEM TYPES
+// ============================================================================
+
+// Field type names supported by the system
+export type FieldTypeName =
+	| 'text'
+	| 'textarea'
+	| 'number'
+	| 'date'
+	| 'datetime'
+	| 'select'
+	| 'multiselect'
+	| 'checkbox'
+	| 'radio'
+	| 'email'
+	| 'phone'
+	| 'url'
+	| 'file'
+	| 'currency'
+	| 'rating';
+
+// Field importance levels for scoring
+export type FieldImportanceLevel = 'critical' | 'important' | 'optional';
+
+// Field type definition
+export interface FieldType {
+	id: number;
+	type_name: FieldTypeName;
+	display_name: string;
+	validation_schema: string | null; // JSON schema
+	default_config: string | null; // JSON config
+	icon: string | null;
+	is_active: boolean;
+	created_at: string;
+}
+
+// Parsed field type with JSON parsed
+export interface ParsedFieldType extends Omit<FieldType, 'validation_schema' | 'default_config'> {
+	validation_schema: Record<string, any> | null;
+	default_config: Record<string, any> | null;
+}
+
+// Field configuration for select/multiselect/radio
+export interface SelectFieldConfig {
+	options: Array<{ label: string; value: string }>;
+	placeholder?: string;
+}
+
+// Field configuration for text inputs
+export interface TextFieldConfig {
+	placeholder?: string;
+	maxLength?: number;
+	minLength?: number;
+	pattern?: string;
+}
+
+// Field configuration for textarea
+export interface TextAreaFieldConfig {
+	placeholder?: string;
+	rows?: number;
+	maxLength?: number;
+}
+
+// Field configuration for number/currency
+export interface NumberFieldConfig {
+	placeholder?: string;
+	min?: number;
+	max?: number;
+	step?: number;
+	prefix?: string; // For currency
+	suffix?: string;
+}
+
+// Field configuration for file upload
+export interface FileFieldConfig {
+	accept?: string; // MIME types
+	maxSize?: number; // in bytes
+	multiple?: boolean;
+}
+
+// Field configuration for rating
+export interface RatingFieldConfig {
+	max?: number; // default 5
+	icon?: string; // default 'star'
+}
+
+// Conditional logic for showing/hiding fields
+export interface ConditionalLogic {
+	field: string; // field_name to watch
+	operator: 'equals' | 'not_equals' | 'contains' | 'not_contains' | 'is_empty' | 'is_not_empty';
+	value?: any;
+}
+
+// Union type for all field configs
+export type FieldConfig =
+	| SelectFieldConfig
+	| TextFieldConfig
+	| TextAreaFieldConfig
+	| NumberFieldConfig
+	| FileFieldConfig
+	| RatingFieldConfig
+	| Record<string, any>;
+
+// Section field definition
+export interface SectionField {
+	id: number;
+	section_id: number;
+	field_name: string;
+	field_label: string;
+	field_type_id: number;
+	field_config: string | null; // JSON
+	is_required: boolean;
+	importance_level: FieldImportanceLevel;
+	help_text: string | null;
+	placeholder: string | null;
+	default_value: string | null;
+	display_order: number;
+	conditional_logic: string | null; // JSON
+	created_at: string;
+	updated_at: string;
+}
+
+// Parsed section field with JSON parsed and field type joined
+export interface ParsedSectionField extends Omit<SectionField, 'field_config' | 'conditional_logic'> {
+	field_type: FieldType;
+	field_config: FieldConfig | null;
+	conditional_logic: ConditionalLogic | null;
+}
+
+// Generic section data storage
+export interface SectionData {
+	id: number;
+	user_id: number;
+	section_id: number;
+	data: string; // JSON object with field_name: value pairs
+	completed_fields: number;
+	total_fields: number;
+	created_at: string;
+	updated_at: string;
+}
+
+// Parsed section data
+export interface ParsedSectionData extends Omit<SectionData, 'data'> {
+	data: Record<string, any>;
+}
+
+// Journey creator system
+export interface JourneyCreator {
+	id: number;
+	journey_id: number;
+	creator_user_id: number;
+	is_published: boolean;
+	is_featured: boolean;
+	use_count: number;
+	created_at: string;
+	updated_at: string;
+}
+
+// Journey template tracking
+export interface JourneyTemplate {
+	id: number;
+	template_journey_id: number;
+	cloned_journey_id: number;
+	cloned_by_user_id: number;
+	created_at: string;
+}
+
+// Extended types with joined data
+export interface JourneyCreatorWithDetails extends JourneyCreator {
+	journey: Journey;
+	creator: User;
+}
+
+// Form validation result
+export interface ValidationResult {
+	isValid: boolean;
+	errors: Record<string, string>;
+}
+
+// Form submission data
+export interface FormSubmissionData {
+	section_id: number;
+	data: Record<string, any>;
+}
