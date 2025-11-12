@@ -72,7 +72,7 @@ let dialogRef: HTMLDialogElement | null = null;
 	aria-labelledby="ask-ai-title"
 	onclose={handleDialogClose}
 >
-	<div class="modal-box max-w-[600px]">
+	<div class="modal-box max-w-[600px] max-h-[80vh] overflow-y-auto">
 		<h3 id="ask-ai-title" class="font-bold text-lg">Ask AI for Help</h3>
 		<p class="py-2" style="color: var(--color-muted-foreground);">
 			Need help filling out the {sectionName} section? Ask me anything!
@@ -100,7 +100,7 @@ let dialogRef: HTMLDialogElement | null = null;
 			</button>
 
 			{#if answer}
-				<div class="rounded-lg border-l-4 p-4" style="background-color: var(--color-muted); border-color: var(--color-primary);">
+				<div class="rounded-lg border-l-4 p-4 max-h-64 overflow-y-auto" style="background-color: var(--color-muted); border-color: var(--color-primary);">
 					<h4 class="mb-2 font-semibold">AI Response:</h4>
 					<p class="text-sm whitespace-pre-wrap" style="color: var(--color-muted-foreground);">{answer}</p>
 				</div>

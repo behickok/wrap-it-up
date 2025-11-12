@@ -46,9 +46,6 @@
   --depth: 1;
   --noise: 0;
 }
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
 
 :root {
   --color-plan: var(--p);
@@ -56,6 +53,27 @@
   --color-connect: var(--a);
   --color-support: var(--in);
   --color-legacy: var(--wa);
+  --p: oklch(68% 0.18 25);
+  --pc: oklch(98% 0.01 25);
+  --pf: var(--pc);
+  --s: oklch(75% 0.15 60);
+  --sc: oklch(20% 0.02 60);
+  --sf: var(--sc);
+  --a: oklch(70% 0.16 35);
+  --ac: oklch(98% 0.01 35);
+  --af: var(--ac);
+  --in: oklch(65% 0.15 220);
+  --inc: oklch(98% 0.01 220);
+  --inf: var(--inc);
+  --wa: oklch(78% 0.18 70);
+  --wac: oklch(20% 0.03 70);
+  --waf: var(--wac);
+  --er: oklch(65% 0.2 20);
+  --erc: oklch(98% 0.01 20);
+  --erf: var(--erc);
+  --n: oklch(45% 0.04 40);
+  --nc: oklch(98% 0.01 40);
+  --nf: var(--nc);
 }
 
 /* Glass Card Styles */

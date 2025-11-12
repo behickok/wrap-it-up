@@ -21,7 +21,7 @@ export const POST: RequestHandler = async ({ request, platform }) => {
 		const systemPrompt = `You are a helpful assistant for an end-of-life planning workbook called "Wrap It Up".
 You're helping users fill out the "${section}" section of their planning workbook.
 Provide thoughtful, compassionate, and practical advice. Keep responses concise but helpful.
-Focus on what information is important to document and why it matters for their loved ones.`;
+Focus on what information is important to document and why it matters for their loved ones. Please answer in 500 words or less`;
 
 		const response = await fetch('https://api.openai.com/v1/chat/completions', {
 			method: 'POST',
@@ -41,27 +41,43 @@ Focus on what information is important to document and why it matters for their 
 						content: question
 					}
 				],
-				temperature: 0.7,
-				max_tokens: 500
+				temperature: 1,
+				max_completion_tokens: 1500
 			})
 		});
 
 		if (!response.ok) {
-			throw new Error('OpenAI API request failed');
+			const errorText = await response.text();
+			console.error('OpenAI API response error', {
+				status: response.status,
+				statusText: response.statusText,
+				body: errorText
+			});
+			throw new Error(`OpenAI API request failed: ${response.status} ${response.statusText}`);
 		}
 
 		const data = await response.json();
-		const answer = data.choices[0]?.message?.content || 'I apologize, but I couldn\'t generate a response. Please try again.';
+
+		if (!data?.choices?.length) {
+			console.error('OpenAI API missing choices', data);
+		}
+
+		const answer = data.choices?.[0]?.message?.content?.trim();
+
+		if (!answer) {
+			console.error('OpenAI API empty answer', data);
+		}
 
 		return json({
 			success: true,
-			answer
+			answer: answer || 'I apologize, but I couldn\'t generate a response. Please try again.'
 		});
 	} catch (error) {
 		console.error('Ask AI error:', error);
+		const errorMessage = error instanceof Error ? error.message : 'An error occurred while processing your request';
 		return json({
 			success: false,
-			error: 'An error occurred while processing your request'
+			error: errorMessage
 		}, { status: 500 });
 	}
 };

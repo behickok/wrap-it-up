@@ -27,7 +27,7 @@
 </svelte:head>
 
 <div class="min-h-screen flex flex-col bg-background">
-	<header class="bg-gradient-to-br from-primary to-secondary text-primary-foreground shadow-xl relative overflow-hidden">
+	<header class="text-primary-foreground shadow-xl relative overflow-hidden" style="background: linear-gradient(135deg, #e07b39 0%, #f4a261 50%, #e9c46a 100%);">
 		<!-- Decorative background pattern -->
 		<div class="absolute inset-0 opacity-10">
 			<svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
