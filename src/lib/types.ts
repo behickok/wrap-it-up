@@ -369,8 +369,149 @@ export const SECTIONS = [
 	{ id: 'after-death', name: 'After Death Arrangements', weight: 8, category: 'legacy' as JourneyCategory },
 	{ id: 'funeral', name: 'Funeral & Celebration of Life', weight: 7, category: 'legacy' as JourneyCategory },
 	{ id: 'obituary', name: 'Obituary Planning', weight: 5, category: 'legacy' as JourneyCategory },
-	{ id: 'conclusion', name: 'Final Thoughts & Reflections', weight: 4, category: 'legacy' as JourneyCategory }
+	{ id: 'conclusion', name: 'Final Thoughts & Reflections', weight: 4, category: 'legacy' as JourneyCategory },
+	{ id: 'marriage_license', name: 'Marriage License', weight: 6, category: 'plan' as JourneyCategory },
+	{ id: 'prenup', name: 'Prenuptial Agreement', weight: 5, category: 'plan' as JourneyCategory },
+	{ id: 'joint_accounts', name: 'Joint Finances', weight: 5, category: 'support' as JourneyCategory },
+	{ id: 'name_change', name: 'Name Change Plan', weight: 4, category: 'support' as JourneyCategory },
+	{ id: 'venue', name: 'Venue Planning', weight: 6, category: 'care' as JourneyCategory },
+	{ id: 'vendors', name: 'Vendor Team', weight: 5, category: 'care' as JourneyCategory },
+	{ id: 'guest_list', name: 'Guest List', weight: 5, category: 'connect' as JourneyCategory },
+	{ id: 'registry', name: 'Registry', weight: 4, category: 'connect' as JourneyCategory },
+	{ id: 'home_setup', name: 'Home Setup', weight: 4, category: 'support' as JourneyCategory }
 ] as const;
+
+// Wedding Journey data models
+export interface WeddingMarriageLicense {
+	id?: number;
+	user_id: number;
+	jurisdiction: string;
+	office_address: string;
+	appointment_date: string;
+	expiration_date: string;
+	required_documents: string;
+	witness_requirements: string;
+	fee_amount: number;
+	confirmation_number: string;
+	notes: string;
+}
+
+export interface WeddingPrenup {
+	id?: number;
+	user_id: number;
+	status: string;
+	attorney_user: string;
+	attorney_partner: string;
+	agreement_scope: string;
+	financial_disclosures_ready: number;
+	review_deadline: string;
+	signing_plan: string;
+	storage_plan: string;
+	notes: string;
+}
+
+export interface WeddingJointFinances {
+	id?: number;
+	user_id: number;
+	shared_values: string;
+	accounts_to_merge: string;
+	new_accounts: string;
+	bill_split_plan: string;
+	emergency_fund_plan: string;
+	budgeting_tools: string;
+	monthly_checkin_cadence: string;
+	notes: string;
+}
+
+export interface WeddingNameChange {
+	id?: number;
+	user_id: number;
+	new_name: string;
+	keeping_current_name: number;
+	legal_documents: string;
+	ids_to_update: string;
+	digital_accounts: string;
+	announcement_plan: string;
+	target_effective_date: string;
+	status: string;
+	notes: string;
+}
+
+export interface WeddingVenue {
+	id?: number;
+	user_id: number;
+	venue_name: string;
+	venue_style: string;
+	venue_address: string;
+	capacity: number;
+	contact_name: string;
+	contact_email: string;
+	contact_phone: string;
+	tour_date: string;
+	decision_deadline: string;
+	deposit_amount: number;
+	total_cost: number;
+	included_items: string;
+	rain_plan: string;
+	notes: string;
+}
+
+export interface WeddingVendor {
+	id?: number;
+	user_id: number;
+	vendor_type: string;
+	business_name: string;
+	contact_name: string;
+	contact_email: string;
+	contact_phone: string;
+	deposit_amount: number;
+	balance_due: number;
+	next_payment_due: string;
+	status: string;
+	contract_signed: number;
+	notes: string;
+}
+
+export interface WeddingGuest {
+	id?: number;
+	user_id: number;
+	guest_name: string;
+	relationship: string;
+	party_size: number;
+	email: string;
+	phone: string;
+	address: string;
+	invitation_sent: number;
+	rsvp_status: string;
+	meal_preference: string;
+	notes: string;
+}
+
+export interface WeddingRegistryItem {
+	id?: number;
+	user_id: number;
+	retailer: string;
+	item_name: string;
+	item_url: string;
+	price: number;
+	quantity: number;
+	priority: string;
+	status: string;
+	notes: string;
+}
+
+export interface WeddingHomeSetup {
+	id?: number;
+	user_id: number;
+	housing_plan: string;
+	move_in_date: string;
+	utilities_plan: string;
+	design_style: string;
+	shared_calendar_link: string;
+	hosting_goals: string;
+	first_month_priorities: string;
+	notes: string;
+}
 
 // ============================================================================
 // MULTI-JOURNEY PLATFORM TYPES

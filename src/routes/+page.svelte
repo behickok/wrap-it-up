@@ -1,590 +1,261 @@
 <script lang="ts">
-	import { SECTIONS, JOURNEY_CATEGORIES, type JourneyCategory } from '$lib/types';
-	import { getMotivationalMessage } from '$lib/readinessScore';
-	import JourneyTabs from '$lib/components/JourneyTabs.svelte';
-	import JourneyVisual from '$lib/components/JourneyVisual.svelte';
-	import SectionContent from '$lib/components/SectionContent.svelte';
-	import { exportToPDF } from '$lib/pdfExport';
-	import { goto } from '$app/navigation';
-	import { onMount } from 'svelte';
+	import type { PageData } from './$types';
 
-	let { data } = $props();
+	let { data }: { data: PageData } = $props();
 
-	// Check if user should be redirected to a specific journey
-	onMount(() => {
-		const userJourneys = data.userJourneys || [];
+	const user = $derived(data.user);
+	const enrolledJourneys = $derived(data.enrolledJourneys ?? []);
+	const availableJourneys = $derived(data.availableJourneys ?? []);
+	const featuredJourneys = $derived(data.featuredJourneys ?? []);
+	const AVAILABLE_JOURNEYS = ['wedding', 'care'];
 
-		// If user only has Care journey, redirect there for backward compatibility
-		if (userJourneys.length === 1 && userJourneys[0].journey_slug === 'care') {
-			// Keep them on legacy dashboard for now
-			return;
+	const hasEnrolledJourneys = $derived(enrolledJourneys.length > 0);
+	const marketingHighlights = [
+		{
+			title: 'Personalized journeys',
+			description: 'Step-by-step roadmaps crafted for major life transitions.',
+			icon: '🧭'
+		},
+		{
+			title: 'Expert guidance',
+			description: 'Tiered plans that scale from self-serve checklists to mentor support.',
+			icon: '🤝'
+		},
+		{
+			title: 'Centralized vault',
+			description: 'Securely capture legal, financial, medical, and legacy details in one place.',
+			icon: '🔐'
 		}
+	];
 
-		// If user has any journeys, suggest going to journey library
-		if (userJourneys.length > 0) {
-			// Stay on this page but show the journey picker
-			return;
-		}
-	});
-
-	let isExporting = $state(false);
-	let exportStatus = $state<{ type: 'success' | 'error'; message: string } | null>(null);
-
-	async function handleExport() {
-		isExporting = true;
-		exportStatus = null;
-
-		try {
-			const result = await exportToPDF();
-			if (result.success) {
-				exportStatus = {
-					type: 'success',
-					message: `PDF exported successfully: ${result.filename}`
-				};
-			} else {
-				exportStatus = {
-					type: 'error',
-					message: result.error || 'Failed to export PDF'
-				};
-			}
-		} catch (error) {
-			exportStatus = {
-				type: 'error',
-				message: 'An unexpected error occurred'
-			};
-		} finally {
-			isExporting = false;
-			// Clear status after 5 seconds
-			setTimeout(() => {
-				exportStatus = null;
-			}, 5000);
-		}
+	function getJourneyIcon(icon: string | null | undefined) {
+		return icon || '🗂️';
+	}
+	function formatJourneyDescription(description: string | null | undefined) {
+		return description ?? 'A guided experience with curated sections, tips, and accountability.';
+	}
+	function formatStartDate(value: string | null | undefined) {
+		if (!value) return '—';
+		const parsed = new Date(value);
+		return Number.isNaN(parsed.valueOf()) ? '—' : parsed.toLocaleDateString();
 	}
 
-	const readinessScore = $derived(data.readinessScore);
-	const motivationalMessage = $derived(getMotivationalMessage(readinessScore.total_score));
-
-	let activeCategory = $state<JourneyCategory>('plan');
-	let activeSection = $state<string>('legal'); // First section in 'plan' category
-	let isUserScrolling = $state(false);
-	let showScrollTop = $state(false);
-
-	const sectionsInCategory = $derived(
-		SECTIONS.filter((section) => section.category === activeCategory)
-	);
-
-	const activeSectionData = $derived(
-		SECTIONS.find((section) => section.id === activeSection)
-	);
-
-	// Update active section when category changes to first section in that category
-	$effect(() => {
-		const firstSectionInCategory = SECTIONS.find((s) => s.category === activeCategory);
-		if (firstSectionInCategory) {
-			activeSection = firstSectionInCategory.id;
-		}
-	});
-
-	// Scroll spy: update active section based on scroll position
-	$effect(() => {
-		if (typeof window === 'undefined') return;
-
-		let timeoutId: number | undefined;
-
-		const handleScroll = () => {
-			isUserScrolling = true;
-			clearTimeout(timeoutId);
-
-			timeoutId = window.setTimeout(() => {
-				isUserScrolling = false;
-			}, 150);
-
-			showScrollTop = window.scrollY > 400;
-
-			const sectionElements = sectionsInCategory.map(section => ({
-				id: section.id,
-				element: document.getElementById(`section-${section.id}`)
-			})).filter(item => item.element);
-
-			// Find which section is currently in view
-			const scrollPosition = window.scrollY + 200; // Offset for better UX
-
-			for (let i = sectionElements.length - 1; i >= 0; i--) {
-				const { id, element } = sectionElements[i];
-				if (element && element.offsetTop <= scrollPosition) {
-					if (activeSection !== id) {
-						activeSection = id;
-					}
-					break;
-				}
-			}
-		};
-
-		handleScroll();
-
-		window.addEventListener('scroll', handleScroll, { passive: true });
-
-		return () => {
-			window.removeEventListener('scroll', handleScroll);
-			clearTimeout(timeoutId);
-		};
-	});
-
-	function getCategoryScore(category: JourneyCategory): number {
-		const categorySections = SECTIONS.filter((s) => s.category === category);
-		if (categorySections.length === 0) return 0;
-
-		const totalScore = categorySections.reduce(
-			(sum, section) => sum + (readinessScore.sections[section.id] || 0),
-			0
-		);
-		return Math.round(totalScore / categorySections.length);
-	}
-
-	function scrollToTop() {
-		if (typeof window === 'undefined') return;
-		window.scrollTo({ top: 0, behavior: 'smooth' });
+	function journeyComingSoon(slug: string): boolean {
+		return !AVAILABLE_JOURNEYS.includes(slug);
 	}
 </script>
 
-<div class="journey-dashboard">
-	<!-- Export Section -->
-	<div class="export-header">
-		<div class="export-info">
-			<h2 class="export-title">Your End-of-Life Planning Document</h2>
-			<p class="export-description">
-				Export your completed information to a professionally formatted PDF document
-			</p>
-		</div>
-		<button
-			class="btn btn-primary export-button"
-			onclick={handleExport}
-			disabled={isExporting}
-		>
-			{#if isExporting}
-				<span class="loading loading-spinner loading-sm"></span>
-				Generating PDF...
-			{:else}
-				<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-				</svg>
-				Export to PDF
-			{/if}
-		</button>
-	</div>
-
-	{#if exportStatus}
-		<div class="alert {exportStatus.type === 'success' ? 'alert-success' : 'alert-error'} mb-6">
-			<svg class="w-6 h-6 shrink-0 stroke-current" fill="none" viewBox="0 0 24 24">
-				{#if exportStatus.type === 'success'}
-					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-				{:else}
-					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
-				{/if}
-			</svg>
-			<span>{exportStatus.message}</span>
-		</div>
-	{/if}
-
-	<div class="journey-visual-container mb-8 overflow-hidden rounded-2xl">
-		<JourneyVisual {activeCategory} />
-	</div>
-
-	<JourneyTabs bind:activeCategory />
-
-	{#key activeCategory}
-		{@const currentCategoryInfo = JOURNEY_CATEGORIES.find((c) => c.id === activeCategory)}
-		{@const categoryScore = getCategoryScore(activeCategory)}
-
-		<div class="sections-layout">
-			<!-- Sidebar Navigation -->
-			<nav class="sections-sidebar">
-				<div class="sidebar-sticky">
-					<h3 class="sidebar-title" style="color: {currentCategoryInfo?.color}">
-						{currentCategoryInfo?.name} Sections
-					</h3>
-					<ul class="sections-menu">
-						{#each sectionsInCategory as section}
-							{@const sectionScore = readinessScore.sections[section.id] || 0}
-							<li>
-								<button
-									onclick={() => {
-										activeSection = section.id;
-										document.getElementById(`section-${section.id}`)?.scrollIntoView({
-											behavior: 'smooth',
-											block: 'start'
-										});
-									}}
-									class="section-menu-item"
-									class:active={activeSection === section.id}
-									style="--category-color: {currentCategoryInfo?.color}"
-								>
-									<span class="section-menu-name">{section.name}</span>
-									{#if sectionScore === 100}
-										<span class="section-menu-check">✓</span>
-									{/if}
-								</button>
-							</li>
-						{/each}
-					</ul>
+{#if !user}
+	<section class="hero min-h-[70vh] bg-gradient-to-br from-primary/10 via-base-100 to-secondary/10">
+		<div class="container mx-auto px-4 py-16 grid lg:grid-cols-2 gap-12 items-center">
+			<div class="space-y-6">
+				<p class="badge badge-primary badge-outline">Wrap It Up</p>
+				<h1 class="text-4xl md:text-5xl font-bold leading-tight">
+					Bring clarity to life’s biggest transitions.
+				</h1>
+				<p class="text-lg text-base-content/70">
+					Create a single, guided workspace for every document, password, preference, and story
+					that matters. Choose a journey, invite trusted collaborators, and stay accountable with
+					mentors when you need them.
+				</p>
+				<div class="flex flex-wrap gap-4">
+					<a href="/register" class="btn btn-primary btn-lg shadow-lg">Get started</a>
+					<a href="/login" class="btn btn-ghost btn-lg">Log in</a>
 				</div>
-			</nav>
-
-			<!-- Main Content Area with all sections -->
-			<div class="sections-content">
-				{#each sectionsInCategory as section}
-					{@const sectionScore = readinessScore.sections[section.id] || 0}
-					<div
-						id="section-{section.id}"
-						class="section-block"
-						data-section-id={section.id}
-					>
-						<SectionContent sectionId={section.id} {data} />
-					</div>
-				{/each}
+			</div>
+			<div class="bg-base-100 rounded-3xl shadow-xl p-8 border border-base-200 space-y-6">
+				<h2 class="text-2xl font-semibold mb-2">What makes Wrap It Up different?</h2>
+				<div class="grid gap-6">
+					{#each marketingHighlights as highlight}
+						<div class="flex gap-4 items-start">
+							<div class="text-3xl shrink-0">{highlight.icon}</div>
+							<div>
+								<h3 class="font-semibold text-lg">{highlight.title}</h3>
+								<p class="text-base-content/70">{highlight.description}</p>
+							</div>
+						</div>
+					{/each}
+				</div>
 			</div>
 		</div>
-	{/key}
+	</section>
 
-	<!-- <div class="help-card card shadow-xl">
-		<div class="card-body">
-			<h2 class="card-title flex items-center gap-2">
-				<svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-					<path
-						stroke-linecap="round"
-						stroke-linejoin="round"
-						stroke-width="2"
-						d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-					/>
-				</svg>
-				Need Help?
-			</h2>
-			<p class="leading-relaxed help-text">
-				Each section has an "Ask AI" feature to help you think through what information to
-				include. Use the journey tabs above to navigate between different life planning areas.
+	<section class="container mx-auto px-4 py-16 space-y-8">
+		<h2 class="text-3xl font-bold text-center">Journeys designed by planners and estate pros</h2>
+		<p class="text-center max-w-3xl mx-auto text-base-content/70">
+			Each journey bundles the sections, tasks, and expert checkpoints that keep you organized. Start
+			free with Essentials or upgrade when you want more support.
+		</p>
+
+		{#if featuredJourneys.length > 0}
+			<div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mt-10">
+				{#each featuredJourneys as journey}
+					{@const comingSoon = journeyComingSoon(journey.slug)}
+					<article class="card bg-base-100 shadow-xl border border-base-200">
+						<div class="card-body space-y-3">
+							<div class="flex items-center gap-3">
+								<div class="text-4xl">{getJourneyIcon(journey.icon)}</div>
+								<div>
+									<h3 class="card-title">{journey.name}</h3>
+									<p class="text-sm text-base-content/60 uppercase tracking-wide">Journey</p>
+									{#if comingSoon}
+										<p class="badge badge-warning mt-1">Coming soon</p>
+									{/if}
+								</div>
+							</div>
+							<p class="text-base-content/70">
+								{formatJourneyDescription(journey.description)}
+							</p>
+							<div class="card-actions justify-end">
+								{#if comingSoon}
+									<button class="btn btn-disabled btn-sm" disabled>Coming Soon</button>
+								{:else}
+									<a href={`/journeys/${journey.slug}`} class="btn btn-primary btn-sm">View details</a>
+								{/if}
+							</div>
+						</div>
+					</article>
+				{/each}
+			</div>
+		{:else}
+			<div class="text-center text-base-content/60">Journeys are being curated. Check back soon!</div>
+		{/if}
+	</section>
+{:else if hasEnrolledJourneys}
+	<section class="container mx-auto px-4 py-12 space-y-8">
+		<div class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+			<div>
+				<p class="text-sm uppercase tracking-wide text-base-content/50">Your journeys</p>
+				<h1 class="text-4xl font-bold">Welcome back{user?.email ? `, ${user.email}` : ''}</h1>
+				<p class="text-base-content/70">Pick up where you left off or explore a new path.</p>
+			</div>
+			<a href="/journeys" class="btn btn-ghost">Browse full library</a>
+		</div>
+
+		<div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+			{#each enrolledJourneys as journey}
+				{@const comingSoon = journeyComingSoon(journey.journey_slug)}
+				<article class="card bg-base-100 shadow-xl border border-primary/20">
+					<div class="card-body space-y-4">
+						<div class="flex items-center gap-3">
+							<div class="text-4xl">{getJourneyIcon(journey.journey_icon)}</div>
+							<div>
+								<h2 class="card-title">{journey.journey_name}</h2>
+								<p class="badge badge-outline badge-sm mt-1">{journey.tier_name} plan</p>
+								{#if comingSoon}
+									<p class="text-xs text-warning mt-1">Future journey (coming soon)</p>
+								{/if}
+							</div>
+						</div>
+						<p class="text-base-content/70">
+							{formatJourneyDescription(journey.journey_description)}
+						</p>
+						<div class="flex items-center justify-between text-sm text-base-content/60">
+							<span>Started {formatStartDate(journey.started_at)}</span>
+							<span class="font-medium capitalize">{journey.status}</span>
+						</div>
+						<div class="card-actions justify-between items-center">
+							<a href={`/journeys/${journey.journey_slug}`} class="btn btn-ghost btn-sm">
+								View journey
+							</a>
+							<a href={`/journeys/${journey.journey_slug}/dashboard`} class="btn btn-primary btn-sm">
+								Open dashboard
+							</a>
+						</div>
+					</div>
+				</article>
+			{/each}
+		</div>
+
+		{#if availableJourneys.length > 0}
+			<div class="mt-16 space-y-4">
+				<div class="flex items-center justify-between flex-wrap gap-2">
+					<div>
+						<h2 class="text-2xl font-semibold">Explore more journeys</h2>
+						<p class="text-base-content/70">Add another plan to keep every transition organized.</p>
+					</div>
+					<a href="/journeys" class="btn btn-outline btn-sm">See all journeys</a>
+				</div>
+				<div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+					{#each availableJourneys as journey}
+						{@const comingSoon = journeyComingSoon(journey.slug)}
+						<article class="card bg-base-100 border border-base-200">
+							<div class="card-body space-y-3">
+								<div class="text-3xl">{getJourneyIcon(journey.icon)}</div>
+								<h3 class="card-title">{journey.name}</h3>
+								<p class="text-sm text-base-content/70">
+									{formatJourneyDescription(journey.description)}
+								</p>
+								<div class="card-actions">
+									{#if comingSoon}
+										<button class="btn btn-disabled btn-sm w-full" disabled>Coming Soon</button>
+									{:else}
+										<a href={`/journeys/${journey.slug}`} class="btn btn-outline btn-sm w-full">
+											Explore journey
+										</a>
+									{/if}
+								</div>
+							</div>
+						</article>
+					{/each}
+				</div>
+			</div>
+		{/if}
+	</section>
+{:else}
+	<section class="container mx-auto px-4 py-16 space-y-8">
+		<div class="max-w-2xl space-y-4">
+			<p class="text-sm uppercase tracking-wide text-base-content/50">Choose your starting point</p>
+			<h1 class="text-4xl font-bold">Let’s start your first journey</h1>
+			<p class="text-base-content/70">
+				You’re logged in, but you haven’t enrolled in a journey yet. Browse the library below and pick
+				the plan that best fits what you’re preparing for.
 			</p>
 		</div>
-	</div> -->
-</div>
 
-{#if showScrollTop}
-	<button
-		type="button"
-		aria-label="Scroll to top"
-		class="scroll-to-top-button"
-		onclick={scrollToTop}
-	>
-		<svg
-			class="w-5 h-5"
-			fill="none"
-			stroke="currentColor"
-			viewBox="0 0 24 24"
-		>
-			<path
-				stroke-linecap="round"
-				stroke-linejoin="round"
-				stroke-width="2"
-				d="M5 15l7-7 7 7"
-			/>
-		</svg>
-	</button>
+		{#if availableJourneys.length > 0}
+			<div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+				{#each availableJourneys as journey}
+					{@const comingSoon = journeyComingSoon(journey.slug)}
+					<article class="card bg-base-100 shadow-lg border border-base-200">
+						<div class="card-body space-y-3">
+							<div class="flex items-center gap-3">
+								<div class="text-4xl">{getJourneyIcon(journey.icon)}</div>
+								<div>
+									<h2 class="card-title">{journey.name}</h2>
+									{#if comingSoon}
+										<p class="text-sm text-warning">Coming soon</p>
+									{:else}
+										<p class="text-sm text-base-content/60">Guided journey</p>
+									{/if}
+								</div>
+							</div>
+							<p class="text-base-content/70">
+								{formatJourneyDescription(journey.description)}
+							</p>
+							<div class="card-actions justify-between items-center pt-2">
+								{#if comingSoon}
+									<button class="btn btn-disabled btn-sm flex-1" disabled>Coming Soon</button>
+								{:else}
+									<a href={`/journeys/${journey.slug}`} class="btn btn-primary btn-sm flex-1">
+										View details
+									</a>
+									<a href={`/journeys/${journey.slug}#plans`} class="btn btn-ghost btn-sm">
+										Choose plan
+									</a>
+								{/if}
+							</div>
+						</div>
+					</article>
+				{/each}
+			</div>
+		{:else}
+			<div class="alert alert-info border-info/30">
+				<div>
+					<h3 class="font-semibold">No journeys available yet</h3>
+					<p>Our team is setting up new experiences. Check back soon or contact support.</p>
+				</div>
+			</div>
+		{/if}
+	</section>
 {/if}
-
-<style>
-	/* Export Header */
-	.export-header {
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		gap: 2rem;
-		padding: 2rem;
-		margin-bottom: 2rem;
-		background: linear-gradient(
-			135deg,
-			color-mix(in oklch, var(--color-primary) 12%, var(--color-base-100)),
-			color-mix(in oklch, var(--color-primary) 6%, var(--color-base-100))
-		);
-		border: 1px solid color-mix(in oklch, var(--color-primary) 30%, transparent 70%);
-		border-radius: 1rem;
-		box-shadow:
-			0 4px 6px -1px rgba(0, 0, 0, 0.06),
-			0 2px 4px -1px rgba(0, 0, 0, 0.04);
-	}
-
-	.export-info {
-		flex: 1;
-	}
-
-	.export-title {
-		font-size: 1.5rem;
-		font-weight: 700;
-		color: color-mix(in oklch, var(--color-base-content) 90%, transparent 10%);
-		margin-bottom: 0.5rem;
-	}
-
-	.export-description {
-		font-size: 0.9375rem;
-		color: color-mix(in oklch, var(--color-base-content) 70%, transparent 30%);
-	}
-
-	.export-button {
-		display: flex;
-		align-items: center;
-		gap: 0.5rem;
-		padding: 0.75rem 1.5rem;
-		font-size: 1rem;
-		font-weight: 600;
-		white-space: nowrap;
-		transition: all 0.2s ease;
-	}
-
-	.export-button:disabled {
-		opacity: 0.7;
-		cursor: not-allowed;
-	}
-
-	@media (max-width: 768px) {
-		.export-header {
-			flex-direction: column;
-			align-items: stretch;
-			gap: 1rem;
-		}
-
-		.export-button {
-			width: 100%;
-			justify-content: center;
-		}
-
-		.export-title {
-			font-size: 1.25rem;
-		}
-	}
-
-	.journey-visual-container {
-		box-shadow:
-			0 10px 15px -3px rgba(0, 0, 0, 0.08),
-			0 4px 6px -2px rgba(0, 0, 0, 0.04),
-			inset 0 1px 0 0 rgba(255, 255, 255, 0.1);
-		border: 1px solid color-mix(in oklch, var(--color-base-300) 60%, transparent 40%);
-	}
-
-	/* Sections layout with sidebar */
-	.sections-layout {
-		display: flex;
-		gap: 2rem;
-		align-items: flex-start;
-		margin-bottom: 2rem;
-		position: relative;
-	}
-
-	/* Sidebar Navigation */
-	.sections-sidebar {
-		width: 280px;
-		flex-shrink: 0;
-		position: sticky;
-		top: 4rem;
-		align-self: flex-start;
-		z-index: 5;
-	}
-
-	.sidebar-sticky {
-		max-height: calc(100vh - 2rem);
-		overflow-y: auto;
-		background: linear-gradient(
-			135deg,
-			color-mix(in oklch, var(--color-base-100) 98%, var(--color-primary)),
-			var(--color-base-100)
-		);
-		border: 1px solid var(--color-base-300);
-		border-radius: 1rem;
-		padding: 1.5rem;
-		box-shadow:
-			0 4px 6px -1px rgba(0, 0, 0, 0.06),
-			0 2px 4px -1px rgba(0, 0, 0, 0.04);
-		scrollbar-width: thin;
-	}
-
-	.sidebar-sticky::-webkit-scrollbar {
-		width: 6px;
-	}
-
-	.sidebar-sticky::-webkit-scrollbar-track {
-		background: transparent;
-	}
-
-	.sidebar-sticky::-webkit-scrollbar-thumb {
-		background: color-mix(in oklch, var(--color-base-content) 20%, transparent 80%);
-		border-radius: 3px;
-	}
-
-	.sidebar-title {
-		font-size: 1.125rem;
-		font-weight: 700;
-		margin-bottom: 1rem;
-		padding-bottom: 0.75rem;
-		border-bottom: 2px solid var(--color-base-300);
-	}
-
-	.sections-menu {
-		list-style: none;
-		padding: 0;
-		margin: 0;
-		display: flex;
-		flex-direction: column;
-		gap: 0.25rem;
-	}
-
-	.section-menu-item {
-		width: 100%;
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		gap: 0.5rem;
-		padding: 0.75rem 1rem;
-		background: transparent;
-		border: 1px solid transparent;
-		border-radius: 0.5rem;
-		cursor: pointer;
-		transition: all 0.2s ease;
-		text-align: left;
-		font-size: 0.9375rem;
-		font-weight: 600;
-		color: color-mix(in oklch, var(--color-base-content) 85%, transparent 15%);
-	}
-
-	.section-menu-item:hover {
-		background: color-mix(in oklch, var(--category-color) 8%, var(--color-base-100));
-		border-color: color-mix(in oklch, var(--category-color) 20%, transparent 80%);
-	}
-
-	.section-menu-item.active {
-		background: linear-gradient(
-			135deg,
-			color-mix(in oklch, var(--category-color) 15%, var(--color-base-100)),
-			color-mix(in oklch, var(--category-color) 8%, var(--color-base-100))
-		);
-		border-color: color-mix(in oklch, var(--category-color) 40%, transparent 60%);
-		color: color-mix(in oklch, var(--category-color) 70%, var(--color-base-content) 30%);
-	}
-
-	.section-menu-name {
-		flex: 1;
-	}
-
-	.section-menu-check {
-		flex-shrink: 0;
-		width: 1.5rem;
-		height: 1.5rem;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		background: var(--color-success);
-		color: var(--color-success-content);
-		border-radius: 50%;
-		font-size: 0.75rem;
-		font-weight: 700;
-	}
-
-	/* Main content area */
-	.sections-content {
-		flex: 1;
-		min-width: 0;
-	}
-
-	.section-block {
-		scroll-margin-top: 2rem;
-	}
-
-	.section-block:not(:last-child) {
-		margin-bottom: 3rem;
-	}
-
-	/* Mobile: Hide sidebar, show sections stacked */
-	@media (max-width: 1024px) {
-		.sections-layout {
-			flex-direction: column;
-		}
-
-		.sections-sidebar {
-			width: 100%;
-			order: 1;
-		}
-
-		.sections-menu {
-			flex-direction: row;
-			flex-wrap: wrap;
-			gap: 0.5rem;
-		}
-
-		.section-menu-item {
-			flex: 1;
-			min-width: 150px;
-		}
-
-		.sections-content {
-			order: 2;
-		}
-	}
-
-	@media (max-width: 768px) {
-		/* On smaller devices the sidebar sits above content, so sticky isn't needed */
-		.sections-sidebar {
-			position: static;
-			top: 0;
-		}
-
-		.sidebar-sticky {
-			max-height: none;
-			overflow: visible;
-		}
-	}
-
-	@media (max-width: 640px) {
-		.sections-menu {
-			flex-direction: column;
-		}
-
-		.section-menu-item {
-			min-width: 100%;
-		}
-	}
-
-	.scroll-to-top-button {
-		position: fixed;
-		bottom: 1.5rem;
-		right: 1.5rem;
-		z-index: 50;
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		width: 3rem;
-		height: 3rem;
-		border-radius: 999px;
-		background: color-mix(in oklch, var(--color-primary) 90%, white 10%);
-		color: var(--color-primary-content);
-		border: 1px solid color-mix(in oklch, var(--color-primary) 30%, transparent 70%);
-		box-shadow:
-			0 10px 15px -3px rgba(0, 0, 0, 0.15),
-			0 4px 6px -2px rgba(0, 0, 0, 0.05);
-		transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
-	}
-
-	.scroll-to-top-button:hover {
-		transform: translateY(-2px);
-		box-shadow:
-			0 12px 20px -3px rgba(0, 0, 0, 0.2),
-			0 4px 6px -2px rgba(0, 0, 0, 0.08);
-	}
-
-	.scroll-to-top-button:focus-visible {
-		outline: 3px solid color-mix(in oklch, var(--color-primary) 40%, white 60%);
-		outline-offset: 2px;
-	}
-
-	@media (max-width: 640px) {
-		.scroll-to-top-button {
-			bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
-			right: 1rem;
-		}
-	}
-</style>

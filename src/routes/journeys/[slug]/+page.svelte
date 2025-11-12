@@ -2,7 +2,8 @@
 	import { enhance } from '$app/forms';
 	import type { PageData } from './$types';
 
-	let { data }: { data: PageData } = $props();
+let { data }: { data: PageData } = $props();
+const comingSoon = !['wedding', 'care'].includes(data.journey.slug);
 
 	let selectedTierId = $state(data.tiers[0]?.id || 1);
 	let isSubmitting = $state(false);
@@ -36,6 +37,11 @@
 				<p class="text-lg text-base-content/70 mt-2">
 					{data.journey.description || 'Comprehensive planning and preparation for this life transition.'}
 				</p>
+				{#if comingSoon}
+					<div class={`badge mt-3 ${data.isSubscribed ? 'badge-info' : 'badge-warning'}`}>
+						{data.isSubscribed ? 'Limited access' : 'Coming soon'}
+					</div>
+				{/if}
 			</div>
 		</div>
 
@@ -55,6 +61,17 @@
 	</div>
 
 	{#if !data.isSubscribed}
+		{#if comingSoon}
+			<div class="alert alert-warning mb-12">
+				<svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+				</svg>
+				<div>
+					<h3 class="font-bold">This journey is coming soon!</h3>
+					<p>We're still polishing the experience. Existing subscribers will keep access, but new enrollments are paused.</p>
+				</div>
+			</div>
+		{:else}
 		<!-- Service Tier Selection -->
 		<div class="mb-12">
 			<h2 class="text-3xl font-bold mb-4 text-center">Choose Your Plan</h2>
@@ -129,6 +146,7 @@
 				</form>
 			</div>
 		</div>
+		{/if}
 	{/if}
 
 	<!-- What's Included Section -->

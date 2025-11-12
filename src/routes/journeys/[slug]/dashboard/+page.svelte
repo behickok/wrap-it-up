@@ -7,9 +7,10 @@
 	import SubmitForReview from '$lib/components/SubmitForReview.svelte';
 	import BookSession from '$lib/components/BookSession.svelte';
 
-	let { data }: { data: PageData } = $props();
+let { data }: { data: PageData } = $props();
+console.log('sectionData.credentials', data.sectionData?.credentials);
 
-	let isExporting = $state(false);
+let isExporting = $state(false);
 	let exportStatus = $state<{ type: 'success' | 'error'; message: string } | null>(null);
 	let activeCategory = $state<number>(data.categories[0]?.id || 0);
 	let activeSection = $state<string>('');
@@ -246,9 +247,11 @@
 		</aside>
 
 		<!-- Main Content -->
-		<main class="main-content">
-			{#each sectionsInCategory as section}
-				<section id="section-{section.slug}" class="content-section">
+			<main class="main-content">
+				{#each sectionsInCategory as section}
+					{@const review = getSectionReview(section.id)}
+					{@const progress = getSectionProgress(section.id)}
+					<section id="section-{section.slug}" class="content-section">
 					<div class="section-header">
 						<div class="section-header-top">
 							<div>
@@ -257,17 +260,15 @@
 									<p class="section-description">{section.description}</p>
 								{/if}
 							</div>
-							{@const review = getSectionReview(section.id)}
-							<SubmitForReview
-								sectionId={section.id}
-								sectionName={section.name}
-								userJourneyId={data.subscription.id}
-								tierSlug={data.subscription.tier_slug}
-								currentReview={review}
-							/>
+								<SubmitForReview
+									sectionId={section.id}
+									sectionName={section.name}
+									userJourneyId={data.subscription.id}
+									tierSlug={data.subscription.tier_slug}
+									currentReview={review}
+								/>
 						</div>
-						{@const progress = getSectionProgress(section.id)}
-						<div class="section-progress">
+							<div class="section-progress">
 							<div class="progress-label">
 								<span>Progress: {Math.round(progress.score)}%</span>
 								{#if progress.is_completed}

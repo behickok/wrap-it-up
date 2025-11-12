@@ -1,4 +1,4 @@
-import { error, redirect, fail } from '@sveltejs/kit';
+import { error, redirect, fail, isRedirect } from '@sveltejs/kit';
 import type { PageServerLoad, Actions } from './$types';
 import type { Journey, ServiceTier, Category, Section } from '$lib/types';
 
@@ -113,6 +113,11 @@ export const actions: Actions = {
 			return fail(401, { message: 'Unauthorized' });
 		}
 
+		const availableJourneys = new Set(['wedding', 'care']);
+		if (!availableJourneys.has(params.slug)) {
+			return fail(400, { message: 'This journey is coming soon' });
+		}
+
 		const db = platform?.env?.DB;
 		if (!db) {
 			return fail(500, { message: 'Database not available' });
@@ -162,7 +167,7 @@ export const actions: Actions = {
 			// Redirect to journey dashboard
 			throw redirect(303, `/journeys/${params.slug}/dashboard`);
 		} catch (err) {
-			if (err instanceof Response) throw err; // Re-throw redirects
+			if (isRedirect(err)) throw err; // Allow SvelteKit to handle redirects
 			console.error('Error subscribing to journey:', err);
 			return fail(500, { message: 'Failed to subscribe to journey' });
 		}

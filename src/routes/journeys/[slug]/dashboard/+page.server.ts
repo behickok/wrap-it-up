@@ -1,6 +1,5 @@
 import { error, redirect, fail } from '@sveltejs/kit';
 import type { PageServerLoad, Actions } from './$types';
-import { calculateSectionScore } from '$lib/readinessScore';
 import { recalculateAndUpdateProgress } from '$lib/journeyProgress';
 
 export const load: PageServerLoad = async ({ locals, platform, params }) => {
@@ -184,6 +183,43 @@ export const load: PageServerLoad = async ({ locals, platform, params }) => {
 		const physicians = physiciansResult?.results || [];
 		const familyMembers = familyMembersResult?.results || [];
 
+		let weddingSectionData: Record<string, any> = {};
+		if (journey.slug === 'wedding') {
+			const [
+				marriageLicenseResult,
+				prenupResult,
+				jointFinancesResult,
+				nameChangeResult,
+				venueResult,
+				vendorsResult,
+				guestListResult,
+				registryResult,
+				homeSetupResult
+			] = await Promise.all([
+				db.prepare('SELECT * FROM wedding_marriage_license WHERE user_id = ?').bind(userId).first(),
+				db.prepare('SELECT * FROM wedding_prenup WHERE user_id = ?').bind(userId).first(),
+				db.prepare('SELECT * FROM wedding_joint_finances WHERE user_id = ?').bind(userId).first(),
+				db.prepare('SELECT * FROM wedding_name_change WHERE user_id = ?').bind(userId).first(),
+				db.prepare('SELECT * FROM wedding_venue WHERE user_id = ?').bind(userId).first(),
+				db.prepare('SELECT * FROM wedding_vendors WHERE user_id = ? ORDER BY vendor_type, business_name').bind(userId).all(),
+				db.prepare('SELECT * FROM wedding_guest_list WHERE user_id = ? ORDER BY guest_name').bind(userId).all(),
+				db.prepare('SELECT * FROM wedding_registry_items WHERE user_id = ? ORDER BY priority DESC, item_name').bind(userId).all(),
+				db.prepare('SELECT * FROM wedding_home_setup WHERE user_id = ?').bind(userId).first()
+			]);
+
+			weddingSectionData = {
+				marriage_license: marriageLicenseResult || {},
+				prenup: prenupResult || {},
+				joint_accounts: jointFinancesResult || {},
+				name_change: nameChangeResult || {},
+				venue: venueResult || {},
+				vendors: vendorsResult?.results || [],
+				guest_list: guestListResult?.results || [],
+				registry: registryResult?.results || [],
+				home_setup: homeSetupResult || {}
+			};
+		}
+
 		// Get available mentors (for Premium tier session booking)
 		const mentorsResult = await db
 			.prepare('SELECT id, display_name, bio, hourly_rate FROM mentors WHERE is_available = 1')
@@ -225,7 +261,8 @@ export const load: PageServerLoad = async ({ locals, platform, params }) => {
 					history: familyHistoryResult || null
 				},
 				pets: petsResult?.results || [],
-				property: [] // placeholder for now
+				property: [], // placeholder for now
+				...(journey.slug === 'wedding' ? weddingSectionData : {})
 			},
 			userId: locals.user.id
 		};
@@ -243,6 +280,30 @@ function getUserId(locals: App.Locals) {
 
 function getDb(platform: Readonly<App.Platform> | undefined) {
 	return platform?.env?.DB;
+}
+
+function getTextField(formData: FormData, key: string): string | null {
+	const value = formData.get(key);
+	if (typeof value !== 'string') return null;
+	const trimmed = value.trim();
+	return trimmed === '' ? null : trimmed;
+}
+
+function getNumberField(formData: FormData, key: string): number | null {
+	const value = formData.get(key);
+	if (typeof value !== 'string' || value.trim() === '') return null;
+	const parsed = Number(value);
+	return Number.isNaN(parsed) ? null : parsed;
+}
+
+function getBooleanFlag(formData: FormData, key: string): number {
+	const value = formData.get(key);
+	if (value === null) return 0;
+	if (typeof value === 'string') {
+		const normalized = value.toLowerCase();
+		return normalized === '1' || normalized === 'true' || normalized === 'on' ? 1 : 0;
+	}
+	return 0;
 }
 
 // Form actions - now journey-aware
@@ -443,6 +504,558 @@ export const actions: Actions = {
 		} catch (error) {
 			console.error('Error deleting contact:', error);
 			return fail(500, { error: 'Failed to delete contact' });
+		}
+	},
+
+	saveWeddingMarriageLicense: async ({ request, platform, locals }) => {
+		try {
+			const userId = getUserId(locals);
+			if (!userId) return fail(401, { error: 'Not authenticated' });
+			const db = getDb(platform);
+			if (!db) return fail(500, { error: 'Database not available' });
+
+			const formData = await request.formData();
+
+			await db
+				.prepare(
+					`INSERT INTO wedding_marriage_license (
+						user_id, jurisdiction, office_address, appointment_date, expiration_date,
+						required_documents, witness_requirements, fee_amount, confirmation_number, notes
+					) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+					ON CONFLICT(user_id) DO UPDATE SET
+						jurisdiction = excluded.jurisdiction,
+						office_address = excluded.office_address,
+						appointment_date = excluded.appointment_date,
+						expiration_date = excluded.expiration_date,
+						required_documents = excluded.required_documents,
+						witness_requirements = excluded.witness_requirements,
+						fee_amount = excluded.fee_amount,
+						confirmation_number = excluded.confirmation_number,
+						notes = excluded.notes,
+						updated_at = datetime('now')`
+				)
+				.bind(
+					userId,
+					getTextField(formData, 'jurisdiction'),
+					getTextField(formData, 'office_address'),
+					getTextField(formData, 'appointment_date'),
+					getTextField(formData, 'expiration_date'),
+					getTextField(formData, 'required_documents'),
+					getTextField(formData, 'witness_requirements'),
+					getNumberField(formData, 'fee_amount'),
+					getTextField(formData, 'confirmation_number'),
+					getTextField(formData, 'notes')
+				)
+				.run();
+
+			await recalculateAndUpdateProgress(db, userId, 'marriage_license');
+			return { success: true };
+		} catch (error) {
+			console.error('Error saving marriage license:', error);
+			return fail(500, { error: 'Failed to save marriage license' });
+		}
+	},
+
+	saveWeddingPrenup: async ({ request, platform, locals }) => {
+		try {
+			const userId = getUserId(locals);
+			if (!userId) return fail(401, { error: 'Not authenticated' });
+			const db = getDb(platform);
+			if (!db) return fail(500, { error: 'Database not available' });
+
+			const formData = await request.formData();
+
+			await db
+				.prepare(
+					`INSERT INTO wedding_prenup (
+						user_id, status, attorney_user, attorney_partner, agreement_scope,
+						financial_disclosures_ready, review_deadline, signing_plan, storage_plan, notes
+					) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+					ON CONFLICT(user_id) DO UPDATE SET
+						status = excluded.status,
+						attorney_user = excluded.attorney_user,
+						attorney_partner = excluded.attorney_partner,
+						agreement_scope = excluded.agreement_scope,
+						financial_disclosures_ready = excluded.financial_disclosures_ready,
+						review_deadline = excluded.review_deadline,
+						signing_plan = excluded.signing_plan,
+						storage_plan = excluded.storage_plan,
+						notes = excluded.notes,
+						updated_at = datetime('now')`
+				)
+				.bind(
+					userId,
+					getTextField(formData, 'status'),
+					getTextField(formData, 'attorney_user'),
+					getTextField(formData, 'attorney_partner'),
+					getTextField(formData, 'agreement_scope'),
+					getBooleanFlag(formData, 'financial_disclosures_ready'),
+					getTextField(formData, 'review_deadline'),
+					getTextField(formData, 'signing_plan'),
+					getTextField(formData, 'storage_plan'),
+					getTextField(formData, 'notes')
+				)
+				.run();
+
+			await recalculateAndUpdateProgress(db, userId, 'prenup');
+			return { success: true };
+		} catch (error) {
+			console.error('Error saving prenup:', error);
+			return fail(500, { error: 'Failed to save prenup' });
+		}
+	},
+
+	saveWeddingJointFinances: async ({ request, platform, locals }) => {
+		try {
+			const userId = getUserId(locals);
+			if (!userId) return fail(401, { error: 'Not authenticated' });
+			const db = getDb(platform);
+			if (!db) return fail(500, { error: 'Database not available' });
+
+			const formData = await request.formData();
+
+			await db
+				.prepare(
+					`INSERT INTO wedding_joint_finances (
+						user_id, shared_values, accounts_to_merge, new_accounts,
+						bill_split_plan, emergency_fund_plan, budgeting_tools,
+						monthly_checkin_cadence, notes
+					) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+					ON CONFLICT(user_id) DO UPDATE SET
+						shared_values = excluded.shared_values,
+						accounts_to_merge = excluded.accounts_to_merge,
+						new_accounts = excluded.new_accounts,
+						bill_split_plan = excluded.bill_split_plan,
+						emergency_fund_plan = excluded.emergency_fund_plan,
+						budgeting_tools = excluded.budgeting_tools,
+						monthly_checkin_cadence = excluded.monthly_checkin_cadence,
+						notes = excluded.notes,
+						updated_at = datetime('now')`
+				)
+				.bind(
+					userId,
+					getTextField(formData, 'shared_values'),
+					getTextField(formData, 'accounts_to_merge'),
+					getTextField(formData, 'new_accounts'),
+					getTextField(formData, 'bill_split_plan'),
+					getTextField(formData, 'emergency_fund_plan'),
+					getTextField(formData, 'budgeting_tools'),
+					getTextField(formData, 'monthly_checkin_cadence'),
+					getTextField(formData, 'notes')
+				)
+				.run();
+
+			await recalculateAndUpdateProgress(db, userId, 'joint_accounts');
+			return { success: true };
+		} catch (error) {
+			console.error('Error saving joint finances:', error);
+			return fail(500, { error: 'Failed to save joint finances' });
+		}
+	},
+
+	saveWeddingNameChange: async ({ request, platform, locals }) => {
+		try {
+			const userId = getUserId(locals);
+			if (!userId) return fail(401, { error: 'Not authenticated' });
+			const db = getDb(platform);
+			if (!db) return fail(500, { error: 'Database not available' });
+
+			const formData = await request.formData();
+
+			await db
+				.prepare(
+					`INSERT INTO wedding_name_change (
+						user_id, new_name, keeping_current_name, legal_documents, ids_to_update,
+						digital_accounts, announcement_plan, target_effective_date, status, notes
+					) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+					ON CONFLICT(user_id) DO UPDATE SET
+						new_name = excluded.new_name,
+						keeping_current_name = excluded.keeping_current_name,
+						legal_documents = excluded.legal_documents,
+						ids_to_update = excluded.ids_to_update,
+						digital_accounts = excluded.digital_accounts,
+						announcement_plan = excluded.announcement_plan,
+						target_effective_date = excluded.target_effective_date,
+						status = excluded.status,
+						notes = excluded.notes,
+						updated_at = datetime('now')`
+				)
+				.bind(
+					userId,
+					getTextField(formData, 'new_name'),
+					getBooleanFlag(formData, 'keeping_current_name'),
+					getTextField(formData, 'legal_documents'),
+					getTextField(formData, 'ids_to_update'),
+					getTextField(formData, 'digital_accounts'),
+					getTextField(formData, 'announcement_plan'),
+					getTextField(formData, 'target_effective_date'),
+					getTextField(formData, 'status'),
+					getTextField(formData, 'notes')
+				)
+				.run();
+
+			await recalculateAndUpdateProgress(db, userId, 'name_change');
+			return { success: true };
+		} catch (error) {
+			console.error('Error saving name change plan:', error);
+			return fail(500, { error: 'Failed to save name change plan' });
+		}
+	},
+
+	saveWeddingVenue: async ({ request, platform, locals }) => {
+		try {
+			const userId = getUserId(locals);
+			if (!userId) return fail(401, { error: 'Not authenticated' });
+			const db = getDb(platform);
+			if (!db) return fail(500, { error: 'Database not available' });
+
+			const formData = await request.formData();
+
+			await db
+				.prepare(
+					`INSERT INTO wedding_venue (
+						user_id, venue_name, venue_style, venue_address, capacity,
+						contact_name, contact_email, contact_phone, tour_date, decision_deadline,
+						deposit_amount, total_cost, included_items, rain_plan, notes
+					) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+					ON CONFLICT(user_id) DO UPDATE SET
+						venue_name = excluded.venue_name,
+						venue_style = excluded.venue_style,
+						venue_address = excluded.venue_address,
+						capacity = excluded.capacity,
+						contact_name = excluded.contact_name,
+						contact_email = excluded.contact_email,
+						contact_phone = excluded.contact_phone,
+						tour_date = excluded.tour_date,
+						decision_deadline = excluded.decision_deadline,
+						deposit_amount = excluded.deposit_amount,
+						total_cost = excluded.total_cost,
+						included_items = excluded.included_items,
+						rain_plan = excluded.rain_plan,
+						notes = excluded.notes,
+						updated_at = datetime('now')`
+				)
+				.bind(
+					userId,
+					getTextField(formData, 'venue_name'),
+					getTextField(formData, 'venue_style'),
+					getTextField(formData, 'venue_address'),
+					getNumberField(formData, 'capacity'),
+					getTextField(formData, 'contact_name'),
+					getTextField(formData, 'contact_email'),
+					getTextField(formData, 'contact_phone'),
+					getTextField(formData, 'tour_date'),
+					getTextField(formData, 'decision_deadline'),
+					getNumberField(formData, 'deposit_amount'),
+					getNumberField(formData, 'total_cost'),
+					getTextField(formData, 'included_items'),
+					getTextField(formData, 'rain_plan'),
+					getTextField(formData, 'notes')
+				)
+				.run();
+
+			await recalculateAndUpdateProgress(db, userId, 'venue');
+			return { success: true };
+		} catch (error) {
+			console.error('Error saving venue:', error);
+			return fail(500, { error: 'Failed to save venue details' });
+		}
+	},
+
+	saveWeddingHomeSetup: async ({ request, platform, locals }) => {
+		try {
+			const userId = getUserId(locals);
+			if (!userId) return fail(401, { error: 'Not authenticated' });
+			const db = getDb(platform);
+			if (!db) return fail(500, { error: 'Database not available' });
+
+			const formData = await request.formData();
+
+			await db
+				.prepare(
+					`INSERT INTO wedding_home_setup (
+						user_id, housing_plan, move_in_date, utilities_plan, design_style,
+						shared_calendar_link, hosting_goals, first_month_priorities, notes
+					) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+					ON CONFLICT(user_id) DO UPDATE SET
+						housing_plan = excluded.housing_plan,
+						move_in_date = excluded.move_in_date,
+						utilities_plan = excluded.utilities_plan,
+						design_style = excluded.design_style,
+						shared_calendar_link = excluded.shared_calendar_link,
+						hosting_goals = excluded.hosting_goals,
+						first_month_priorities = excluded.first_month_priorities,
+						notes = excluded.notes,
+						updated_at = datetime('now')`
+				)
+				.bind(
+					userId,
+					getTextField(formData, 'housing_plan'),
+					getTextField(formData, 'move_in_date'),
+					getTextField(formData, 'utilities_plan'),
+					getTextField(formData, 'design_style'),
+					getTextField(formData, 'shared_calendar_link'),
+					getTextField(formData, 'hosting_goals'),
+					getTextField(formData, 'first_month_priorities'),
+					getTextField(formData, 'notes')
+				)
+				.run();
+
+			await recalculateAndUpdateProgress(db, userId, 'home_setup');
+			return { success: true };
+		} catch (error) {
+			console.error('Error saving home setup:', error);
+			return fail(500, { error: 'Failed to save home setup plan' });
+		}
+	},
+
+	saveWeddingVendor: async ({ request, platform, locals }) => {
+		try {
+			const userId = getUserId(locals);
+			if (!userId) return fail(401, { error: 'Not authenticated' });
+			const db = getDb(platform);
+			if (!db) return fail(500, { error: 'Database not available' });
+
+			const formData = await request.formData();
+			const vendorId = formData.get('id');
+
+			if (vendorId) {
+				await db
+					.prepare(
+						`UPDATE wedding_vendors SET
+							vendor_type = ?, business_name = ?, contact_name = ?, contact_email = ?, contact_phone = ?,
+							deposit_amount = ?, balance_due = ?, next_payment_due = ?, status = ?, notes = ?, updated_at = datetime('now')
+						 WHERE id = ? AND user_id = ?`
+					)
+					.bind(
+						getTextField(formData, 'vendor_type'),
+						getTextField(formData, 'business_name'),
+						getTextField(formData, 'contact_name'),
+						getTextField(formData, 'contact_email'),
+						getTextField(formData, 'contact_phone'),
+						getNumberField(formData, 'deposit_amount'),
+						getNumberField(formData, 'balance_due'),
+						getTextField(formData, 'next_payment_due'),
+						getTextField(formData, 'status'),
+						getTextField(formData, 'notes'),
+						vendorId,
+						userId
+					)
+					.run();
+			} else {
+				await db
+					.prepare(
+						`INSERT INTO wedding_vendors (
+							user_id, vendor_type, business_name, contact_name, contact_email,
+							contact_phone, deposit_amount, balance_due, next_payment_due, status, notes
+						) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+					)
+					.bind(
+						userId,
+						getTextField(formData, 'vendor_type'),
+						getTextField(formData, 'business_name'),
+						getTextField(formData, 'contact_name'),
+						getTextField(formData, 'contact_email'),
+						getTextField(formData, 'contact_phone'),
+						getNumberField(formData, 'deposit_amount'),
+						getNumberField(formData, 'balance_due'),
+						getTextField(formData, 'next_payment_due'),
+						getTextField(formData, 'status'),
+						getTextField(formData, 'notes')
+					)
+					.run();
+			}
+
+			await recalculateAndUpdateProgress(db, userId, 'vendors');
+			return { success: true };
+		} catch (error) {
+			console.error('Error saving vendor:', error);
+			return fail(500, { error: 'Failed to save vendor' });
+		}
+	},
+
+	deleteWeddingVendor: async ({ request, platform, locals }) => {
+		try {
+			const userId = getUserId(locals);
+			if (!userId) return fail(401, { error: 'Not authenticated' });
+			const db = getDb(platform);
+			if (!db) return fail(500, { error: 'Database not available' });
+
+			const formData = await request.formData();
+			const id = formData.get('id');
+			if (!id) return fail(400, { error: 'Vendor ID required' });
+
+			await db.prepare('DELETE FROM wedding_vendors WHERE id = ? AND user_id = ?').bind(id, userId).run();
+			await recalculateAndUpdateProgress(db, userId, 'vendors');
+			return { success: true };
+		} catch (error) {
+			console.error('Error deleting vendor:', error);
+			return fail(500, { error: 'Failed to delete vendor' });
+		}
+	},
+
+	saveWeddingGuest: async ({ request, platform, locals }) => {
+		try {
+			const userId = getUserId(locals);
+			if (!userId) return fail(401, { error: 'Not authenticated' });
+			const db = getDb(platform);
+			if (!db) return fail(500, { error: 'Database not available' });
+
+			const formData = await request.formData();
+			const guestId = formData.get('id');
+
+			if (guestId) {
+				await db
+					.prepare(
+						`UPDATE wedding_guest_list SET
+							guest_name = ?, relationship = ?, party_size = ?, email = ?, phone = ?, address = ?,
+							invitation_sent = ?, rsvp_status = ?, meal_preference = ?, notes = ?, updated_at = datetime('now')
+						 WHERE id = ? AND user_id = ?`
+					)
+					.bind(
+						getTextField(formData, 'guest_name'),
+						getTextField(formData, 'relationship'),
+						getNumberField(formData, 'party_size'),
+						getTextField(formData, 'email'),
+						getTextField(formData, 'phone'),
+						getTextField(formData, 'address'),
+						getBooleanFlag(formData, 'invitation_sent'),
+						getTextField(formData, 'rsvp_status'),
+						getTextField(formData, 'meal_preference'),
+						getTextField(formData, 'notes'),
+						guestId,
+						userId
+					)
+					.run();
+			} else {
+				await db
+					.prepare(
+						`INSERT INTO wedding_guest_list (
+							user_id, guest_name, relationship, party_size, email, phone, address,
+							invitation_sent, rsvp_status, meal_preference, notes
+						) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+					)
+					.bind(
+						userId,
+						getTextField(formData, 'guest_name'),
+						getTextField(formData, 'relationship'),
+						getNumberField(formData, 'party_size') ?? 1,
+						getTextField(formData, 'email'),
+						getTextField(formData, 'phone'),
+						getTextField(formData, 'address'),
+						getBooleanFlag(formData, 'invitation_sent'),
+						getTextField(formData, 'rsvp_status'),
+						getTextField(formData, 'meal_preference'),
+						getTextField(formData, 'notes')
+					)
+					.run();
+			}
+
+			await recalculateAndUpdateProgress(db, userId, 'guest_list');
+			return { success: true };
+		} catch (error) {
+			console.error('Error saving guest:', error);
+			return fail(500, { error: 'Failed to save guest' });
+		}
+	},
+
+	deleteWeddingGuest: async ({ request, platform, locals }) => {
+		try {
+			const userId = getUserId(locals);
+			if (!userId) return fail(401, { error: 'Not authenticated' });
+			const db = getDb(platform);
+			if (!db) return fail(500, { error: 'Database not available' });
+
+			const formData = await request.formData();
+			const id = formData.get('id');
+			if (!id) return fail(400, { error: 'Guest ID required' });
+
+			await db.prepare('DELETE FROM wedding_guest_list WHERE id = ? AND user_id = ?').bind(id, userId).run();
+			await recalculateAndUpdateProgress(db, userId, 'guest_list');
+			return { success: true };
+		} catch (error) {
+			console.error('Error deleting guest:', error);
+			return fail(500, { error: 'Failed to delete guest' });
+		}
+	},
+
+	saveWeddingRegistryItem: async ({ request, platform, locals }) => {
+		try {
+			const userId = getUserId(locals);
+			if (!userId) return fail(401, { error: 'Not authenticated' });
+			const db = getDb(platform);
+			if (!db) return fail(500, { error: 'Database not available' });
+
+			const formData = await request.formData();
+			const itemId = formData.get('id');
+
+			if (itemId) {
+				await db
+					.prepare(
+						`UPDATE wedding_registry_items SET
+							retailer = ?, item_name = ?, item_url = ?, price = ?, quantity = ?,
+							priority = ?, status = ?, notes = ?, updated_at = datetime('now')
+						 WHERE id = ? AND user_id = ?`
+					)
+					.bind(
+						getTextField(formData, 'retailer'),
+						getTextField(formData, 'item_name'),
+						getTextField(formData, 'item_url'),
+						getNumberField(formData, 'price'),
+						getNumberField(formData, 'quantity') ?? 1,
+						getTextField(formData, 'priority'),
+						getTextField(formData, 'status'),
+						getTextField(formData, 'notes'),
+						itemId,
+						userId
+					)
+					.run();
+			} else {
+				await db
+					.prepare(
+						`INSERT INTO wedding_registry_items (
+							user_id, retailer, item_name, item_url, price, quantity, priority, status, notes
+						) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+					)
+					.bind(
+						userId,
+						getTextField(formData, 'retailer'),
+						getTextField(formData, 'item_name'),
+						getTextField(formData, 'item_url'),
+						getNumberField(formData, 'price'),
+						getNumberField(formData, 'quantity') ?? 1,
+						getTextField(formData, 'priority'),
+						getTextField(formData, 'status'),
+						getTextField(formData, 'notes')
+					)
+					.run();
+			}
+
+			await recalculateAndUpdateProgress(db, userId, 'registry');
+			return { success: true };
+		} catch (error) {
+			console.error('Error saving registry item:', error);
+			return fail(500, { error: 'Failed to save registry item' });
+		}
+	},
+
+	deleteWeddingRegistryItem: async ({ request, platform, locals }) => {
+		try {
+			const userId = getUserId(locals);
+			if (!userId) return fail(401, { error: 'Not authenticated' });
+			const db = getDb(platform);
+			if (!db) return fail(500, { error: 'Database not available' });
+
+			const formData = await request.formData();
+			const id = formData.get('id');
+			if (!id) return fail(400, { error: 'Registry item ID required' });
+
+			await db.prepare('DELETE FROM wedding_registry_items WHERE id = ? AND user_id = ?').bind(id, userId).run();
+			await recalculateAndUpdateProgress(db, userId, 'registry');
+			return { success: true };
+		} catch (error) {
+			console.error('Error deleting registry item:', error);
+			return fail(500, { error: 'Failed to delete registry item' });
 		}
 	},
 

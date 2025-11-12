@@ -12,12 +12,54 @@
 	import PhysiciansList from '$lib/components/PhysiciansList.svelte';
 	import VehiclesList from '$lib/components/VehiclesList.svelte';
 	import FamilyMembersList from '$lib/components/FamilyMembersList.svelte';
+	import WeddingMarriageLicenseForm from '$lib/components/wedding/WeddingMarriageLicenseForm.svelte';
+	import WeddingPrenupForm from '$lib/components/wedding/WeddingPrenupForm.svelte';
+	import WeddingJointFinancesForm from '$lib/components/wedding/WeddingJointFinancesForm.svelte';
+	import WeddingNameChangeForm from '$lib/components/wedding/WeddingNameChangeForm.svelte';
+	import WeddingVenueForm from '$lib/components/wedding/WeddingVenueForm.svelte';
+	import WeddingVendorsList from '$lib/components/wedding/WeddingVendorsList.svelte';
+	import WeddingGuestList from '$lib/components/wedding/WeddingGuestList.svelte';
+	import WeddingRegistryList from '$lib/components/wedding/WeddingRegistryList.svelte';
+	import WeddingHomeSetupForm from '$lib/components/wedding/WeddingHomeSetupForm.svelte';
 
-	let { sectionId, data }: { sectionId: string; data: any } = $props();
+	type SectionContentProps = {
+		sectionId: string;
+		data?: {
+			sectionData?: Record<string, any>;
+			userId?: number;
+			user?: { id?: number };
+		};
+		sectionData?: Record<string, any>;
+		userId?: number;
+		user?: { id?: number };
+	};
+
+	const props = $props<SectionContentProps>();
+
+	const sectionId = $derived(props.sectionId);
+	const data = $derived(props.data);
+	const providedSectionData = $derived(props.sectionData);
+	const providedUserId = $derived(props.userId);
+	const providedUser = $derived(props.user);
 
 	const section = $derived(SECTIONS.find((s) => s.id === sectionId));
-	const sectionData = $derived(data?.sectionData?.[sectionId] || data?.sectionData || {});
-	const userId = $derived(data?.userId || data?.user?.id);
+	const sectionData = $derived(() => {
+		const dataSection = data?.sectionData;
+		const propSection = providedSectionData;
+
+		if (sectionId && dataSection && typeof dataSection === 'object' && sectionId in dataSection) {
+			return dataSection[sectionId];
+		}
+
+		if (sectionId && propSection && typeof propSection === 'object' && sectionId in propSection) {
+			return propSection[sectionId];
+		}
+
+		return dataSection ?? propSection ?? {};
+	});
+	const userId = $derived(
+		providedUserId ?? data?.userId ?? providedUser?.id ?? data?.user?.id
+	);
 	const standaloneSections = ['credentials', 'contacts', 'legal', 'financial', 'insurance', 'employment', 'property'];
 	const isStandaloneSection = $derived(standaloneSections.includes(sectionId));
 
@@ -54,7 +96,43 @@
 		<AskAI sectionName={section?.name || ''} />
 	</div>
 
-	{#if isStandaloneSection}
+	{#if sectionId === 'marriage_license'}
+		<div class="card shadow-xl p-8 mb-6" style="background-color: var(--color-card);">
+			<WeddingMarriageLicenseForm entry={sectionData || {}} />
+		</div>
+	{:else if sectionId === 'prenup'}
+		<div class="card shadow-xl p-8 mb-6" style="background-color: var(--color-card);">
+			<WeddingPrenupForm entry={sectionData || {}} />
+		</div>
+	{:else if sectionId === 'joint_accounts'}
+		<div class="card shadow-xl p-8 mb-6" style="background-color: var(--color-card);">
+			<WeddingJointFinancesForm entry={sectionData || {}} />
+		</div>
+	{:else if sectionId === 'name_change'}
+		<div class="card shadow-xl p-8 mb-6" style="background-color: var(--color-card);">
+			<WeddingNameChangeForm entry={sectionData || {}} />
+		</div>
+	{:else if sectionId === 'venue'}
+		<div class="card shadow-xl p-8 mb-6" style="background-color: var(--color-card);">
+			<WeddingVenueForm entry={sectionData || {}} />
+		</div>
+	{:else if sectionId === 'vendors'}
+		<div class="card shadow-xl p-8 mb-6" style="background-color: var(--color-card);">
+			<WeddingVendorsList vendors={Array.isArray(sectionData) ? sectionData : []} />
+		</div>
+	{:else if sectionId === 'guest_list'}
+		<div class="card shadow-xl p-8 mb-6" style="background-color: var(--color-card);">
+			<WeddingGuestList guests={Array.isArray(sectionData) ? sectionData : []} />
+		</div>
+	{:else if sectionId === 'registry'}
+		<div class="card shadow-xl p-8 mb-6" style="background-color: var(--color-card);">
+			<WeddingRegistryList items={Array.isArray(sectionData) ? sectionData : []} />
+		</div>
+	{:else if sectionId === 'home_setup'}
+		<div class="card shadow-xl p-8 mb-6" style="background-color: var(--color-card);">
+			<WeddingHomeSetupForm entry={sectionData || {}} />
+		</div>
+	{:else if isStandaloneSection}
 		<div class="card shadow-xl p-8 mb-6" style="background-color: var(--color-card);">
 			{#if sectionId === 'credentials'}
 				<CredentialsList credentials={Array.isArray(sectionData) ? sectionData : []} {userId} />

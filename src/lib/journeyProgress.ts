@@ -110,14 +110,32 @@ export function getSectionDataForScoring(sectionSlug: string, allData: any): any
 			return allData['final-days'] || {};
 		case 'after-death':
 			return allData['after-death'] || {};
-		case 'funeral':
-			return allData.funeral || {};
-		case 'obituary':
-			return allData.obituary || {};
-		case 'conclusion':
-			return allData.conclusion || {};
-		default:
-			return {};
+	case 'funeral':
+		return allData.funeral || {};
+	case 'obituary':
+		return allData.obituary || {};
+	case 'conclusion':
+		return allData.conclusion || {};
+	case 'marriage_license':
+		return allData.marriage_license || {};
+	case 'prenup':
+		return allData.prenup || {};
+	case 'joint_accounts':
+		return allData.joint_accounts || {};
+	case 'name_change':
+		return allData.name_change || {};
+	case 'venue':
+		return allData.venue || {};
+	case 'vendors':
+		return allData.vendors || [];
+	case 'guest_list':
+		return allData.guest_list || [];
+	case 'registry':
+		return allData.registry || [];
+	case 'home_setup':
+		return allData.home_setup || {};
+	default:
+		return {};
 	}
 }
 
@@ -144,7 +162,16 @@ export async function fetchAllSectionData(db: D1Database, userId: number): Promi
 		afterDeathResult,
 		funeralResult,
 		obituaryResult,
-		conclusionResult
+		conclusionResult,
+		weddingMarriageLicenseResult,
+		weddingPrenupResult,
+		weddingJointFinancesResult,
+		weddingNameChangeResult,
+		weddingVenueResult,
+		weddingVendorsResult,
+		weddingGuestListResult,
+		weddingRegistryResult,
+		weddingHomeSetupResult
 	] = await Promise.all([
 		db.prepare('SELECT * FROM credentials WHERE user_id = ?').bind(userId).all(),
 		db.prepare('SELECT * FROM key_contacts WHERE user_id = ?').bind(userId).all(),
@@ -170,7 +197,16 @@ export async function fetchAllSectionData(db: D1Database, userId: number): Promi
 		db.prepare('SELECT * FROM after_death WHERE user_id = ?').bind(userId).first(),
 		db.prepare('SELECT * FROM funeral WHERE user_id = ?').bind(userId).first(),
 		db.prepare('SELECT * FROM obituary WHERE user_id = ?').bind(userId).first(),
-		db.prepare('SELECT * FROM conclusion WHERE user_id = ?').bind(userId).first()
+		db.prepare('SELECT * FROM conclusion WHERE user_id = ?').bind(userId).first(),
+		db.prepare('SELECT * FROM wedding_marriage_license WHERE user_id = ?').bind(userId).first(),
+		db.prepare('SELECT * FROM wedding_prenup WHERE user_id = ?').bind(userId).first(),
+		db.prepare('SELECT * FROM wedding_joint_finances WHERE user_id = ?').bind(userId).first(),
+		db.prepare('SELECT * FROM wedding_name_change WHERE user_id = ?').bind(userId).first(),
+		db.prepare('SELECT * FROM wedding_venue WHERE user_id = ?').bind(userId).first(),
+		db.prepare('SELECT * FROM wedding_vendors WHERE user_id = ?').bind(userId).all(),
+		db.prepare('SELECT * FROM wedding_guest_list WHERE user_id = ?').bind(userId).all(),
+		db.prepare('SELECT * FROM wedding_registry_items WHERE user_id = ?').bind(userId).all(),
+		db.prepare('SELECT * FROM wedding_home_setup WHERE user_id = ?').bind(userId).first()
 	]);
 
 	return {
@@ -194,7 +230,16 @@ export async function fetchAllSectionData(db: D1Database, userId: number): Promi
 		'after-death': afterDeathResult || {},
 		funeral: funeralResult || {},
 		obituary: obituaryResult || {},
-		conclusion: conclusionResult || {}
+		conclusion: conclusionResult || {},
+		marriage_license: weddingMarriageLicenseResult || {},
+		prenup: weddingPrenupResult || {},
+		joint_accounts: weddingJointFinancesResult || {},
+		name_change: weddingNameChangeResult || {},
+		venue: weddingVenueResult || {},
+		vendors: weddingVendorsResult?.results || [],
+		guest_list: weddingGuestListResult?.results || [],
+		registry: weddingRegistryResult?.results || [],
+		home_setup: weddingHomeSetupResult || {}
 	};
 }
 

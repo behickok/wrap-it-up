@@ -481,5 +481,35 @@ export const SECTION_FIELDS = {
 		critical: ['final_thoughts'],
 		important: [],
 		optional: ['additional_notes']
+	},
+	marriage_license: {
+		critical: ['jurisdiction', 'appointment_date'],
+		important: ['required_documents', 'witness_requirements', 'fee_amount'],
+		optional: ['office_address', 'confirmation_number', 'notes']
+	},
+	prenup: {
+		critical: ['status', 'agreement_scope'],
+		important: ['attorney_user', 'attorney_partner', 'review_deadline'],
+		optional: ['signing_plan', 'storage_plan', 'notes']
+	},
+	joint_accounts: {
+		critical: ['shared_values', 'bill_split_plan'],
+		important: ['accounts_to_merge', 'new_accounts', 'monthly_checkin_cadence'],
+		optional: ['budgeting_tools', 'emergency_fund_plan', 'notes']
+	},
+	name_change: {
+		critical: ['status', 'legal_documents'],
+		important: ['ids_to_update', 'digital_accounts', 'target_effective_date'],
+		optional: ['announcement_plan', 'new_name', 'notes']
+	},
+	venue: {
+		critical: ['venue_name', 'decision_deadline'],
+		important: ['contact_name', 'tour_date', 'deposit_amount', 'total_cost'],
+		optional: ['included_items', 'rain_plan', 'notes']
+	},
+	home_setup: {
+		critical: ['housing_plan', 'move_in_date'],
+		important: ['utilities_plan', 'shared_calendar_link', 'first_month_priorities'],
+		optional: ['hosting_goals', 'design_style', 'notes']
 	}
 } as const;

@@ -4,9 +4,14 @@
 	let { data }: { data: PageData } = $props();
 
 	const { journeys, subscribedJourneyIds } = data;
+	const AVAILABLE_JOURNEYS = ['wedding', 'care'];
 
 	function isSubscribed(journeyId: number): boolean {
 		return subscribedJourneyIds.includes(journeyId);
+	}
+
+	function isJourneyAvailable(slug: string): boolean {
+		return AVAILABLE_JOURNEYS.includes(slug);
 	}
 </script>
 
@@ -34,19 +39,27 @@
 
 	<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
 		{#each journeys as journey}
+			{@const available = isJourneyAvailable(journey.slug)}
+			{@const subscribed = isSubscribed(journey.id)}
+
 			<div class="card bg-base-100 shadow-xl hover:shadow-2xl transition-shadow">
 				<div class="card-body">
-					<div class="flex items-start justify-between mb-2">
-						<div class="text-5xl">{journey.icon || '📋'}</div>
-						{#if isSubscribed(journey.id)}
-							<div class="badge badge-success gap-2">
-								<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="inline-block w-4 h-4 stroke-current">
-									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-								</svg>
-								Active
+						<div class="flex items-start justify-between mb-2 gap-2">
+							<div class="text-5xl">{journey.icon || '📋'}</div>
+							<div class="flex flex-col items-end gap-1">
+								{#if !available}
+									<div class="badge badge-warning gap-1">Coming Soon</div>
+								{/if}
+								{#if subscribed}
+									<div class="badge badge-success gap-2">
+										<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="inline-block w-4 h-4 stroke-current">
+											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+										</svg>
+										Active
+									</div>
+								{/if}
 							</div>
-						{/if}
-					</div>
+						</div>
 
 					<h2 class="card-title text-2xl mb-2">{journey.name}</h2>
 					<p class="text-base-content/70 flex-grow">
@@ -54,10 +67,12 @@
 					</p>
 
 					<div class="card-actions justify-end mt-4">
-						{#if isSubscribed(journey.id)}
+						{#if subscribed}
 							<a href="/journeys/{journey.slug}/dashboard" class="btn btn-primary btn-sm">
 								Continue Journey
 							</a>
+						{:else if !available}
+							<button class="btn btn-disabled btn-sm" disabled>Coming Soon</button>
 						{:else}
 							<a href="/journeys/{journey.slug}" class="btn btn-outline btn-sm">
 								Learn More

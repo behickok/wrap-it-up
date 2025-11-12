@@ -48,6 +48,29 @@ export function calculateReadinessScore(completions: SectionCompletion[]): Readi
 	};
 }
 
+function calculateSimpleListScore(items: any[], importantKeys: string[] = []): number {
+	if (!Array.isArray(items) || items.length === 0) return 0;
+
+	let score = 30; // base for having at least one entry
+	score += Math.min(items.length * 10, 30); // diversity bonus
+
+	let completeCount = 0;
+	for (const item of items) {
+		const isComplete = importantKeys.every((key) => {
+			const value = (item as any)?.[key];
+			if (value === null || value === undefined) return false;
+			if (typeof value === 'number') return true;
+			return value.toString().trim() !== '';
+		});
+		if (isComplete) {
+			completeCount++;
+		}
+	}
+
+	score += Math.min(completeCount * 10, 40);
+	return Math.min(score, 100);
+}
+
 /**
  * Calculate section score using point-based system
  * Routes to appropriate scoring function based on section type
@@ -98,6 +121,12 @@ export function calculateSectionScore(sectionName: string, data: any): number {
 		case 'after-death':
 		case 'funeral':
 		case 'conclusion':
+		case 'marriage_license':
+		case 'prenup':
+		case 'joint_accounts':
+		case 'name_change':
+		case 'venue':
+		case 'home_setup':
 			const fields = SECTION_FIELDS[sectionName];
 			if (fields) {
 				return calculateFieldBasedScore(
@@ -114,6 +143,28 @@ export function calculateSectionScore(sectionName: string, data: any): number {
 		case 'property':
 			// Use simple field-based scoring as fallback
 			return calculateFieldBasedScore(data, [], Object.keys(data), []);
+
+		case 'vendors':
+			return calculateSimpleListScore(Array.isArray(data) ? data : [], [
+				'business_name',
+				'vendor_type',
+				'status',
+				'next_payment_due'
+			]);
+
+		case 'guest_list':
+			return calculateSimpleListScore(Array.isArray(data) ? data : [], [
+				'guest_name',
+				'party_size',
+				'rsvp_status'
+			]);
+
+		case 'registry':
+			return calculateSimpleListScore(Array.isArray(data) ? data : [], [
+				'item_name',
+				'retailer',
+				'status'
+			]);
 
 		default:
 			return 0;

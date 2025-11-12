@@ -3,7 +3,17 @@
 	import type { Credential, CredentialCategory } from '$lib/types';
 	import FormField from './FormField.svelte';
 
-	let { credentials = [], userId }: { credentials?: Credential[]; userId: number } = $props();
+	let credentials: Credential[] = [];
+	let userId = 0;
+
+	const props = $props<{ credentials?: Credential[]; userId: number }>();
+	const propsCredentials = $derived(props.credentials);
+	const propsUserId = $derived(props.userId);
+
+	$effect(() => {
+		credentials = (propsCredentials ?? []).slice();
+		userId = propsUserId;
+	});
 
 	let isDialogOpen = $state(false);
 	let isEditing = $state(false);
