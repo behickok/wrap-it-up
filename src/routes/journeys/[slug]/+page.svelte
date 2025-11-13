@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { PageData } from './$types';
+	import { enhance } from '$app/forms';
 
 	let { data }: { data: PageData } = $props();
 
@@ -18,15 +19,12 @@
 	// Calculate total sections
 	const totalSections = $derived(data.sections.length);
 
-	// Parse tier features
-	function parseTierFeatures(featuresJson: string | null): string[] {
-		if (!featuresJson) return [];
-		try {
-			const parsed = JSON.parse(featuresJson);
-			return Array.isArray(parsed) ? parsed : [];
-		} catch {
-			return [];
-		}
+	// Format currency
+	function formatCurrency(amount: number): string {
+		return new Intl.NumberFormat('en-US', {
+			style: 'currency',
+			currency: 'USD'
+		}).format(amount);
 	}
 </script>
 
@@ -194,14 +192,13 @@
 												{#if tier.base_price_monthly > 0}
 													<div class="flex items-baseline gap-2">
 														<span class="text-3xl font-bold">
-															${tier.base_price_monthly.toFixed(2)}
+															{formatCurrency(tier.base_price_monthly)}
 														</span>
 														<span class="text-base-content/70">/month</span>
 													</div>
 													{#if tier.base_price_annual > 0 && tier.base_price_annual < tier.base_price_monthly * 12}
 														<div class="text-sm text-base-content/70 mt-1">
-															or ${tier.base_price_annual.toFixed(2)}/year (save $
-															{((tier.base_price_monthly * 12) - tier.base_price_annual).toFixed(2)})
+															or {formatCurrency(tier.base_price_annual)}/year (save {formatCurrency((tier.base_price_monthly * 12) - tier.base_price_annual)})
 														</div>
 													{/if}
 												{:else}
@@ -210,9 +207,9 @@
 											</div>
 
 											<!-- Features -->
-											{#if features.length > 0}
+											{#if tier.features && tier.features.length > 0}
 												<ul class="space-y-2 text-sm mb-4">
-													{#each features as feature}
+													{#each tier.features as feature}
 														<li class="flex items-start gap-2">
 															<svg class="w-5 h-5 text-success flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 																<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
@@ -225,14 +222,19 @@
 
 											<!-- CTA Button -->
 											{#if data.userSubscription}
-												<button class="btn btn-block" disabled>
-													Already Subscribed
-												</button>
+												<a href="/journeys/{data.journey.slug}/dashboard" class="btn btn-success btn-block">
+													Go to Dashboard
+												</a>
 											{:else if data.isAuthenticated}
-												<!-- TODO: Will connect to subscription flow -->
-												<button class="btn btn-primary btn-block">
-													Start Journey
-												</button>
+												<form method="POST" action="?/enroll" use:enhance>
+													<input type="hidden" name="tier_id" value={tier.tier_id} />
+													<button type="submit" class="btn btn-primary btn-block">
+														Start Journey
+													</button>
+												</form>
+												<p class="text-xs text-center text-base-content/60 mt-2">
+													Free enrollment • Manual payment setup
+												</p>
 											{:else}
 												<a href="/login?redirect=/journeys/{data.journey.slug}" class="btn btn-primary btn-block">
 													Sign In to Start
