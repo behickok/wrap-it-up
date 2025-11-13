@@ -82,8 +82,12 @@ export const actions: Actions = {
 				.bind(result.id, locals.user.id)
 				.run();
 
-			return { success: true, journeyId: result.id };
+			// Redirect to edit page
+			throw redirect(303, `/admin/journeys/${result.id}/edit`);
 		} catch (error) {
+			if (error instanceof Response) {
+				throw error;
+			}
 			console.error('Error creating journey:', error);
 			return { success: false, error: 'Failed to create journey' };
 		}
