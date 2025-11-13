@@ -1139,6 +1139,241 @@ export interface JourneyAnalytics {
 	created_at: string;
 }
 
+// ============================================================================
+// PRICING & REVENUE TYPES
+// ============================================================================
+
+// Journey pricing configuration
+export interface JourneyPricing {
+	id: number;
+	journey_id: number;
+	tier_id: number;
+	base_price_monthly: number;
+	base_price_annual: number;
+	platform_fee_percentage: number;
+	creator_revenue_monthly: number; // calculated
+	creator_revenue_annual: number; // calculated
+	platform_fee_monthly: number; // calculated
+	platform_fee_annual: number; // calculated
+	is_active: boolean;
+	created_at: string;
+	updated_at: string;
+}
+
+// Mentor rates
+export interface MentorRate {
+	id: number;
+	mentor_id: number;
+	journey_id: number;
+	review_rate: number;
+	currency: string;
+	is_active: boolean;
+	created_at: string;
+	updated_at: string;
+}
+
+// Concierge rates
+export interface ConciergeRate {
+	id: number;
+	coach_id: number;
+	journey_id: number;
+	hourly_rate: number;
+	session_rate: number;
+	currency: string;
+	is_active: boolean;
+	created_at: string;
+	updated_at: string;
+}
+
+// User subscriptions
+export type SubscriptionStatus = 'active' | 'cancelled' | 'paused' | 'expired';
+export type BillingCycle = 'monthly' | 'annual';
+
+export interface UserSubscription {
+	id: number;
+	user_journey_id: number;
+	tier_id: number;
+	status: SubscriptionStatus;
+	billing_cycle: BillingCycle;
+	price_amount: number;
+	platform_fee: number;
+	creator_amount: number;
+	started_at: string;
+	current_period_start: string;
+	current_period_end: string;
+	cancelled_at: string | null;
+	payment_method: string;
+	stripe_subscription_id: string | null;
+	notes: string | null;
+	created_at: string;
+	updated_at: string;
+}
+
+// Transactions
+export type TransactionType =
+	| 'subscription'
+	| 'review'
+	| 'session'
+	| 'affiliate'
+	| 'refund'
+	| 'adjustment';
+
+export type TransactionStatus = 'pending' | 'completed' | 'failed' | 'refunded' | 'cancelled';
+
+export interface Transaction {
+	id: number;
+	transaction_type: TransactionType;
+	user_id: number;
+	user_journey_id: number | null;
+	journey_id: number;
+	mentor_id: number | null;
+	coach_id: number | null;
+	subscription_id: number | null;
+	amount: number;
+	platform_fee: number;
+	creator_amount: number;
+	mentor_amount: number;
+	concierge_amount: number;
+	affiliate_amount: number;
+	status: TransactionStatus;
+	payment_method: string;
+	stripe_payment_id: string | null;
+	description: string | null;
+	notes: string | null;
+	metadata: string | null;
+	transaction_date: string;
+	completed_at: string | null;
+	created_at: string;
+	updated_at: string;
+}
+
+// Payouts
+export type PayoutType = 'creator' | 'mentor' | 'concierge' | 'affiliate';
+export type PayoutStatus = 'pending' | 'processing' | 'completed' | 'failed' | 'cancelled';
+
+export interface Payout {
+	id: number;
+	user_id: number;
+	payout_type: PayoutType;
+	amount: number;
+	period_start: string;
+	period_end: string;
+	status: PayoutStatus;
+	payment_method: string;
+	stripe_payout_id: string | null;
+	transaction_count: number;
+	notes: string | null;
+	scheduled_date: string | null;
+	completed_at: string | null;
+	created_at: string;
+	updated_at: string;
+}
+
+// Payout transactions (junction table)
+export interface PayoutTransaction {
+	id: number;
+	payout_id: number;
+	transaction_id: number;
+	amount: number;
+	created_at: string;
+}
+
+// Affiliate links
+export interface AffiliateLink {
+	id: number;
+	user_id: number;
+	journey_id: number;
+	affiliate_code: string;
+	commission_percentage: number;
+	click_count: number;
+	signup_count: number;
+	total_revenue: number;
+	is_active: boolean;
+	created_at: string;
+	updated_at: string;
+}
+
+// Affiliate clicks
+export interface AffiliateClick {
+	id: number;
+	affiliate_link_id: number;
+	ip_address: string | null;
+	user_agent: string | null;
+	referrer: string | null;
+	clicked_at: string;
+}
+
+// Affiliate conversions
+export interface AffiliateConversion {
+	id: number;
+	affiliate_link_id: number;
+	user_id: number;
+	user_journey_id: number;
+	commission_amount: number;
+	transaction_id: number | null;
+	converted_at: string;
+}
+
+// Revenue settings
+export interface RevenueSetting {
+	id: number;
+	setting_key: string;
+	setting_value: string;
+	description: string | null;
+	updated_at: string;
+}
+
+// Extended types with joined data
+export interface JourneyPricingWithTier extends JourneyPricing {
+	tier: ServiceTier;
+}
+
+export interface TransactionWithDetails extends Transaction {
+	user: User;
+	journey: Journey;
+	mentor?: Mentor;
+	coach?: Coach;
+}
+
+export interface PayoutWithTransactions extends Payout {
+	transactions: Transaction[];
+}
+
+// Pricing breakdown calculation result
+export interface PricingBreakdown {
+	basePrice: number;
+	platformFee: number;
+	platformFeePercentage: number;
+	creatorReceives: number;
+	clientPays: number;
+}
+
+// Revenue summary for dashboards
+export interface RevenueSummary {
+	// Current period
+	mtd_revenue: number; // Month-to-date
+	mtd_transactions: number;
+
+	// Projected
+	projected_monthly: number;
+	active_subscriptions: number;
+
+	// Historical
+	last_month_revenue: number;
+	all_time_revenue: number;
+
+	// Breakdown by type
+	subscription_revenue: number;
+	review_revenue: number;
+	session_revenue: number;
+	affiliate_revenue: number;
+
+	// For creators specifically
+	pending_payout?: number;
+	last_payout_amount?: number;
+	last_payout_date?: string;
+}
+
 // Section analytics
 export interface SectionAnalytics {
 	id: number;
