@@ -7,8 +7,11 @@ import type {
 	JourneyCategoryMapping,
 	JourneySection,
 	FieldType,
-	SectionField
+	SectionField,
+	ServiceTier,
+	JourneyPricing
 } from '$lib/types';
+import { getAllJourneyPricing, saveJourneyPricing, getPlatformFeePercentage } from '$lib/server/pricingUtils';
 
 export const load: PageServerLoad = async ({ params, locals, platform }) => {
 	if (!locals.user) {
@@ -107,13 +110,28 @@ export const load: PageServerLoad = async ({ params, locals, platform }) => {
 		.all<FieldType>();
 	const fieldTypes = fieldTypesResult.results || [];
 
+	// Fetch all service tiers
+	const tiersResult = await db
+		.prepare('SELECT * FROM service_tiers WHERE is_active = 1 ORDER BY display_order')
+		.all<ServiceTier>();
+	const serviceTiers = tiersResult.results || [];
+
+	// Fetch journey pricing
+	const journeyPricing = await getAllJourneyPricing(db, journeyId);
+
+	// Get platform fee percentage
+	const platformFeePercentage = await getPlatformFeePercentage(db);
+
 	return {
 		journey,
 		allCategories,
 		journeyCategories,
 		sections,
 		fields,
-		fieldTypes
+		fieldTypes,
+		serviceTiers,
+		journeyPricing,
+		platformFeePercentage
 	};
 };
 
@@ -523,6 +541,46 @@ export const actions: Actions = {
 		} catch (err) {
 			console.error('Error reordering fields:', err);
 			return { success: false, error: 'Failed to reorder fields' };
+		}
+	},
+
+	// Save journey pricing
+	savePricing: async ({ request, params, locals, platform }) => {
+		if (!locals.user) {
+			return { success: false, error: 'Not authenticated' };
+		}
+
+		const db = platform?.env?.DB;
+		if (!db) {
+			return { success: false, error: 'Database not available' };
+		}
+
+		const journeyId = parseInt(params.id);
+		const formData = await request.formData();
+
+		// Get pricing data (sent as JSON)
+		const pricingData = JSON.parse(formData.get('pricing_data') as string) as Array<{
+			tier_id: number;
+			monthly_price: number;
+			annual_price: number;
+		}>;
+
+		try {
+			// Save pricing for each tier
+			for (const pricing of pricingData) {
+				await saveJourneyPricing(
+					db,
+					journeyId,
+					pricing.tier_id,
+					pricing.monthly_price,
+					pricing.annual_price
+				);
+			}
+
+			return { success: true, action: 'savePricing' };
+		} catch (err) {
+			console.error('Error saving pricing:', err);
+			return { success: false, error: 'Failed to save pricing' };
 		}
 	}
 };
