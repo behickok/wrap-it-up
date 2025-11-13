@@ -1,145 +1,124 @@
-import { redirect, fail, type Actions } from '@sveltejs/kit';
+import { error, redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
-import { getSectionDataBySlugs } from '$lib/server/genericSectionData';
-import { loadLegacySectionData } from '$lib/server/legacySectionLoaders';
-import type { LegacySectionSlug } from '$lib/server/legacySectionLoaders';
+import type { SectionReviewWithContext, MentorProfile } from '$lib/types';
 
-export const load: PageServerLoad = async ({ platform, locals }) => {
-	const userId = locals.user?.id;
-
-	if (!userId) {
-		throw redirect(303, '/login');
+export const load: PageServerLoad = async ({ locals, platform }) => {
+	// Require authentication
+	if (!locals.user) {
+		throw redirect(302, '/login?redirect=/mentor/dashboard');
 	}
 
 	const db = platform?.env?.DB;
 	if (!db) {
-		throw new Error('Database not available');
+		throw error(500, 'Database not available');
 	}
 
-	// Check if user is a mentor
-	const mentor = await db
-		.prepare('SELECT * FROM mentors WHERE user_id = ?')
-		.bind(userId)
-		.first();
+	try {
+		// Check if user has a mentor profile
+		const mentorProfile = await db
+			.prepare('SELECT * FROM mentor_profiles WHERE user_id = ? AND is_active = 1')
+			.bind(locals.user.id)
+			.first<MentorProfile>();
 
-	if (!mentor) {
-		throw redirect(303, '/');
-	}
-
-	// Get all reviews assigned to this mentor (pending and in_review)
-	const reviewsResult = await db
-		.prepare(
-			`SELECT
-				mr.id,
-				mr.user_journey_id,
-				mr.section_id,
-				mr.status,
-				mr.submitted_at,
-				mr.notes,
-				s.name as section_name,
-				s.slug as section_slug,
-				j.name as journey_name,
-				j.slug as journey_slug,
-				j.icon as journey_icon,
-				u.email as user_email,
-				uj.user_id as review_user_id
-			FROM mentor_reviews mr
-			JOIN user_journeys uj ON mr.user_journey_id = uj.id
-			JOIN journeys j ON uj.journey_id = j.id
-			JOIN sections s ON mr.section_id = s.id
-			JOIN users u ON uj.user_id = u.id
-			WHERE (mr.mentor_id = ? OR mr.mentor_id IS NULL)
-				AND mr.status IN ('pending', 'in_review')
-			ORDER BY
-				CASE mr.status
-					WHEN 'in_review' THEN 1
-					WHEN 'pending' THEN 2
-				END,
-				mr.submitted_at ASC`
-		)
-		.bind(mentor.id)
-		.all();
-
-	// Get completed reviews for stats
-	const completedCountResult = await db
-		.prepare(
-			`SELECT COUNT(*) as count
-			FROM mentor_reviews
-			WHERE mentor_id = ? AND status = 'completed'`
-		)
-		.bind(mentor.id)
-		.first();
-
-	const reviews = reviewsResult.results || [];
-
-	const userIds = Array.from(
-		new Set(
-			reviews
-				.map((review: any) => review.review_user_id)
-				.filter((id): id is number => typeof id === 'number')
-		)
-	);
-
-	const personalSlug: LegacySectionSlug = 'personal';
-	const userNameMap = new Map<number, string>();
-
-	await Promise.all(
-		userIds.map(async (id) => {
-			const genericMap = await getSectionDataBySlugs(db, id, [personalSlug]);
-			const personalRecord = genericMap[personalSlug];
-			const data = personalRecord ? personalRecord.data : await loadLegacySectionData(db, id, personalSlug);
-			const name = typeof data?.legal_name === 'string' ? data.legal_name : null;
-			userNameMap.set(id, name || '');
-		})
-	);
-
-	const decoratedReviews = reviews.map((review: any) => ({
-		...review,
-		user_name: userNameMap.get(review.review_user_id) || review.user_email
-	}));
-
-	return {
-		mentor,
-		reviews: decoratedReviews,
-		completedCount: (completedCountResult as any)?.count || 0
-	};
-};
-
-export const actions: Actions = {
-	claimReview: async ({ request, platform, locals }) => {
-		const userId = locals.user?.id;
-		if (!userId) {
-			return fail(401, { error: 'Not authenticated' });
+		if (!mentorProfile) {
+			throw redirect(302, '/mentor/apply');
 		}
 
-		const db = platform?.env?.DB;
-		if (!db) {
-			return fail(500, { error: 'Database not available' });
-		}
-
-		// Check if user is a mentor
-		const mentor = await db
-			.prepare('SELECT * FROM mentors WHERE user_id = ?')
-			.bind(userId)
-			.first();
-
-		if (!mentor) {
-			return fail(403, { error: 'Not authorized as mentor' });
-		}
-
-		const formData = await request.formData();
-		const reviewId = Number(formData.get('review_id'));
-
-		// Update review to assign mentor and change status to in_review
-		await db
+		// Get assigned journeys
+		const assignedJourneysResult = await db
 			.prepare(
-				`UPDATE mentor_reviews
-				SET mentor_id = ?, status = 'in_review'
-				WHERE id = ? AND status = 'pending'`
+				`
+			SELECT jm.*, j.name as journey_name, j.slug as journey_slug
+			FROM journey_mentors jm
+			JOIN journeys j ON jm.journey_id = j.id
+			WHERE jm.mentor_user_id = ? AND jm.status = 'active'
+			ORDER BY j.name
+		`
 			)
-			.bind(mentor.id, reviewId)
-			.run();
+			.bind(locals.user.id)
+			.all();
 
-		return { success: true };
+		const assignedJourneys = assignedJourneysResult.results || [];
+
+		// Get pending reviews (requested, not yet claimed by this mentor)
+		const pendingReviewsResult = await db
+			.prepare(
+				`
+			SELECT * FROM v_pending_reviews
+			WHERE journey_id IN (
+				SELECT journey_id FROM journey_mentors
+				WHERE mentor_user_id = ? AND status = 'active'
+			) AND (mentor_user_id IS NULL OR mentor_user_id = ?)
+			AND status = 'requested'
+			ORDER BY requested_at ASC
+		`
+			)
+			.bind(locals.user.id, locals.user.id)
+			.all<SectionReviewWithContext>();
+
+		const pendingReviews = pendingReviewsResult.results || [];
+
+		// Get in-progress reviews (claimed by this mentor)
+		const inProgressReviewsResult = await db
+			.prepare(
+				`
+			SELECT * FROM v_pending_reviews
+			WHERE mentor_user_id = ? AND status = 'in_review'
+			ORDER BY claimed_at ASC
+		`
+			)
+			.bind(locals.user.id)
+			.all<SectionReviewWithContext>();
+
+		const inProgressReviews = inProgressReviewsResult.results || [];
+
+		// Get completed reviews (last 20)
+		const completedReviewsResult = await db
+			.prepare(
+				`
+			SELECT
+				sr.*,
+				uj.user_id as client_user_id,
+				u.username as client_username,
+				s.name as section_name,
+				j.name as journey_name
+			FROM section_reviews sr
+			JOIN user_journeys uj ON sr.user_journey_id = uj.id
+			JOIN users u ON uj.user_id = u.id
+			JOIN sections s ON sr.section_id = s.id
+			JOIN journeys j ON uj.journey_id = j.id
+			WHERE sr.mentor_user_id = ? AND sr.status IN ('approved', 'changes_requested')
+			ORDER BY sr.reviewed_at DESC
+			LIMIT 20
+		`
+			)
+			.bind(locals.user.id)
+			.all<SectionReviewWithContext>();
+
+		const completedReviews = completedReviewsResult.results || [];
+
+		// Get mentor stats
+		const stats = {
+			total_reviews: mentorProfile.total_reviews,
+			completed_reviews: mentorProfile.completed_reviews,
+			average_rating: mentorProfile.average_rating,
+			average_turnaround_hours: mentorProfile.average_turnaround_hours,
+			total_earnings: mentorProfile.total_earnings,
+			pending_count: pendingReviews.length,
+			in_progress_count: inProgressReviews.length
+		};
+
+		return {
+			mentorProfile,
+			assignedJourneys,
+			pendingReviews,
+			inProgressReviews,
+			completedReviews,
+			stats
+		};
+	} catch (err: any) {
+		if (err.status === 302) throw err; // Allow redirects
+		console.error('Error loading mentor dashboard:', err);
+		throw error(500, 'Failed to load dashboard');
 	}
 };
