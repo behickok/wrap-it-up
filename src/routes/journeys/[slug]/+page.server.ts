@@ -1,6 +1,7 @@
 import { error, redirect, fail, isRedirect } from '@sveltejs/kit';
 import type { PageServerLoad, Actions } from './$types';
 import type { Journey, ServiceTier, Category, JourneyPricing, UserJourney } from '$lib/types';
+import { AnalyticsEvents } from '$lib/server/analytics';
 
 export const load: PageServerLoad = async ({ locals, platform, params }) => {
 	const db = platform?.env?.DB;
@@ -115,6 +116,13 @@ export const load: PageServerLoad = async ({ locals, platform, params }) => {
 			features: p.features_json ? JSON.parse(p.features_json) : []
 		}));
 
+		// Track journey view event
+		await AnalyticsEvents.journeyView(db, {
+			userId: locals.user?.id,
+			journeyId: journey.id,
+			sessionId: locals.sessionId || 'anonymous'
+		}).catch((err) => console.error('Failed to track journey view:', err));
+
 		return {
 			journey,
 			categories,
@@ -219,6 +227,12 @@ export const actions: Actions = {
 			if (!userJourneyResult) {
 				return fail(500, { error: 'Failed to create enrollment' });
 			}
+
+			// Track enrollment event
+			await AnalyticsEvents.journeyEnrollment(db, {
+				userId: locals.user.id,
+				journeyId: journey.id
+			}).catch((err) => console.error('Failed to track enrollment:', err));
 
 			// Note: In Phase 6 with Stripe, we'll create subscription and transaction records here
 			// For now, admin must manually create subscriptions via /admin/subscriptions
