@@ -1,19 +1,24 @@
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+vi.mock('$lib/server/genericSectionData', () => ({
+	getSectionDataBySlugs: vi.fn()
+}));
+
+vi.mock('$lib/server/legacySectionLoaders', () => ({
+	loadLegacySectionData: vi.fn()
+}));
 
 import { GET } from './+server';
+import { getSectionDataBySlugs } from '$lib/server/genericSectionData';
+import { loadLegacySectionData } from '$lib/server/legacySectionLoaders';
 
-function createDb(tables: Record<string, any[]>) {
-	return {
-		prepare: (query: string) => {
-			const table = Object.keys(tables).find((name) => query.includes(name));
-			return {
-				bind: () => ({
-					all: async () => ({ results: tables[table || ''] || [] })
-				})
-			};
-		}
-	};
-}
+const mockedGetSectionDataBySlugs = vi.mocked(getSectionDataBySlugs);
+const mockedLoadLegacySectionData = vi.mocked(loadLegacySectionData);
+
+beforeEach(() => {
+	mockedGetSectionDataBySlugs.mockReset();
+	mockedLoadLegacySectionData.mockReset();
+});
 
 describe('GET /api/export-data', () => {
 	it('requires authentication', async () => {
@@ -37,27 +42,32 @@ describe('GET /api/export-data', () => {
 	});
 
 	it('aggregates user data from all tables', async () => {
-		const tables = {
-			personal_info: [{ legal_name: 'Casey Planner' }],
+		const tables: Record<string, any> = {
+			personal: { legal_name: 'Casey Planner' },
 			credentials: [],
 			pets: [],
-			key_contacts: [],
-			medical_info: [],
+			contacts: [],
+			medical: [],
 			physicians: [],
 			employment: [],
-			primary_residence: [],
+			residence: [],
 			vehicles: [],
 			insurance: [],
-			bank_accounts: [],
-			legal_documents: [],
-			final_days: [],
+			financial: [],
+			legal: [],
+			'final-days': [],
 			obituary: [],
-			after_death: [],
+			'after-death': [],
 			funeral: []
 		};
 
+		mockedGetSectionDataBySlugs.mockResolvedValue({
+			personal: { data: tables.personal }
+		} as any);
+		mockedLoadLegacySectionData.mockImplementation(async (_, __, slug: any) => tables[slug] ?? []);
+
 		const response = await GET({
-			platform: { env: { DB: createDb(tables) } },
+			platform: { env: { DB: {} } },
 			locals: { user: { id: 1, username: 'casey', email: 'casey@example.com' } }
 		} as any);
 

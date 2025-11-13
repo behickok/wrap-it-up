@@ -919,6 +919,27 @@ export interface ParsedSectionData extends Omit<SectionData, 'data'> {
 	data: Record<string, any>;
 }
 
+export type ListFieldDefinition = {
+	name: string;
+	label: string;
+	type?: 'text' | 'textarea' | 'select' | 'date' | 'number' | 'email' | 'tel' | 'checkbox';
+	placeholder?: string;
+	required?: boolean;
+	rows?: number;
+	options?: Array<{ value: string; label?: string } | string>;
+};
+
+export interface ListSectionDefinition {
+	title: string;
+	description?: string;
+	addLabel?: string;
+	emptyState?: {
+		title?: string;
+		description?: string;
+	};
+	fields: ListFieldDefinition[];
+}
+
 // Journey creator system
 export interface JourneyCreator {
 	id: number;

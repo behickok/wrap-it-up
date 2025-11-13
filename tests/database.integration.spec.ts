@@ -100,7 +100,8 @@ describe('Database integration', () => {
 	it('loads dashboard data from the seeded dataset', async () => {
 		const result = await load({
 			locals: { user: { id: 1 } },
-			platform: { env: { DB: d1 } }
+			platform: { env: { DB: d1 } },
+			params: { slug: 'care' }
 		} as any);
 
 		expect(result.sectionData.personal.legal_name).toBe('Jordan Avery Wells');

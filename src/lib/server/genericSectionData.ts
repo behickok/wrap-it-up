@@ -309,3 +309,81 @@ export async function bulkSaveSectionData(
 		await saveSectionData(db, entry.userId, entry.sectionId, entry.data, fields);
 	}
 }
+
+type SectionDataRow = {
+	slug: string;
+	section_ref_id: number;
+	section_data_id: number | null;
+	section_data_user_id: number | null;
+	section_data_section_id: number | null;
+	data: string | null;
+	completed_fields: number | null;
+	total_fields: number | null;
+	created_at: string | null;
+	updated_at: string | null;
+};
+
+/**
+ * Fetch parsed section_data rows for a set of section slugs.
+ * Returns a map keyed by slug with ParsedSectionData or null if no record exists.
+ */
+export async function getSectionDataBySlugs(
+	db: D1Database,
+	userId: number,
+	sectionSlugs: string[]
+): Promise<Record<string, ParsedSectionData | null>> {
+	const uniqueSlugs = Array.from(new Set(sectionSlugs.filter(Boolean)));
+	if (uniqueSlugs.length === 0) {
+		return {};
+	}
+
+	const placeholders = uniqueSlugs.map(() => '?').join(', ');
+
+	const result = await db
+		.prepare(
+			`
+			SELECT
+				s.slug,
+				s.id as section_ref_id,
+				sd.id as section_data_id,
+				sd.user_id as section_data_user_id,
+				sd.section_id as section_data_section_id,
+				sd.data,
+				sd.completed_fields,
+				sd.total_fields,
+				sd.created_at,
+				sd.updated_at
+			FROM sections s
+			LEFT JOIN section_data sd ON sd.section_id = s.id AND sd.user_id = ?
+			WHERE s.slug IN (${placeholders})
+		`
+		)
+		.bind(userId, ...uniqueSlugs)
+		.all<SectionDataRow>();
+
+	const dataMap: Record<string, ParsedSectionData | null> = {};
+	for (const slug of uniqueSlugs) {
+		dataMap[slug] = null;
+	}
+
+	result.results?.forEach((row) => {
+		if (!row.slug) return;
+		if (row.section_data_id === null || row.section_data_id === undefined) {
+			dataMap[row.slug] = null;
+			return;
+		}
+
+		dataMap[row.slug] = {
+			id: row.section_data_id,
+			user_id: row.section_data_user_id ?? userId,
+			section_id: row.section_data_section_id ?? row.section_ref_id,
+			data: row.data ? JSON.parse(row.data) : {},
+			completed_fields: row.completed_fields ?? 0,
+			total_fields: row.total_fields ?? 0,
+			created_at: row.created_at ?? '',
+			updated_at: row.updated_at ?? ''
+		};
+	});
+
+	return dataMap;
+}

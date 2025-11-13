@@ -4,6 +4,38 @@
  */
 
 import { calculateSectionScore } from './readinessScore';
+import { getSectionDataBySlugs } from './server/genericSectionData';
+import { loadLegacySectionData, type LegacySectionSlug } from './server/legacySectionLoaders';
+
+const PROGRESS_SECTION_SLUGS: LegacySectionSlug[] = [
+	'credentials',
+	'contacts',
+	'legal',
+	'financial',
+	'insurance',
+	'employment',
+	'personal',
+	'medical',
+	'physicians',
+	'residence',
+	'vehicles',
+	'family',
+	'pets',
+	'final-days',
+	'after-death',
+	'funeral',
+	'obituary',
+	'conclusion',
+	'marriage_license',
+	'prenup',
+	'joint_accounts',
+	'name_change',
+	'venue',
+	'vendors',
+	'guest_list',
+	'registry',
+	'home_setup'
+];
 
 interface UpdateProgressOptions {
 	db: D1Database;
@@ -143,103 +175,120 @@ export function getSectionDataForScoring(sectionSlug: string, allData: any): any
  * Fetches all section data needed for progress calculation
  */
 export async function fetchAllSectionData(db: D1Database, userId: number): Promise<any> {
+	const genericSectionData = await getSectionDataBySlugs(db, userId, PROGRESS_SECTION_SLUGS);
+	const memo = new Map<LegacySectionSlug, Promise<any>>();
+
+	const getOrFallback = (slug: LegacySectionSlug): Promise<any> => {
+		if (!memo.has(slug)) {
+			const record = genericSectionData[slug];
+			memo.set(slug, record ? Promise.resolve(record.data) : loadLegacySectionData(db, userId, slug));
+		}
+		return memo.get(slug)!;
+	};
+
+	const sectionSequence: LegacySectionSlug[] = [
+		'credentials',
+		'contacts',
+		'legal',
+		'financial',
+		'insurance',
+		'employment',
+		'vehicles',
+		'pets',
+		'personal',
+		'medical',
+		'residence',
+		'family',
+		'final-days',
+		'after-death',
+		'funeral',
+		'obituary',
+		'conclusion',
+		'marriage_license',
+		'prenup',
+		'joint_accounts',
+		'name_change',
+		'venue',
+		'vendors',
+		'guest_list',
+		'registry',
+		'home_setup'
+	];
+
+	const results = await Promise.all(sectionSequence.map((slug) => getOrFallback(slug)));
+
 	const [
-		credentialsResult,
-		contactsResult,
-		legalResult,
-		bankAccountsResult,
-		insuranceResult,
-		employmentResult,
-		physiciansResult,
-		vehiclesResult,
-		petsResult,
-		personalResult,
-		medicalResult,
-		residenceResult,
-		familyMembersResult,
-		familyHistoryResult,
-		finalDaysResult,
-		afterDeathResult,
-		funeralResult,
-		obituaryResult,
-		conclusionResult,
-		weddingMarriageLicenseResult,
-		weddingPrenupResult,
-		weddingJointFinancesResult,
-		weddingNameChangeResult,
-		weddingVenueResult,
-		weddingVendorsResult,
-		weddingGuestListResult,
-		weddingRegistryResult,
-		weddingHomeSetupResult
-	] = await Promise.all([
-		db.prepare('SELECT * FROM credentials WHERE user_id = ?').bind(userId).all(),
-		db.prepare('SELECT * FROM key_contacts WHERE user_id = ?').bind(userId).all(),
-		db.prepare('SELECT * FROM legal_documents WHERE user_id = ?').bind(userId).all(),
-		db.prepare('SELECT * FROM bank_accounts WHERE user_id = ?').bind(userId).all(),
-		db.prepare('SELECT * FROM insurance WHERE user_id = ?').bind(userId).all(),
-		db.prepare('SELECT * FROM employment WHERE user_id = ?').bind(userId).all(),
-		db.prepare('SELECT * FROM physicians WHERE user_id = ?').bind(userId).all(),
-		db.prepare('SELECT * FROM vehicles WHERE user_id = ?').bind(userId).all(),
-		db.prepare('SELECT * FROM pets WHERE user_id = ?').bind(userId).all(),
-		db.prepare('SELECT * FROM personal_info WHERE user_id = ? AND person_type = ?').bind(userId, 'self').first(),
-		db.prepare('SELECT * FROM medical_info WHERE user_id = ?').bind(userId).first(),
-		db.prepare('SELECT * FROM primary_residence WHERE user_id = ?').bind(userId).first(),
-		db.prepare(
-			`SELECT fm.id, fm.user_id, fm.relationship, fm.personal_info_id,
-				pi.legal_name, pi.date_of_birth, pi.mobile_phone, pi.email, pi.address, pi.occupation
-			 FROM family_members fm
-			 LEFT JOIN personal_info pi ON pi.id = fm.personal_info_id
-			 WHERE fm.user_id = ?`
-		).bind(userId).all(),
-		db.prepare('SELECT * FROM family_history WHERE user_id = ?').bind(userId).first(),
-		db.prepare('SELECT * FROM final_days WHERE user_id = ?').bind(userId).first(),
-		db.prepare('SELECT * FROM after_death WHERE user_id = ?').bind(userId).first(),
-		db.prepare('SELECT * FROM funeral WHERE user_id = ?').bind(userId).first(),
-		db.prepare('SELECT * FROM obituary WHERE user_id = ?').bind(userId).first(),
-		db.prepare('SELECT * FROM conclusion WHERE user_id = ?').bind(userId).first(),
-		db.prepare('SELECT * FROM wedding_marriage_license WHERE user_id = ?').bind(userId).first(),
-		db.prepare('SELECT * FROM wedding_prenup WHERE user_id = ?').bind(userId).first(),
-		db.prepare('SELECT * FROM wedding_joint_finances WHERE user_id = ?').bind(userId).first(),
-		db.prepare('SELECT * FROM wedding_name_change WHERE user_id = ?').bind(userId).first(),
-		db.prepare('SELECT * FROM wedding_venue WHERE user_id = ?').bind(userId).first(),
-		db.prepare('SELECT * FROM wedding_vendors WHERE user_id = ?').bind(userId).all(),
-		db.prepare('SELECT * FROM wedding_guest_list WHERE user_id = ?').bind(userId).all(),
-		db.prepare('SELECT * FROM wedding_registry_items WHERE user_id = ?').bind(userId).all(),
-		db.prepare('SELECT * FROM wedding_home_setup WHERE user_id = ?').bind(userId).first()
-	]);
+		credentials,
+		contacts,
+		legal,
+		financial,
+		insurance,
+		employment,
+		vehicles,
+		pets,
+		personal,
+		medical,
+		residence,
+		family,
+		finalDays,
+		afterDeath,
+		funeral,
+		obituary,
+		conclusion,
+		weddingMarriageLicense,
+		weddingPrenup,
+		weddingJointFinances,
+		weddingNameChange,
+		weddingVenue,
+		weddingVendors,
+		weddingGuestList,
+		weddingRegistry,
+		weddingHomeSetup
+	] = results;
+
+	const physicians =
+		Array.isArray(medical?.physicians) && medical.physicians.length > 0
+			? medical.physicians
+			: await getOrFallback('physicians');
+
+	const normalizedMedical =
+		medical && typeof medical === 'object'
+			? { ...medical, physicians: Array.isArray(medical.physicians) ? medical.physicians : physicians }
+			: { physicians };
+
+	const normalizedFamily = {
+		members: Array.isArray(family?.members) ? family.members : [],
+		history: family?.history ?? {}
+	};
 
 	return {
-		credentials: credentialsResult?.results || [],
-		contacts: contactsResult?.results || [],
-		legal: legalResult?.results || [],
-		financial: bankAccountsResult?.results || [],
-		insurance: insuranceResult?.results || [],
-		employment: employmentResult?.results || [],
-		physicians: physiciansResult?.results || [],
-		vehicles: vehiclesResult?.results || [],
-		pets: petsResult?.results || [],
-		personal: personalResult || {},
-		medical: medicalResult || {},
-		residence: residenceResult || {},
-		family: {
-			members: familyMembersResult?.results || [],
-			history: familyHistoryResult || {}
-		},
-		'final-days': finalDaysResult || {},
-		'after-death': afterDeathResult || {},
-		funeral: funeralResult || {},
-		obituary: obituaryResult || {},
-		conclusion: conclusionResult || {},
-		marriage_license: weddingMarriageLicenseResult || {},
-		prenup: weddingPrenupResult || {},
-		joint_accounts: weddingJointFinancesResult || {},
-		name_change: weddingNameChangeResult || {},
-		venue: weddingVenueResult || {},
-		vendors: weddingVendorsResult?.results || [],
-		guest_list: weddingGuestListResult?.results || [],
-		registry: weddingRegistryResult?.results || [],
-		home_setup: weddingHomeSetupResult || {}
+		credentials: credentials ?? [],
+		contacts: contacts ?? [],
+		legal: legal ?? [],
+		financial: financial ?? [],
+		insurance: insurance ?? [],
+		employment: employment ?? [],
+		physicians: physicians ?? [],
+		vehicles: vehicles ?? [],
+		pets: pets ?? [],
+		personal: personal ?? {},
+		medical: normalizedMedical,
+		residence: residence ?? {},
+		family: normalizedFamily,
+		'final-days': finalDays ?? {},
+		'after-death': afterDeath ?? {},
+		funeral: funeral ?? {},
+		obituary: obituary ?? {},
+		conclusion: conclusion ?? {},
+		marriage_license: weddingMarriageLicense ?? {},
+		prenup: weddingPrenup ?? {},
+		joint_accounts: weddingJointFinances ?? {},
+		name_change: weddingNameChange ?? {},
+		venue: weddingVenue ?? {},
+		vendors: weddingVendors ?? [],
+		guest_list: weddingGuestList ?? [],
+		registry: weddingRegistry ?? [],
+		home_setup: weddingHomeSetup ?? {}
 	};
 }
 

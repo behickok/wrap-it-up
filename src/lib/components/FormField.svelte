@@ -15,7 +15,10 @@
 
 	// Ensure value is never undefined
 	if (value === undefined) {
-		value = '';
+		value = type === 'checkbox' ? false : '';
+	}
+	if (type === 'checkbox') {
+		value = Boolean(value);
 	}
 
 	// For select, normalize options
@@ -53,6 +56,17 @@
 			{required}
 			class="textarea textarea-bordered w-full"
 		></textarea>
+	{:else if type === 'checkbox'}
+		<label class="label cursor-pointer justify-start gap-3">
+			<input
+				id={name}
+				{name}
+				type="checkbox"
+				class="checkbox checkbox-primary"
+				bind:checked={value}
+			/>
+			<span class="label-text">{placeholder || `Check if ${label.toLowerCase()}`}</span>
+		</label>
 	{:else if type === 'select'}
 		<select
 			id={name}

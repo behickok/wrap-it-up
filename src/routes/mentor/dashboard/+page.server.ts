@@ -1,5 +1,8 @@
 import { redirect, fail, type Actions } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
+import { getSectionDataBySlugs } from '$lib/server/genericSectionData';
+import { loadLegacySectionData } from '$lib/server/legacySectionLoaders';
+import type { LegacySectionSlug } from '$lib/server/legacySectionLoaders';
 
 export const load: PageServerLoad = async ({ platform, locals }) => {
 	const userId = locals.user?.id;
@@ -39,13 +42,12 @@ export const load: PageServerLoad = async ({ platform, locals }) => {
 				j.slug as journey_slug,
 				j.icon as journey_icon,
 				u.email as user_email,
-				pi.legal_name as user_name
+				uj.user_id as review_user_id
 			FROM mentor_reviews mr
 			JOIN user_journeys uj ON mr.user_journey_id = uj.id
 			JOIN journeys j ON uj.journey_id = j.id
 			JOIN sections s ON mr.section_id = s.id
 			JOIN users u ON uj.user_id = u.id
-			LEFT JOIN personal_info pi ON pi.user_id = u.id AND pi.person_type = 'self'
 			WHERE (mr.mentor_id = ? OR mr.mentor_id IS NULL)
 				AND mr.status IN ('pending', 'in_review')
 			ORDER BY
@@ -68,9 +70,37 @@ export const load: PageServerLoad = async ({ platform, locals }) => {
 		.bind(mentor.id)
 		.first();
 
+	const reviews = reviewsResult.results || [];
+
+	const userIds = Array.from(
+		new Set(
+			reviews
+				.map((review: any) => review.review_user_id)
+				.filter((id): id is number => typeof id === 'number')
+		)
+	);
+
+	const personalSlug: LegacySectionSlug = 'personal';
+	const userNameMap = new Map<number, string>();
+
+	await Promise.all(
+		userIds.map(async (id) => {
+			const genericMap = await getSectionDataBySlugs(db, id, [personalSlug]);
+			const personalRecord = genericMap[personalSlug];
+			const data = personalRecord ? personalRecord.data : await loadLegacySectionData(db, id, personalSlug);
+			const name = typeof data?.legal_name === 'string' ? data.legal_name : null;
+			userNameMap.set(id, name || '');
+		})
+	);
+
+	const decoratedReviews = reviews.map((review: any) => ({
+		...review,
+		user_name: userNameMap.get(review.review_user_id) || review.user_email
+	}));
+
 	return {
 		mentor,
-		reviews: reviewsResult.results || [],
+		reviews: decoratedReviews,
 		completedCount: (completedCountResult as any)?.count || 0
 	};
 };

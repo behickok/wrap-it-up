@@ -7,6 +7,299 @@ CREATE TABLE IF NOT EXISTS users (
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
+-- ============================================================================
+-- JOURNEY PLATFORM TABLES (AUTHORITATIVE)
+-- ============================================================================
+
+CREATE TABLE IF NOT EXISTS journeys (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    slug TEXT UNIQUE NOT NULL,
+    name TEXT NOT NULL,
+    description TEXT,
+    icon TEXT,
+    is_active BOOLEAN DEFAULT 1,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS categories (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    description TEXT,
+    icon TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS journey_categories (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    journey_id INTEGER NOT NULL,
+    category_id INTEGER NOT NULL,
+    display_order INTEGER DEFAULT 0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (journey_id) REFERENCES journeys(id) ON DELETE CASCADE,
+    FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE CASCADE,
+    UNIQUE(journey_id, category_id)
+);
+
+CREATE TABLE IF NOT EXISTS sections (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    slug TEXT UNIQUE NOT NULL,
+    name TEXT NOT NULL,
+    description TEXT,
+    scoring_type TEXT DEFAULT 'field_count' CHECK(scoring_type IN ('field_count', 'list_items', 'custom')),
+    weight INTEGER DEFAULT 5,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS journey_sections (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    journey_id INTEGER NOT NULL,
+    section_id INTEGER NOT NULL,
+    category_id INTEGER NOT NULL,
+    display_order INTEGER DEFAULT 0,
+    is_required BOOLEAN DEFAULT 0,
+    weight_override INTEGER,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (journey_id) REFERENCES journeys(id) ON DELETE CASCADE,
+    FOREIGN KEY (section_id) REFERENCES sections(id) ON DELETE CASCADE,
+    FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE CASCADE,
+    UNIQUE(journey_id, section_id)
+);
+
+CREATE TABLE IF NOT EXISTS service_tiers (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    slug TEXT UNIQUE NOT NULL,
+    name TEXT NOT NULL,
+    description TEXT,
+    price_monthly REAL DEFAULT 0,
+    price_annual REAL DEFAULT 0,
+    display_order INTEGER DEFAULT 0,
+    is_active BOOLEAN DEFAULT 1,
+    features_json TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS tier_features (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    tier_id INTEGER NOT NULL,
+    feature_key TEXT NOT NULL,
+    is_enabled BOOLEAN DEFAULT 1,
+    config_json TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (tier_id) REFERENCES service_tiers(id) ON DELETE CASCADE,
+    UNIQUE(tier_id, feature_key)
+);
+
+CREATE TABLE IF NOT EXISTS user_journeys (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    journey_id INTEGER NOT NULL,
+    tier_id INTEGER NOT NULL,
+    status TEXT DEFAULT 'active' CHECK(status IN ('active', 'paused', 'completed', 'cancelled')),
+    started_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    completed_at DATETIME,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (journey_id) REFERENCES journeys(id) ON DELETE CASCADE,
+    FOREIGN KEY (tier_id) REFERENCES service_tiers(id),
+    UNIQUE(user_id, journey_id)
+);
+
+CREATE TABLE IF NOT EXISTS user_journey_progress (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_journey_id INTEGER NOT NULL,
+    section_id INTEGER NOT NULL,
+    score REAL DEFAULT 0,
+    is_completed BOOLEAN DEFAULT 0,
+    last_updated DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_journey_id) REFERENCES user_journeys(id) ON DELETE CASCADE,
+    FOREIGN KEY (section_id) REFERENCES sections(id) ON DELETE CASCADE,
+    UNIQUE(user_journey_id, section_id)
+);
+
+-- Creator marketplace -------------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS journey_creators (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    journey_id INTEGER NOT NULL UNIQUE,
+    creator_user_id INTEGER NOT NULL,
+    is_published BOOLEAN DEFAULT 0,
+    is_featured BOOLEAN DEFAULT 0,
+    use_count INTEGER DEFAULT 0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (journey_id) REFERENCES journeys(id) ON DELETE CASCADE,
+    FOREIGN KEY (creator_user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS journey_templates (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    template_journey_id INTEGER NOT NULL,
+    cloned_journey_id INTEGER NOT NULL,
+    cloned_by_user_id INTEGER NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (template_journey_id) REFERENCES journeys(id) ON DELETE CASCADE,
+    FOREIGN KEY (cloned_journey_id) REFERENCES journeys(id) ON DELETE CASCADE,
+    FOREIGN KEY (cloned_by_user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- Field builder -------------------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS field_types (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    type_name TEXT UNIQUE NOT NULL,
+    display_name TEXT NOT NULL,
+    validation_schema TEXT,
+    default_config TEXT,
+    icon TEXT,
+    is_active BOOLEAN DEFAULT 1,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS section_fields (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    section_id INTEGER NOT NULL,
+    field_name TEXT NOT NULL,
+    field_label TEXT NOT NULL,
+    field_type_id INTEGER NOT NULL,
+    field_config TEXT,
+    is_required BOOLEAN DEFAULT 0,
+    importance_level TEXT DEFAULT 'optional' CHECK(importance_level IN ('critical', 'important', 'optional')),
+    help_text TEXT,
+    placeholder TEXT,
+    default_value TEXT,
+    display_order INTEGER DEFAULT 0,
+    conditional_logic TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (section_id) REFERENCES sections(id) ON DELETE CASCADE,
+    FOREIGN KEY (field_type_id) REFERENCES field_types(id),
+    UNIQUE(section_id, field_name)
+);
+
+CREATE TABLE IF NOT EXISTS section_data (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    section_id INTEGER NOT NULL,
+    data TEXT NOT NULL,
+    completed_fields INTEGER DEFAULT 0,
+    total_fields INTEGER DEFAULT 0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (section_id) REFERENCES sections(id) ON DELETE CASCADE,
+    UNIQUE(user_id, section_id)
+);
+
+-- Mentor & concierge --------------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS mentors (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL UNIQUE,
+    display_name TEXT NOT NULL,
+    bio TEXT,
+    expertise_areas TEXT,
+    hourly_rate REAL DEFAULT 0,
+    is_available BOOLEAN DEFAULT 1,
+    availability_json TEXT,
+    rating_average REAL DEFAULT 0,
+    review_count INTEGER DEFAULT 0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS mentor_journeys (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    mentor_id INTEGER NOT NULL,
+    journey_id INTEGER NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (mentor_id) REFERENCES mentors(id) ON DELETE CASCADE,
+    FOREIGN KEY (journey_id) REFERENCES journeys(id) ON DELETE CASCADE,
+    UNIQUE(mentor_id, journey_id)
+);
+
+CREATE TABLE IF NOT EXISTS mentor_reviews (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_journey_id INTEGER NOT NULL,
+    section_id INTEGER NOT NULL,
+    mentor_id INTEGER,
+    status TEXT DEFAULT 'pending' CHECK(status IN ('pending', 'assigned', 'in_review', 'completed', 'cancelled')),
+    submitted_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    assigned_at DATETIME,
+    completed_at DATETIME,
+    feedback TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_journey_id) REFERENCES user_journeys(id) ON DELETE CASCADE,
+    FOREIGN KEY (section_id) REFERENCES sections(id) ON DELETE CASCADE,
+    FOREIGN KEY (mentor_id) REFERENCES mentors(id) ON DELETE SET NULL
+);
+
+CREATE TABLE IF NOT EXISTS review_comments (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    review_id INTEGER NOT NULL,
+    user_id INTEGER NOT NULL,
+    is_mentor BOOLEAN DEFAULT 0,
+    comment TEXT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (review_id) REFERENCES mentor_reviews(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS mentor_sessions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_journey_id INTEGER NOT NULL,
+    mentor_id INTEGER NOT NULL,
+    status TEXT DEFAULT 'scheduled' CHECK(status IN ('scheduled', 'completed', 'cancelled', 'no_show')),
+    scheduled_at DATETIME NOT NULL,
+    duration_minutes INTEGER DEFAULT 60,
+    meeting_link TEXT,
+    prep_notes TEXT,
+    session_notes TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_journey_id) REFERENCES user_journeys(id) ON DELETE CASCADE,
+    FOREIGN KEY (mentor_id) REFERENCES mentors(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS session_ratings (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    session_id INTEGER NOT NULL UNIQUE,
+    rating INTEGER CHECK(rating >= 1 AND rating <= 5),
+    feedback TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (session_id) REFERENCES mentor_sessions(id) ON DELETE CASCADE
+);
+
+-- Indexes for the new platform tables
+CREATE INDEX IF NOT EXISTS idx_journeys_slug ON journeys(slug);
+CREATE INDEX IF NOT EXISTS idx_journeys_active ON journeys(is_active);
+CREATE INDEX IF NOT EXISTS idx_journey_categories_journey ON journey_categories(journey_id);
+CREATE INDEX IF NOT EXISTS idx_journey_sections_journey ON journey_sections(journey_id);
+CREATE INDEX IF NOT EXISTS idx_journey_sections_category ON journey_sections(category_id);
+CREATE INDEX IF NOT EXISTS idx_user_journeys_user ON user_journeys(user_id);
+CREATE INDEX IF NOT EXISTS idx_user_journeys_status ON user_journeys(status);
+CREATE INDEX IF NOT EXISTS idx_user_journey_progress_journey ON user_journey_progress(user_journey_id);
+CREATE INDEX IF NOT EXISTS idx_mentors_user ON mentors(user_id);
+CREATE INDEX IF NOT EXISTS idx_mentors_available ON mentors(is_available);
+CREATE INDEX IF NOT EXISTS idx_section_fields_section ON section_fields(section_id);
+CREATE INDEX IF NOT EXISTS idx_section_fields_type ON section_fields(field_type_id);
+CREATE INDEX IF NOT EXISTS idx_section_fields_order ON section_fields(section_id, display_order);
+CREATE INDEX IF NOT EXISTS idx_section_data_user ON section_data(user_id);
+CREATE INDEX IF NOT EXISTS idx_section_data_section ON section_data(section_id);
+CREATE INDEX IF NOT EXISTS idx_section_data_user_section ON section_data(user_id, section_id);
+CREATE INDEX IF NOT EXISTS idx_journey_creators_creator ON journey_creators(creator_user_id);
+CREATE INDEX IF NOT EXISTS idx_journey_creators_published ON journey_creators(is_published);
+CREATE INDEX IF NOT EXISTS idx_journey_templates_template ON journey_templates(template_journey_id);
+CREATE INDEX IF NOT EXISTS idx_journey_templates_cloned_by ON journey_templates(cloned_by_user_id);
+
+-- ============================================================================
+-- LEGACY SECTION TABLES (DEPRECATED - TO BE REMOVED AFTER MIGRATION)
+-- ============================================================================
+
 -- Section 1: Usernames and Passwords
 CREATE TABLE IF NOT EXISTS credentials (
     id INTEGER PRIMARY KEY AUTOINCREMENT,

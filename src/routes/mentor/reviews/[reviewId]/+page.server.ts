@@ -1,5 +1,11 @@
 import { redirect, fail, type Actions } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
+import { getSectionDataBySlugs } from '$lib/server/genericSectionData';
+import {
+	loadLegacySectionData,
+	LEGACY_SECTION_SLUGS,
+	type LegacySectionSlug
+} from '$lib/server/legacySectionLoaders';
 
 export const load: PageServerLoad = async ({ platform, locals, params }) => {
 	const userId = locals.user?.id;
@@ -53,7 +59,6 @@ export const load: PageServerLoad = async ({ platform, locals, params }) => {
 			JOIN sections s ON mr.section_id = s.id
 			JOIN users u ON uj.user_id = u.id
 			JOIN service_tiers st ON uj.tier_id = st.id
-			LEFT JOIN personal_info pi ON pi.user_id = u.id AND pi.person_type = 'self'
 			WHERE mr.id = ?
 				AND (mr.mentor_id = ? OR mr.mentor_id IS NULL OR mr.status = 'pending')`
 		)
@@ -68,161 +73,23 @@ export const load: PageServerLoad = async ({ platform, locals, params }) => {
 	const reviewUserId = (review as any).review_user_id;
 	const sectionSlug = (review as any).section_slug;
 
+	const personalSlug: LegacySectionSlug = 'personal';
+	const isLegacySlug = (slug: string): slug is LegacySectionSlug =>
+		LEGACY_SECTION_SLUGS.includes(slug as LegacySectionSlug);
+
+	const personalMap = await getSectionDataBySlugs(db, reviewUserId, [personalSlug]);
+	const personalRecord = personalMap[personalSlug];
+	const personalData = personalRecord ? personalRecord.data : await loadLegacySectionData(db, reviewUserId, personalSlug);
+	const userName = typeof personalData?.legal_name === 'string' ? personalData.legal_name : (review as any).user_email;
+	(review as any).user_name = userName;
+
 	let sectionData: any = null;
-
-	// Fetch section-specific data
-	switch (sectionSlug) {
-		case 'credentials':
-			const credentialsResult = await db
-				.prepare('SELECT * FROM credentials WHERE user_id = ?')
-				.bind(reviewUserId)
-				.all();
-			sectionData = credentialsResult.results || [];
-			break;
-
-		case 'contacts':
-			const contactsResult = await db
-				.prepare('SELECT * FROM key_contacts WHERE user_id = ?')
-				.bind(reviewUserId)
-				.all();
-			sectionData = contactsResult.results || [];
-			break;
-
-		case 'legal':
-			const legalResult = await db
-				.prepare('SELECT * FROM legal_documents WHERE user_id = ?')
-				.bind(reviewUserId)
-				.all();
-			sectionData = legalResult.results || [];
-			break;
-
-		case 'financial':
-			const financialResult = await db
-				.prepare('SELECT * FROM bank_accounts WHERE user_id = ?')
-				.bind(reviewUserId)
-				.all();
-			sectionData = financialResult.results || [];
-			break;
-
-		case 'insurance':
-			const insuranceResult = await db
-				.prepare('SELECT * FROM insurance WHERE user_id = ?')
-				.bind(reviewUserId)
-				.all();
-			sectionData = insuranceResult.results || [];
-			break;
-
-		case 'employment':
-			const employmentResult = await db
-				.prepare('SELECT * FROM employment WHERE user_id = ?')
-				.bind(reviewUserId)
-				.all();
-			sectionData = employmentResult.results || [];
-			break;
-
-		case 'physicians':
-			const physiciansResult = await db
-				.prepare('SELECT * FROM physicians WHERE user_id = ?')
-				.bind(reviewUserId)
-				.all();
-			sectionData = physiciansResult.results || [];
-			break;
-
-		case 'vehicles':
-			const vehiclesResult = await db
-				.prepare('SELECT * FROM vehicles WHERE user_id = ?')
-				.bind(reviewUserId)
-				.all();
-			sectionData = vehiclesResult.results || [];
-			break;
-
-		case 'pets':
-			const petsResult = await db
-				.prepare('SELECT * FROM pets WHERE user_id = ?')
-				.bind(reviewUserId)
-				.all();
-			sectionData = petsResult.results || [];
-			break;
-
-		case 'personal':
-			sectionData = await db
-				.prepare('SELECT * FROM personal_info WHERE user_id = ? AND person_type = ?')
-				.bind(reviewUserId, 'self')
-				.first();
-			break;
-
-		case 'medical':
-			sectionData = await db
-				.prepare('SELECT * FROM medical_info WHERE user_id = ?')
-				.bind(reviewUserId)
-				.first();
-			break;
-
-		case 'residence':
-			sectionData = await db
-				.prepare('SELECT * FROM primary_residence WHERE user_id = ?')
-				.bind(reviewUserId)
-				.first();
-			break;
-
-		case 'family':
-			const familyMembersResult = await db
-				.prepare(
-					`SELECT fm.id, fm.user_id, fm.relationship, fm.personal_info_id,
-						pi.legal_name, pi.date_of_birth, pi.mobile_phone, pi.email, pi.address, pi.occupation
-					FROM family_members fm
-					LEFT JOIN personal_info pi ON pi.id = fm.personal_info_id
-					WHERE fm.user_id = ?`
-				)
-				.bind(reviewUserId)
-				.all();
-			const familyHistoryResult = await db
-				.prepare('SELECT * FROM family_history WHERE user_id = ?')
-				.bind(reviewUserId)
-				.first();
-			sectionData = {
-				members: familyMembersResult.results || [],
-				history: familyHistoryResult || {}
-			};
-			break;
-
-		case 'final-days':
-			sectionData = await db
-				.prepare('SELECT * FROM final_days WHERE user_id = ?')
-				.bind(reviewUserId)
-				.first();
-			break;
-
-		case 'after-death':
-			sectionData = await db
-				.prepare('SELECT * FROM after_death WHERE user_id = ?')
-				.bind(reviewUserId)
-				.first();
-			break;
-
-		case 'funeral':
-			sectionData = await db
-				.prepare('SELECT * FROM funeral WHERE user_id = ?')
-				.bind(reviewUserId)
-				.first();
-			break;
-
-		case 'obituary':
-			sectionData = await db
-				.prepare('SELECT * FROM obituary WHERE user_id = ?')
-				.bind(reviewUserId)
-				.first();
-			break;
-
-		case 'conclusion':
-			sectionData = await db
-				.prepare('SELECT * FROM conclusion WHERE user_id = ?')
-				.bind(reviewUserId)
-				.first();
-			break;
-
-		default:
-			sectionData = null;
+	if (isLegacySlug(sectionSlug)) {
+		const genericMap = await getSectionDataBySlugs(db, reviewUserId, [sectionSlug]);
+		const record = genericMap[sectionSlug];
+		sectionData = record ? record.data : await loadLegacySectionData(db, reviewUserId, sectionSlug);
+	} else {
+		sectionData = null;
 	}
 
 	return {

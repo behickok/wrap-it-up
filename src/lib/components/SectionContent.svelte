@@ -3,24 +3,19 @@
 	import { SECTIONS } from '$lib/types';
 	import FormField from '$lib/components/FormField.svelte';
 	import AskAI from '$lib/components/AskAI.svelte';
-	import CredentialsList from '$lib/components/CredentialsList.svelte';
-	import LegalDocumentsList from '$lib/components/LegalDocumentsList.svelte';
-	import ContactsList from '$lib/components/ContactsList.svelte';
-	import FinancialAccountsList from '$lib/components/FinancialAccountsList.svelte';
-	import InsuranceList from '$lib/components/InsuranceList.svelte';
-	import EmploymentList from '$lib/components/EmploymentList.svelte';
+	import DynamicForm from '$lib/components/forms/DynamicForm.svelte';
+	import DynamicListSection from '$lib/components/forms/DynamicListSection.svelte';
 	import PhysiciansList from '$lib/components/PhysiciansList.svelte';
-	import VehiclesList from '$lib/components/VehiclesList.svelte';
 	import FamilyMembersList from '$lib/components/FamilyMembersList.svelte';
+	import { LIST_SECTION_DEFINITIONS } from '$lib/sectionListDefinitions';
 	import WeddingMarriageLicenseForm from '$lib/components/wedding/WeddingMarriageLicenseForm.svelte';
 	import WeddingPrenupForm from '$lib/components/wedding/WeddingPrenupForm.svelte';
 	import WeddingJointFinancesForm from '$lib/components/wedding/WeddingJointFinancesForm.svelte';
 	import WeddingNameChangeForm from '$lib/components/wedding/WeddingNameChangeForm.svelte';
 	import WeddingVenueForm from '$lib/components/wedding/WeddingVenueForm.svelte';
-	import WeddingVendorsList from '$lib/components/wedding/WeddingVendorsList.svelte';
-	import WeddingGuestList from '$lib/components/wedding/WeddingGuestList.svelte';
-	import WeddingRegistryList from '$lib/components/wedding/WeddingRegistryList.svelte';
 	import WeddingHomeSetupForm from '$lib/components/wedding/WeddingHomeSetupForm.svelte';
+
+	import type { ParsedSectionField } from '$lib/types';
 
 	type SectionContentProps = {
 		sectionId: string;
@@ -32,6 +27,15 @@
 		sectionData?: Record<string, any>;
 		userId?: number;
 		user?: { id?: number };
+		fields?: ParsedSectionField[];
+		sectionDefinition?: {
+			id?: number;
+			slug?: string;
+			name?: string;
+			description?: string | null;
+			scoring_type?: string | null;
+			weight?: number | null;
+		} | null;
 	};
 
 	const props = $props<SectionContentProps>();
@@ -42,7 +46,10 @@
 	const providedUserId = $derived(props.userId);
 	const providedUser = $derived(props.user);
 
-	const section = $derived(SECTIONS.find((s) => s.id === sectionId));
+	const fields = $derived(props.fields ?? data?.sectionFields?.[sectionId] ?? []);
+	const sectionDefinition = $derived(props.sectionDefinition);
+
+	const section = $derived(sectionDefinition ?? SECTIONS.find((s) => s.id === sectionId));
 	const sectionData = $derived(() => {
 		const dataSection = data?.sectionData;
 		const propSection = providedSectionData;
@@ -60,8 +67,27 @@
 	const userId = $derived(
 		providedUserId ?? data?.userId ?? providedUser?.id ?? data?.user?.id
 	);
-	const standaloneSections = ['credentials', 'contacts', 'legal', 'financial', 'insurance', 'employment', 'property'];
-	const isStandaloneSection = $derived(standaloneSections.includes(sectionId));
+	const listDefinition = $derived(LIST_SECTION_DEFINITIONS[sectionId]);
+	const isListSection = $derived(Boolean(listDefinition));
+	const weddingCustomSections = new Set([
+		'marriage_license',
+		'prenup',
+		'joint_accounts',
+		'name_change',
+		'venue',
+		'vendors',
+		'guest_list',
+		'registry',
+		'home_setup'
+	]);
+
+	const shouldUseDynamicForm = $derived(
+		!isListSection && !weddingCustomSections.has(sectionId) && Array.isArray(fields) && fields.length > 0
+	);
+
+	const dynamicInitialData = $derived(() =>
+		typeof sectionData === 'object' && !Array.isArray(sectionData) ? sectionData : {}
+	);
 
 	let formData = $state<Record<string, any>>({});
 	$effect(() => {
@@ -112,49 +138,30 @@
 		<div class="card shadow-xl p-8 mb-6" style="background-color: var(--color-card);">
 			<WeddingNameChangeForm entry={sectionData || {}} />
 		</div>
-	{:else if sectionId === 'venue'}
+{:else if sectionId === 'venue'}
 		<div class="card shadow-xl p-8 mb-6" style="background-color: var(--color-card);">
 			<WeddingVenueForm entry={sectionData || {}} />
-		</div>
-	{:else if sectionId === 'vendors'}
-		<div class="card shadow-xl p-8 mb-6" style="background-color: var(--color-card);">
-			<WeddingVendorsList vendors={Array.isArray(sectionData) ? sectionData : []} />
-		</div>
-	{:else if sectionId === 'guest_list'}
-		<div class="card shadow-xl p-8 mb-6" style="background-color: var(--color-card);">
-			<WeddingGuestList guests={Array.isArray(sectionData) ? sectionData : []} />
-		</div>
-	{:else if sectionId === 'registry'}
-		<div class="card shadow-xl p-8 mb-6" style="background-color: var(--color-card);">
-			<WeddingRegistryList items={Array.isArray(sectionData) ? sectionData : []} />
 		</div>
 	{:else if sectionId === 'home_setup'}
 		<div class="card shadow-xl p-8 mb-6" style="background-color: var(--color-card);">
 			<WeddingHomeSetupForm entry={sectionData || {}} />
 		</div>
-	{:else if isStandaloneSection}
+	{:else if isListSection}
 		<div class="card shadow-xl p-8 mb-6" style="background-color: var(--color-card);">
-			{#if sectionId === 'credentials'}
-				<CredentialsList credentials={Array.isArray(sectionData) ? sectionData : []} {userId} />
-
-			{:else if sectionId === 'contacts'}
-				<ContactsList contacts={Array.isArray(sectionData) ? sectionData : []} {userId} />
-
-			{:else if sectionId === 'legal'}
-				<LegalDocumentsList documents={Array.isArray(sectionData) ? sectionData : []} {userId} />
-
-			{:else if sectionId === 'financial'}
-				<FinancialAccountsList accounts={Array.isArray(sectionData) ? sectionData : []} {userId} />
-
-			{:else if sectionId === 'insurance'}
-				<InsuranceList policies={Array.isArray(sectionData) ? sectionData : []} {userId} />
-
-			{:else if sectionId === 'employment'}
-				<EmploymentList jobs={Array.isArray(sectionData) ? sectionData : []} {userId} />
-
-			{:else if sectionId === 'property'}
-				<VehiclesList vehicles={Array.isArray(sectionData) ? sectionData : []} />
-			{/if}
+			<DynamicListSection
+				sectionSlug={sectionId}
+				items={Array.isArray(sectionData) ? sectionData : []}
+				definition={listDefinition!}
+			/>
+		</div>
+	{:else if shouldUseDynamicForm}
+		<div class="card shadow-xl p-8 mb-6" style="background-color: var(--color-card);">
+			<DynamicForm
+				fields={fields}
+				initialData={dynamicInitialData}
+				sectionId={sectionDefinition?.id ?? 0}
+				sectionSlug={sectionId}
+			/>
 		</div>
 	{:else}
 		<form

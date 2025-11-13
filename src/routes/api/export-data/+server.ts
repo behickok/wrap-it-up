@@ -1,5 +1,32 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
+import { getSectionDataBySlugs } from '$lib/server/genericSectionData';
+import { loadLegacySectionData, type LegacySectionSlug } from '$lib/server/legacySectionLoaders';
+
+const EXPORT_SECTIONS: Array<{ slug: LegacySectionSlug; key: string }> = [
+	{ slug: 'personal', key: 'personalInfo' },
+	{ slug: 'credentials', key: 'credentials' },
+	{ slug: 'pets', key: 'pets' },
+	{ slug: 'contacts', key: 'keyContacts' },
+	{ slug: 'medical', key: 'medicalInfo' },
+	{ slug: 'physicians', key: 'physicians' },
+	{ slug: 'employment', key: 'employment' },
+	{ slug: 'residence', key: 'primaryResidence' },
+	{ slug: 'vehicles', key: 'vehicles' },
+	{ slug: 'insurance', key: 'insurance' },
+	{ slug: 'financial', key: 'bankAccounts' },
+	{ slug: 'legal', key: 'legalDocuments' },
+	{ slug: 'final-days', key: 'finalDays' },
+	{ slug: 'obituary', key: 'obituary' },
+	{ slug: 'after-death', key: 'afterDeath' },
+	{ slug: 'funeral', key: 'funeral' }
+];
+
+const toArray = (value: any): any[] => {
+	if (Array.isArray(value)) return value;
+	if (value === null || value === undefined) return [];
+	return [value];
+};
 
 export const GET: RequestHandler = async ({ platform, locals }) => {
 	const user = locals.user;
@@ -14,130 +41,25 @@ export const GET: RequestHandler = async ({ platform, locals }) => {
 	}
 
 	try {
-		// Fetch all user data from all tables
-		const [
-			personalInfo,
-			credentials,
-			pets,
-			keyContacts,
-			medicalInfo,
-			physicians,
-			employment,
-			primaryResidence,
-			vehicles,
-			insurance,
-			bankAccounts,
-			legalDocuments,
-			finalDays,
-			obituary,
-			afterDeath,
-			funeral
-		] = await Promise.all([
-			db
-				.prepare('SELECT * FROM personal_info WHERE user_id = ?')
-				.bind(user.id)
-				.all()
-				.then((r) => r.results),
-			db
-				.prepare('SELECT * FROM credentials WHERE user_id = ?')
-				.bind(user.id)
-				.all()
-				.then((r) => r.results),
-			db
-				.prepare('SELECT * FROM pets WHERE user_id = ?')
-				.bind(user.id)
-				.all()
-				.then((r) => r.results),
-			db
-				.prepare('SELECT * FROM key_contacts WHERE user_id = ?')
-				.bind(user.id)
-				.all()
-				.then((r) => r.results),
-			db
-				.prepare('SELECT * FROM medical_info WHERE user_id = ?')
-				.bind(user.id)
-				.all()
-				.then((r) => r.results),
-			db
-				.prepare('SELECT * FROM physicians WHERE user_id = ?')
-				.bind(user.id)
-				.all()
-				.then((r) => r.results),
-			db
-				.prepare('SELECT * FROM employment WHERE user_id = ?')
-				.bind(user.id)
-				.all()
-				.then((r) => r.results),
-			db
-				.prepare('SELECT * FROM primary_residence WHERE user_id = ?')
-				.bind(user.id)
-				.all()
-				.then((r) => r.results),
-			db
-				.prepare('SELECT * FROM vehicles WHERE user_id = ?')
-				.bind(user.id)
-				.all()
-				.then((r) => r.results),
-			db
-				.prepare('SELECT * FROM insurance WHERE user_id = ?')
-				.bind(user.id)
-				.all()
-				.then((r) => r.results),
-			db
-				.prepare('SELECT * FROM bank_accounts WHERE user_id = ?')
-				.bind(user.id)
-				.all()
-				.then((r) => r.results),
-			db
-				.prepare('SELECT * FROM legal_documents WHERE user_id = ?')
-				.bind(user.id)
-				.all()
-				.then((r) => r.results),
-			db
-				.prepare('SELECT * FROM final_days WHERE user_id = ?')
-				.bind(user.id)
-				.all()
-				.then((r) => r.results),
-			db
-				.prepare('SELECT * FROM obituary WHERE user_id = ?')
-				.bind(user.id)
-				.all()
-				.then((r) => r.results),
-			db
-				.prepare('SELECT * FROM after_death WHERE user_id = ?')
-				.bind(user.id)
-				.all()
-				.then((r) => r.results),
-			db
-				.prepare('SELECT * FROM funeral WHERE user_id = ?')
-				.bind(user.id)
-				.all()
-				.then((r) => r.results)
-		]);
+		const slugList = EXPORT_SECTIONS.map(({ slug }) => slug);
+		const genericSectionData = await getSectionDataBySlugs(db, user.id, slugList);
+
+		const dataEntries = await Promise.all(
+			EXPORT_SECTIONS.map(async ({ slug, key }) => {
+				const record = genericSectionData[slug];
+				const value = record ? record.data : await loadLegacySectionData(db, user.id, slug);
+				return [key, toArray(value)];
+			})
+		);
+
+		const exportData = Object.fromEntries(dataEntries);
 
 		return json({
 			user: {
 				username: user.username,
 				email: user.email
 			},
-			data: {
-				personalInfo,
-				credentials,
-				pets,
-				keyContacts,
-				medicalInfo,
-				physicians,
-				employment,
-				primaryResidence,
-				vehicles,
-				insurance,
-				bankAccounts,
-				legalDocuments,
-				finalDays,
-				obituary,
-				afterDeath,
-				funeral
-			},
+			data: exportData,
 			exportedAt: new Date().toISOString()
 		});
 	} catch (error) {

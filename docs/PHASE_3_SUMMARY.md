@@ -56,26 +56,10 @@ Loads comprehensive data for the dashboard:
 - Progress calculated server-side
 
 ### 3. Component Reuse Strategy
-**Leveraged Existing Components:**
-
-The dashboard reuses all existing section components without modification:
-- `SectionContent.svelte` - Routes to appropriate section component
-- `CredentialsList.svelte` - Credentials management
-- `ContactsList.svelte` - Contacts management
-- `LegalDocumentsList.svelte` - Legal documents
-- `FinancialAccountsList.svelte` - Bank accounts
-- `InsuranceList.svelte` - Insurance policies
-- `EmploymentList.svelte` - Employment history
-- `PhysiciansList.svelte` - Healthcare providers
-- `VehiclesList.svelte` - Vehicle information
-- `FamilyMembersList.svelte` - Family relationships
-- And more...
-
-**Why This Works:**
-- Components use standard `data.sectionData` structure
-- Form actions still post to existing endpoints
-- Data flows through the same props
-- No changes needed to existing form logic
+Every section now renders through the dynamic form pipeline:
+- `DynamicForm` handles single-record sections using the seeded `section_fields` metadata.
+- `DynamicListSection` powers repeatable sections (credentials, contacts, legal documents, financial accounts, insurance, employment, vehicles, and all wedding lists) based on field definitions in `sectionListDefinitions.ts`.
+- All legacy list components (`CredentialsList.svelte`, `ContactsList.svelte`, etc.) and their bespoke actions have been removed; everything now persists via the shared `saveSectionData` action and `section_data`.
 
 ### 4. Progress Tracking System
 **How It Works:**

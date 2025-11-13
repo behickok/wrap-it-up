@@ -282,7 +282,11 @@ let isExporting = $state(false);
 					<div class="section-body">
 						<SectionContent
 							sectionId={section.slug}
-							{...data}
+							sectionData={data.sectionData}
+							userId={data.userId}
+							data={data}
+							fields={data.sectionFields?.[section.slug]}
+							sectionDefinition={data.sectionDefinitions?.[section.slug]}
 						/>
 					</div>
 				</section>
