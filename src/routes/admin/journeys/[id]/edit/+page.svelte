@@ -7,7 +7,7 @@
 	let { data }: { data: PageData } = $props();
 
 	// Tab state
-	let activeTab = $state<'info' | 'categories' | 'sections' | 'preview'>('info');
+	let activeTab = $state<'info' | 'categories' | 'sections' | 'pricing' | 'preview'>('info');
 
 	// Journey info editing
 	let editingJourney = $state(false);
@@ -59,6 +59,54 @@
 
 	// Preview state
 	let previewSectionId = $state<number | null>(null);
+
+	// Pricing state
+	let pricingData = $state(
+		data.serviceTiers.map((tier) => {
+			const existing = data.journeyPricing.find((p) => p.tier_id === tier.id);
+			return {
+				tier_id: tier.id,
+				tier_name: tier.name,
+				tier_slug: tier.slug,
+				monthly_price: existing?.base_price_monthly || 0,
+				annual_price: existing?.base_price_annual || 0
+			};
+		})
+	);
+	let savingPricing = $state(false);
+
+	// Calculate pricing breakdown
+	function calculateBreakdown(price: number) {
+		const platformFee = Math.round(price * (data.platformFeePercentage / 100) * 100) / 100;
+		const creatorReceives = Math.round((price - platformFee) * 100) / 100;
+		return { platformFee, creatorReceives };
+	}
+
+	// Save pricing
+	async function savePricing() {
+		savingPricing = true;
+		try {
+			const formData = new FormData();
+			formData.append('pricing_data', JSON.stringify(pricingData));
+
+			const response = await fetch('?/savePricing', {
+				method: 'POST',
+				body: formData
+			});
+
+			if (response.ok) {
+				await invalidateAll();
+				alert('Pricing saved successfully!');
+			} else {
+				alert('Failed to save pricing');
+			}
+		} catch (error) {
+			console.error('Error saving pricing:', error);
+			alert('Failed to save pricing');
+		} finally {
+			savingPricing = false;
+		}
+	}
 
 	// Helper functions
 	function autoGenerateSlug(name: string): string {
@@ -236,6 +284,13 @@
 			onclick={() => (activeTab = 'sections')}
 		>
 			Sections & Fields ({data.sections.length})
+		</button>
+		<button
+			class="tab"
+			class:tab-active={activeTab === 'pricing'}
+			onclick={() => (activeTab = 'pricing')}
+		>
+			Pricing
 		</button>
 		<button
 			class="tab"
@@ -952,6 +1007,188 @@
 				<div class="modal-backdrop" onclick={resetFieldForm}></div>
 			</div>
 		{/if}
+	{:else if activeTab === 'pricing'}
+		<!-- Pricing Tab -->
+		<div class="space-y-6">
+			<div class="flex justify-between items-center">
+				<div>
+					<h2 class="text-2xl font-bold">Journey Pricing</h2>
+					<p class="text-base-content/70 mt-1">
+						Set prices for each service tier. Platform fee: {data.platformFeePercentage}%
+					</p>
+				</div>
+				<button
+					class="btn btn-primary"
+					onclick={savePricing}
+					disabled={savingPricing}
+				>
+					{savingPricing ? 'Saving...' : 'Save Pricing'}
+				</button>
+			</div>
+
+			<div class="alert alert-info">
+				<svg
+					xmlns="http://www.w3.org/2000/svg"
+					fill="none"
+					viewBox="0 0 24 24"
+					class="stroke-current shrink-0 w-6 h-6"
+				>
+					<path
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						stroke-width="2"
+						d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+					></path>
+				</svg>
+				<div>
+					<h3 class="font-bold">Pricing Model</h3>
+					<div class="text-sm">
+						You set the price clients pay. Platform keeps {data.platformFeePercentage}%, you receive
+						{100 - data.platformFeePercentage}%. For example: if you set $100/month, you receive $
+						{100 - data.platformFeePercentage}, platform keeps ${data.platformFeePercentage}.
+					</div>
+				</div>
+			</div>
+
+			<!-- Pricing Cards for Each Tier -->
+			<div class="grid gap-6 md:grid-cols-3">
+				{#each pricingData as pricing, index}
+					{@const monthlyBreakdown = calculateBreakdown(pricing.monthly_price)}
+					{@const annualBreakdown = calculateBreakdown(pricing.annual_price)}
+
+					<div class="card bg-base-100 shadow-xl border-2 {pricing.tier_slug === 'premium' ? 'border-primary' : 'border-base-300'}">
+						<div class="card-body">
+							<h3 class="card-title text-2xl">
+								{pricing.tier_name}
+								{#if pricing.tier_slug === 'premium'}
+									<div class="badge badge-primary">Popular</div>
+								{/if}
+							</h3>
+
+							<!-- Monthly Pricing -->
+							<div class="form-control mt-4">
+								<label class="label">
+									<span class="label-text font-semibold">Monthly Price</span>
+								</label>
+								<label class="input-group">
+									<span>$</span>
+									<input
+										type="number"
+										step="0.01"
+										min="0"
+										bind:value={pricing.monthly_price}
+										placeholder="0.00"
+										class="input input-bordered w-full"
+									/>
+									<span>/mo</span>
+								</label>
+
+								{#if pricing.monthly_price > 0}
+									<div class="mt-2 p-3 bg-base-200 rounded-lg text-sm space-y-1">
+										<div class="flex justify-between">
+											<span class="text-base-content/70">Client pays:</span>
+											<span class="font-semibold">${pricing.monthly_price.toFixed(2)}</span>
+										</div>
+										<div class="flex justify-between text-success">
+											<span>You receive ({100 - data.platformFeePercentage}%):</span>
+											<span class="font-bold">${monthlyBreakdown.creatorReceives.toFixed(2)}</span>
+										</div>
+										<div class="flex justify-between text-base-content/60">
+											<span>Platform fee ({data.platformFeePercentage}%):</span>
+											<span>${monthlyBreakdown.platformFee.toFixed(2)}</span>
+										</div>
+									</div>
+								{/if}
+							</div>
+
+							<div class="divider">OR</div>
+
+							<!-- Annual Pricing -->
+							<div class="form-control">
+								<label class="label">
+									<span class="label-text font-semibold">Annual Price</span>
+									{#if pricing.monthly_price > 0}
+										<span class="label-text-alt">
+											(${(pricing.monthly_price * 12).toFixed(2)} if monthly)
+										</span>
+									{/if}
+								</label>
+								<label class="input-group">
+									<span>$</span>
+									<input
+										type="number"
+										step="0.01"
+										min="0"
+										bind:value={pricing.annual_price}
+										placeholder="0.00"
+										class="input input-bordered w-full"
+									/>
+									<span>/yr</span>
+								</label>
+
+								{#if pricing.annual_price > 0}
+									<div class="mt-2 p-3 bg-base-200 rounded-lg text-sm space-y-1">
+										<div class="flex justify-between">
+											<span class="text-base-content/70">Client pays:</span>
+											<span class="font-semibold">${pricing.annual_price.toFixed(2)}</span>
+										</div>
+										<div class="flex justify-between text-success">
+											<span>You receive ({100 - data.platformFeePercentage}%):</span>
+											<span class="font-bold">${annualBreakdown.creatorReceives.toFixed(2)}</span>
+										</div>
+										<div class="flex justify-between text-base-content/60">
+											<span>Platform fee ({data.platformFeePercentage}%):</span>
+											<span>${annualBreakdown.platformFee.toFixed(2)}</span>
+										</div>
+										{#if pricing.monthly_price > 0 && pricing.annual_price < pricing.monthly_price * 12}
+											<div class="flex justify-between text-warning mt-2 pt-2 border-t border-base-300">
+												<span>Annual savings:</span>
+												<span class="font-bold">
+													${((pricing.monthly_price * 12) - pricing.annual_price).toFixed(2)}
+												</span>
+											</div>
+										{/if}
+									</div>
+								{/if}
+							</div>
+
+							{#if pricing.tier_slug === 'essentials'}
+								<div class="alert alert-sm mt-4">
+									<span class="text-xs">
+										💡 Consider offering Essentials for free or low cost to attract users
+									</span>
+								</div>
+							{/if}
+						</div>
+					</div>
+				{/each}
+			</div>
+
+			<!-- Pricing Tips -->
+			<div class="card bg-base-200">
+				<div class="card-body">
+					<h3 class="card-title text-lg">💡 Pricing Tips</h3>
+					<ul class="list-disc list-inside space-y-2 text-sm">
+						<li>
+							<strong>Essentials Tier:</strong> Consider free or low-cost ($0-$15/mo) to build your user
+							base
+						</li>
+						<li>
+							<strong>Guided Tier:</strong> Include mentor review value. Typical range: $25-$50/month
+						</li>
+						<li>
+							<strong>Premium Tier:</strong> Include concierge sessions. Typical range: $75-$150/month
+						</li>
+						<li>
+							<strong>Annual Discount:</strong> Offer 10-20% discount for annual plans to encourage commitment
+						</li>
+						<li>
+							<strong>Test Pricing:</strong> You can always adjust prices later based on user feedback
+						</li>
+					</ul>
+				</div>
+			</div>
+		</div>
 	{:else if activeTab === 'preview'}
 		<!-- Preview Tab -->
 		<div class="space-y-4">
