@@ -1423,3 +1423,216 @@ export interface CoachClientWithDetails extends CoachClient {
 	client: User;
 	journey?: Journey;
 }
+
+// =======================
+// MENTOR REVIEW SYSTEM (Phase 4)
+// =======================
+
+// Mentor application
+export type MentorApplicationStatus = 'pending' | 'approved' | 'rejected';
+
+export interface MentorApplication {
+	id: number;
+	user_id: number;
+	status: MentorApplicationStatus;
+	bio: string | null;
+	expertise: string | null; // JSON array
+	experience_years: number | null;
+	education: string | null;
+	certifications: string | null;
+	why_mentor: string | null;
+	sample_feedback: string | null;
+	availability_hours: number | null;
+	hourly_rate: number | null;
+	applied_at: string;
+	reviewed_at: string | null;
+	reviewed_by: number | null;
+	rejection_reason: string | null;
+	notes: string | null;
+}
+
+// Mentor profile
+export interface MentorProfile {
+	id: number;
+	user_id: number;
+	bio: string;
+	expertise: string | null; // JSON array
+	experience_years: number;
+	education: string | null;
+	certifications: string | null;
+	availability_hours: number;
+	is_active: boolean;
+	is_featured: boolean;
+	profile_image_url: string | null;
+	timezone: string;
+	languages: string | null; // JSON array
+	total_reviews: number;
+	completed_reviews: number;
+	average_rating: number;
+	average_turnaround_hours: number;
+	total_earnings: number;
+	created_at: string;
+	updated_at: string;
+}
+
+// Journey mentor assignment
+export type JourneyMentorStatus = 'active' | 'paused' | 'removed';
+
+export interface JourneyMentor {
+	id: number;
+	journey_id: number;
+	mentor_user_id: number;
+	creator_user_id: number;
+	status: JourneyMentorStatus;
+	review_rate: number;
+	revenue_share_percentage: number;
+	max_reviews_per_week: number;
+	current_week_reviews: number;
+	total_reviews: number;
+	average_rating: number;
+	assigned_at: string;
+	updated_at: string;
+}
+
+// Section review
+export type SectionReviewStatus =
+	| 'requested'
+	| 'in_review'
+	| 'changes_requested'
+	| 'approved'
+	| 'cancelled';
+
+export type ReviewPriority = 'low' | 'normal' | 'high' | 'urgent';
+
+export interface SectionReview {
+	id: number;
+	user_journey_id: number;
+	section_id: number;
+	mentor_user_id: number | null;
+	status: SectionReviewStatus;
+	priority: ReviewPriority;
+	client_notes: string | null;
+	mentor_feedback: string | null;
+	overall_rating: number | null; // 1-5
+	requested_at: string;
+	claimed_at: string | null;
+	reviewed_at: string | null;
+	approved_at: string | null;
+	turnaround_hours: number | null;
+	revision_count: number;
+}
+
+// Review comment
+export type ReviewCommentType = 'feedback' | 'question' | 'suggestion' | 'approval' | 'issue';
+export type ReviewAuthorRole = 'mentor' | 'client';
+
+export interface ReviewComment {
+	id: number;
+	section_review_id: number;
+	field_id: number | null;
+	comment_text: string;
+	comment_type: ReviewCommentType;
+	author_user_id: number;
+	author_role: ReviewAuthorRole;
+	parent_comment_id: number | null;
+	is_resolved: boolean;
+	created_at: string;
+	updated_at: string;
+}
+
+// Mentor rating
+export interface MentorRating {
+	id: number;
+	section_review_id: number;
+	mentor_user_id: number;
+	client_user_id: number;
+	journey_id: number;
+	overall_rating: number; // 1-5
+	helpfulness_rating: number | null; // 1-5
+	timeliness_rating: number | null; // 1-5
+	communication_rating: number | null; // 1-5
+	review_text: string | null;
+	would_recommend: boolean;
+	created_at: string;
+}
+
+// Mentor transaction
+export type MentorTransactionType = 'review_fee' | 'revenue_share' | 'bonus' | 'adjustment';
+export type MentorTransactionStatus = 'pending' | 'completed' | 'paid_out';
+
+export interface MentorTransaction {
+	id: number;
+	mentor_user_id: number;
+	transaction_type: MentorTransactionType;
+	section_review_id: number | null;
+	subscription_id: number | null;
+	journey_id: number;
+	amount: number;
+	platform_fee: number;
+	mentor_amount: number;
+	status: MentorTransactionStatus;
+	payment_method: string;
+	description: string | null;
+	transaction_date: string;
+	completed_at: string | null;
+	paid_out_at: string | null;
+	created_at: string;
+}
+
+// Review notification
+export type ReviewNotificationType =
+	| 'review_requested'
+	| 'review_claimed'
+	| 'review_completed'
+	| 'changes_requested'
+	| 'review_approved'
+	| 'rating_received';
+
+export interface ReviewNotification {
+	id: number;
+	user_id: number;
+	notification_type: ReviewNotificationType;
+	section_review_id: number;
+	title: string;
+	message: string;
+	is_read: boolean;
+	read_at: string | null;
+	created_at: string;
+}
+
+// Extended types with joined data
+export interface MentorApplicationWithUser extends MentorApplication {
+	username: string;
+	email: string;
+}
+
+export interface MentorProfileWithUser extends MentorProfile {
+	username: string;
+	email: string;
+}
+
+export interface JourneyMentorWithDetails extends JourneyMentor {
+	journey_name: string;
+	journey_slug: string;
+	mentor_username: string;
+	mentor_email: string;
+	mentor_bio: string | null;
+	mentor_rating: number;
+	mentor_total_reviews: number;
+}
+
+export interface SectionReviewWithContext extends SectionReview {
+	client_user_id: number;
+	client_username: string;
+	client_email: string;
+	section_name: string;
+	section_slug: string;
+	journey_name: string;
+	journey_slug: string;
+	mentor_username?: string;
+}
+
+export interface ReviewCommentWithAuthor extends ReviewComment {
+	author_username: string;
+	field_name?: string;
+}
