@@ -22,6 +22,15 @@
   - Phase 4.3: Mentor Dashboard (commit 55dacfc)
   - Phase 4.4: Review Interface (commit 637b7d8)
 
+### Future Phases
+See **[FUTURE_PHASES.md](./FUTURE_PHASES.md)** for comprehensive planning:
+- 🔲 **Phase 5**: Payment Integration & Stripe Connect (3-4 weeks)
+- 🔲 **Phase 6**: Notifications & Communication (2-3 weeks)
+- 🔲 **Phase 7**: Analytics & Insights Dashboard (2-3 weeks)
+- 🔲 **Phase 8**: Advanced Mentor Features (3 weeks)
+- 🔲 **Phase 9**: User Experience Enhancements (2 weeks)
+- 🔲 **Phase 10**: Performance & Scale Optimization (2-3 weeks)
+
 ### Historical Phase Documentation
 - [PHASE_1_SUMMARY.md](./PHASE_1_SUMMARY.md) - Foundation and authentication
 - [PHASE_2_SUMMARY.md](./PHASE_2_SUMMARY.md) - Journey creation system
