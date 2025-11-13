@@ -18,12 +18,13 @@
 	// Check if user has review feature access
 	const hasReviewAccess = $derived(tierSlug === 'guided' || tierSlug === 'premium');
 
-	// Determine review status
+	// Determine review status (Phase 4 statuses: requested, in_review, changes_requested, approved)
 	const reviewStatus = $derived(currentReview?.status || null);
-	const isPending = $derived(reviewStatus === 'pending');
+	const isRequested = $derived(reviewStatus === 'requested');
 	const isInReview = $derived(reviewStatus === 'in_review');
-	const isCompleted = $derived(reviewStatus === 'completed');
-	const canSubmit = $derived(!isPending && !isInReview);
+	const isApproved = $derived(reviewStatus === 'approved');
+	const isChangesRequested = $derived(reviewStatus === 'changes_requested');
+	const canSubmit = $derived(!isRequested && !isInReview);
 
 	function openModal() {
 		showModal = true;
@@ -36,9 +37,10 @@
 	}
 
 	function getStatusBadge() {
-		if (isCompleted) return { text: 'Reviewed', class: 'badge-success' };
+		if (isApproved) return { text: '✓ Approved', class: 'badge-success' };
+		if (isChangesRequested) return { text: 'Changes Requested', class: 'badge-warning' };
 		if (isInReview) return { text: 'In Review', class: 'badge-info' };
-		if (isPending) return { text: 'Pending Review', class: 'badge-warning' };
+		if (isRequested) return { text: 'Awaiting Mentor', class: 'badge-warning' };
 		return null;
 	}
 
@@ -86,37 +88,45 @@
 				{#if currentReview && !canSubmit}
 					<!-- Show review status and feedback -->
 					<div class="space-y-4">
-						<div class="alert alert-info">
+						<div class="alert {isApproved ? 'alert-success' : 'alert-info'}">
 							<svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
 								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
 							</svg>
 							<span>
-								{#if isPending}
-									Your review request has been submitted and is waiting for a guide to be assigned.
+								{#if isRequested}
+									Your review request has been submitted and is waiting for a mentor to claim it.
 								{:else if isInReview}
-									A guide is currently reviewing your section. You'll receive feedback soon!
-								{:else if isCompleted}
-									Your review has been completed. Check the feedback below.
+									A mentor is currently reviewing your section. You'll receive feedback soon!
+								{:else if isApproved}
+									Your section has been approved! Check the feedback below.
+								{:else if isChangesRequested}
+									Your mentor has requested some changes. Review the feedback and resubmit when ready.
 								{/if}
 							</span>
 						</div>
 
-						{#if currentReview.feedback}
+						{#if currentReview.mentor_feedback}
 							<div class="card bg-base-200">
 								<div class="card-body">
-									<h4 class="card-title text-sm">Guide Feedback</h4>
-									<p class="whitespace-pre-wrap">{currentReview.feedback}</p>
-									{#if currentReview.completed_at}
+									<h4 class="card-title text-sm">Mentor Feedback</h4>
+									<p class="whitespace-pre-wrap">{currentReview.mentor_feedback}</p>
+									{#if currentReview.overall_rating}
+										<div class="mt-2">
+											<span class="font-semibold">Rating:</span>
+											<span class="ml-2">{currentReview.overall_rating} / 5 ⭐</span>
+										</div>
+									{/if}
+									{#if currentReview.reviewed_at}
 										<p class="text-xs text-base-content/60 mt-2">
-											Completed: {new Date(currentReview.completed_at).toLocaleDateString()}
+											Reviewed: {new Date(currentReview.reviewed_at).toLocaleDateString()}
 										</p>
 									{/if}
 								</div>
 							</div>
 						{/if}
 
-						{#if isCompleted}
-							<form method="POST" action="?/requestReReview" use:enhance={() => {
+						{#if isApproved || isChangesRequested}
+							<form method="POST" action="?/requestReview" use:enhance={() => {
 								isSubmitting = true;
 								return async ({ update }) => {
 									await update();
@@ -124,20 +134,21 @@
 									closeModal();
 								};
 							}}>
-								<input type="hidden" name="review_id" value={currentReview.id} />
+								<input type="hidden" name="section_id" value={sectionId} />
+								<input type="hidden" name="priority" value="normal" />
 								<button
 									type="submit"
 									class="btn btn-primary btn-sm"
 									disabled={isSubmitting}
 								>
-									Request Another Review
+									{isChangesRequested ? 'Resubmit for Review' : 'Request Another Review'}
 								</button>
 							</form>
 						{/if}
 					</div>
 				{:else}
 					<!-- Submit new review form -->
-					<form method="POST" action="?/submitForReview" use:enhance={() => {
+					<form method="POST" action="?/requestReview" use:enhance={() => {
 						isSubmitting = true;
 						return async ({ update }) => {
 							await update();
@@ -145,16 +156,16 @@
 							closeModal();
 						};
 					}}>
-						<input type="hidden" name="user_journey_id" value={userJourneyId} />
 						<input type="hidden" name="section_id" value={sectionId} />
+						<input type="hidden" name="priority" value="normal" />
 
 						<div class="form-control">
-							<label class="label" for="notes">
-								<span class="label-text">Notes for your guide (optional)</span>
+							<label class="label" for="client_notes">
+								<span class="label-text">Notes for your mentor (optional)</span>
 							</label>
 							<textarea
-								id="notes"
-								name="notes"
+								id="client_notes"
+								name="client_notes"
 								bind:value={notes}
 								class="textarea textarea-bordered h-24"
 								placeholder="Any specific questions or areas you'd like feedback on?"
@@ -166,7 +177,7 @@
 								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
 							</svg>
 							<span class="text-sm">
-								A guide will review your <strong>{sectionName}</strong> section and provide personalized feedback within 2-3 business days.
+								A mentor will review your <strong>{sectionName}</strong> section and provide personalized feedback within 2-3 business days.
 							</span>
 						</div>
 
