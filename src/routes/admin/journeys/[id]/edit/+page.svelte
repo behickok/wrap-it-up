@@ -569,6 +569,7 @@
 
 							<div class="space-y-4">
 								{#each categorySections as section}
+									{@const sectionFields = getSectionFields(section.section_id)}
 									<div class="card bg-base-100 shadow-lg border-l-4 border-primary">
 										<div class="card-body">
 											<div class="flex justify-between items-start">
@@ -588,7 +589,6 @@
 													</div>
 
 													<!-- Fields List -->
-													{@const sectionFields = getSectionFields(section.section_id)}
 													<div class="mt-4">
 														<div class="flex justify-between items-center mb-2">
 															<h5 class="font-semibold text-sm">
@@ -973,7 +973,7 @@
 								name="field_config"
 								bind:value={fieldForm.field_config}
 								rows="3"
-								placeholder='{"rows": 4, "options": [{"label": "Yes", "value": "yes"}]}'
+								placeholder="JSON config (e.g., rows, options)"
 								class="textarea textarea-bordered font-mono text-sm"
 							></textarea>
 							<label class="label">
