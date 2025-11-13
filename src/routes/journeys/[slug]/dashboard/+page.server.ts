@@ -139,14 +139,14 @@ export const load: PageServerLoad = async ({ locals, platform, params }) => {
 			};
 		}
 
-		// Get reviews for sections (Guided/Premium tier feature)
+		// Get reviews for sections (Guided tier feature)
 		const reviewsResult = await db
 			.prepare(
-				`SELECT mr.id, mr.section_id, mr.status, mr.submitted_at,
-				        mr.completed_at, mr.feedback
-				 FROM mentor_reviews mr
-				 WHERE mr.user_journey_id = ?
-				 ORDER BY mr.submitted_at DESC`
+				`SELECT sr.id, sr.section_id, sr.status, sr.mentor_feedback,
+				        sr.requested_at, sr.reviewed_at, sr.overall_rating
+				 FROM section_reviews sr
+				 WHERE sr.user_journey_id = ?
+				 ORDER BY sr.requested_at DESC`
 			)
 			.bind(subscription.id)
 			.all();
@@ -761,6 +761,88 @@ export const actions: Actions = {
 		} catch (error) {
 			console.error('Error booking session:', error);
 			return fail(500, { error: 'Failed to book session' });
+		}
+	},
+
+	requestReview: async ({ request, platform, locals, params }) => {
+		if (!locals.user) {
+			return fail(401, { error: 'Not authenticated' });
+		}
+
+		const db = platform?.env?.DB;
+		if (!db) {
+			return fail(500, { error: 'Database not available' });
+		}
+
+		const formData = await request.formData();
+		const sectionId = parseInt(formData.get('section_id') as string);
+		const clientNotes = formData.get('client_notes') as string;
+		const priority = (formData.get('priority') as string) || 'normal';
+
+		try {
+			// Get journey
+			const journeyResult = await db
+				.prepare('SELECT id FROM journeys WHERE slug = ?')
+				.bind(params.slug)
+				.first<{ id: number }>();
+
+			if (!journeyResult) {
+				return fail(404, { error: 'Journey not found' });
+			}
+
+			// Get user's journey subscription
+			const userJourney = await db
+				.prepare(
+					`SELECT uj.*, st.slug as tier_slug
+					 FROM user_journeys uj
+					 JOIN service_tiers st ON uj.tier_id = st.id
+					 WHERE uj.user_id = ? AND uj.journey_id = ? AND uj.status = 'active'`
+				)
+				.bind(locals.user.id, journeyResult.id)
+				.first<any>();
+
+			if (!userJourney) {
+				return fail(403, { error: 'No active subscription to this journey' });
+			}
+
+			// Check if tier allows mentor reviews (Guided tier)
+			if (userJourney.tier_slug !== 'guided') {
+				return fail(403, {
+					error: 'Mentor reviews are only available for Guided tier subscribers'
+				});
+			}
+
+			// Check if there's already a pending/in-review request for this section
+			const existingReview = await db
+				.prepare(
+					`SELECT id FROM section_reviews
+					 WHERE user_journey_id = ? AND section_id = ?
+					 AND status IN ('requested', 'in_review')
+					 LIMIT 1`
+				)
+				.bind(userJourney.id, sectionId)
+				.first();
+
+			if (existingReview) {
+				return fail(400, {
+					error: 'A review is already in progress for this section'
+				});
+			}
+
+			// Create review request
+			await db
+				.prepare(
+					`INSERT INTO section_reviews
+					 (user_journey_id, section_id, status, priority, client_notes)
+					 VALUES (?, ?, 'requested', ?, ?)`
+				)
+				.bind(userJourney.id, sectionId, priority, clientNotes || null)
+				.run();
+
+			return { success: true, message: 'Review requested! A mentor will review your section soon.' };
+		} catch (error) {
+			console.error('Error requesting review:', error);
+			return fail(500, { error: 'Failed to request review' });
 		}
 	}
 };
