@@ -134,11 +134,11 @@
 									class="input input-bordered w-full"
 									required
 								/>
-								<label class="label">
+								<div class="label">
 									<span class="label-text-alt text-base-content/60">
 										Available dates: tomorrow through next 3 months
 									</span>
-								</label>
+								</div>
 							</div>
 
 							<!-- Time Selection -->
@@ -212,7 +212,19 @@
 					</div>
 				</form>
 			</div>
-			<div class="modal-backdrop" onclick={closeModal}></div>
+			<div
+				class="modal-backdrop"
+				role="button"
+				tabindex="0"
+				onclick={closeModal}
+				onkeydown={(event) => {
+					if (event.key === 'Enter' || event.key === ' ') {
+						event.preventDefault();
+						closeModal();
+					}
+				}}
+				aria-label="Close booking modal"
+			></div>
 		</div>
 	{/if}
 {/if}

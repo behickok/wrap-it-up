@@ -335,11 +335,13 @@ Keep up the excellent progress!"
 												</div>
 											</div>
 
-											<div class="dropdown dropdown-end">
-												<button tabindex="0" class="btn btn-ghost btn-sm btn-circle">⋮</button>
+											<details class="dropdown dropdown-end">
+												<summary class="btn btn-ghost btn-sm btn-circle" aria-haspopup="menu">
+													⋮
+												</summary>
 												<ul
-													tabindex="0"
 													class="dropdown-content z-10 menu p-2 shadow bg-base-100 rounded-box w-52"
+													role="menu"
 												>
 													<li>
 														<button onclick={() => viewTemplate(template)}> 👁️ View </button>
@@ -367,7 +369,7 @@ Keep up the excellent progress!"
 														</form>
 													</li>
 												</ul>
-											</div>
+											</details>
 										</div>
 									</div>
 								</div>
@@ -471,12 +473,12 @@ Keep up the excellent progress!"
 
 <!-- Template Preview Modal -->
 {#if viewingTemplate}
+	{@const catInfo = getCategoryInfo(viewingTemplate.category)}
 	<div class="modal modal-open">
 		<div class="modal-box max-w-2xl">
 			<h3 class="font-bold text-lg mb-4">{viewingTemplate.title}</h3>
 
 			<div class="flex items-center gap-2 mb-4">
-				{@const catInfo = getCategoryInfo(viewingTemplate.category)}
 				<span class="badge badge-{catInfo.color}">
 					{catInfo.icon} {catInfo.label}
 				</span>
@@ -499,6 +501,11 @@ Keep up the excellent progress!"
 				</button>
 			</div>
 		</div>
-		<div class="modal-backdrop" onclick={() => (viewingTemplate = null)}></div>
+		<button
+			type="button"
+			class="modal-backdrop"
+			aria-label="Close template modal"
+			onclick={() => (viewingTemplate = null)}
+		></button>
 	</div>
 {/if}

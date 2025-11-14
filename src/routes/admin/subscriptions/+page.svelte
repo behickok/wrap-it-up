@@ -151,17 +151,19 @@
 					use:enhance={() => {
 						return async ({ result, update }) => {
 							await update();
-							if (result.type === 'success' && result.data?.success) {
-								showCreateForm = false;
-								selectedUserId = null;
-								selectedJourneyId = null;
-								selectedTierId = null;
-								subscriptionNotes = '';
-								pricingPreview = null;
-								await invalidateAll();
-								alert('Subscription created successfully!');
-							} else if (result.data?.error) {
-								alert(`Error: ${result.data.error}`);
+							if (result.type === 'success') {
+								if (result.data?.success) {
+									showCreateForm = false;
+									selectedUserId = null;
+									selectedJourneyId = null;
+									selectedTierId = null;
+									subscriptionNotes = '';
+									pricingPreview = null;
+									await invalidateAll();
+									alert('Subscription created successfully!');
+								} else if (result.data?.error) {
+									alert(`Error: ${result.data.error}`);
+								}
 							}
 						};
 					}}
@@ -169,10 +171,11 @@
 					<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 						<!-- User Selection -->
 						<div class="form-control">
-							<label class="label">
+							<label class="label" for="user_select">
 								<span class="label-text">User *</span>
 							</label>
 							<select
+								id="user_select"
 								name="user_id"
 								bind:value={selectedUserId}
 								class="select select-bordered"
@@ -189,10 +192,11 @@
 
 						<!-- Journey Selection -->
 						<div class="form-control">
-							<label class="label">
+							<label class="label" for="journey_select">
 								<span class="label-text">Journey *</span>
 							</label>
 							<select
+								id="journey_select"
 								name="journey_id"
 								bind:value={selectedJourneyId}
 								class="select select-bordered"
@@ -209,10 +213,11 @@
 
 						<!-- Tier Selection -->
 						<div class="form-control">
-							<label class="label">
+							<label class="label" for="tier_select">
 								<span class="label-text">Service Tier *</span>
 							</label>
 							<select
+								id="tier_select"
 								name="tier_id"
 								bind:value={selectedTierId}
 								class="select select-bordered"
@@ -229,10 +234,15 @@
 
 						<!-- Billing Cycle -->
 						<div class="form-control">
-							<label class="label">
+							<label class="label" for="billing_cycle_select">
 								<span class="label-text">Billing Cycle *</span>
 							</label>
-							<select name="billing_cycle" bind:value={billingCycle} class="select select-bordered">
+							<select
+								id="billing_cycle_select"
+								name="billing_cycle"
+								bind:value={billingCycle}
+								class="select select-bordered"
+							>
 								<option value="monthly">Monthly</option>
 								<option value="annual">Annual</option>
 							</select>
@@ -240,10 +250,11 @@
 
 						<!-- Notes -->
 						<div class="form-control md:col-span-2">
-							<label class="label">
+							<label class="label" for="subscription_notes">
 								<span class="label-text">Notes</span>
 							</label>
 							<textarea
+								id="subscription_notes"
 								name="notes"
 								bind:value={subscriptionNotes}
 								class="textarea textarea-bordered"
@@ -398,12 +409,14 @@
 												use:enhance={() => {
 													return async ({ result, update }) => {
 														await update();
-														if (result.type === 'success' && result.data?.success) {
-															cancelEditing();
-															await invalidateAll();
-															alert('Status updated successfully!');
-														} else if (result.data?.error) {
-															alert(`Error: ${result.data.error}`);
+														if (result.type === 'success') {
+															if (result.data?.success) {
+																cancelEditing();
+																await invalidateAll();
+																alert('Status updated successfully!');
+															} else if (result.data?.error) {
+																alert(`Error: ${result.data.error}`);
+															}
 														}
 													};
 												}}

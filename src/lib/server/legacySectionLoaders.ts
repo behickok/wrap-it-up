@@ -1,3 +1,5 @@
+import type { D1Database } from '@cloudflare/workers-types';
+
 const DEFAULT_EMPTY_OBJECT = {};
 
 export const LEGACY_SECTION_SLUGS = [

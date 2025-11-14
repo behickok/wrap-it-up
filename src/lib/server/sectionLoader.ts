@@ -1,6 +1,7 @@
 import { getSectionDataBySlugs, getSectionFields } from './genericSectionData';
 import { loadLegacySectionData, type LegacySectionSlug } from './legacySectionLoaders';
 import type { ParsedSectionField, ParsedSectionData } from '$lib/types';
+import type { D1Database } from '@cloudflare/workers-types';
 
 type SectionRow = {
 	id: number;
@@ -29,7 +30,7 @@ export async function loadSectionsForUser(
 ): Promise<Record<LegacySectionSlug, LoadedSection>> {
 	const uniqueSlugs = Array.from(new Set(sectionSlugs));
 	if (uniqueSlugs.length === 0) {
-		return {};
+		return {} as Record<LegacySectionSlug, LoadedSection>;
 	}
 
 	const placeholders = uniqueSlugs.map(() => '?').join(', ');
@@ -45,7 +46,7 @@ export async function loadSectionsForUser(
 		.all<SectionRow>();
 
 	const sectionMap = new Map<string, SectionRow>();
-	sectionsResult.results?.forEach((row) => {
+	sectionsResult.results?.forEach((row: SectionRow) => {
 		if (row.slug) {
 			sectionMap.set(row.slug, row);
 		}
@@ -56,8 +57,8 @@ export async function loadSectionsForUser(
 	const fieldEntries = await Promise.all(
 		uniqueSlugs.map(async (slug) => {
 			const section = sectionMap.get(slug);
-			if (!section) return [slug, []] as const;
-			if (section.id <= 0) return [slug, []] as const;
+			if (!section) return [slug, [] as ParsedSectionField[]] as const;
+			if (section.id <= 0) return [slug, [] as ParsedSectionField[]] as const;
 			const fields = await getSectionFields(db, section.id);
 			return [slug, fields] as const;
 		})

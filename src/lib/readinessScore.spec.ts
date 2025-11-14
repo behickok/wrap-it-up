@@ -150,12 +150,12 @@ describe('calculateSectionScore', () => {
                 } satisfies Record<string, string>;
 
                 const fields = SECTION_FIELDS.personal;
-                const expected = calculateFieldBasedScore(
-                        personalData,
-                        fields.critical,
-                        fields.important,
-                        fields.optional
-                );
+		const expected = calculateFieldBasedScore(
+			personalData,
+			fields.critical ? [...fields.critical] : [],
+			fields.important ? [...fields.important] : [],
+			fields.optional ? [...fields.optional] : []
+		);
                 const result = calculateSectionScore('personal', personalData);
 
                 expect(result).toBe(expected);

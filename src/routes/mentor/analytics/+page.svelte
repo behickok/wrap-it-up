@@ -57,6 +57,14 @@
 	function getRatingPercentage(count: number, total: number): number {
 		return total > 0 ? (count / total) * 100 : 0;
 	}
+
+	const starDistribution = [
+		{ stars: 5, key: 'five_star_count' },
+		{ stars: 4, key: 'four_star_count' },
+		{ stars: 3, key: 'three_star_count' },
+		{ stars: 2, key: 'two_star_count' },
+		{ stars: 1, key: 'one_star_count' }
+	] as const;
 </script>
 
 <div class="container mx-auto px-4 py-8">
@@ -70,17 +78,17 @@
 		</div>
 		<div class="flex gap-2">
 			<!-- Date Range Selector -->
-			<div class="dropdown dropdown-end">
-				<label tabindex="0" class="btn btn-outline">
+			<details class="dropdown dropdown-end">
+				<summary class="btn btn-outline" aria-haspopup="listbox">
 					📅 Last {data.dateRange.days} Days
-				</label>
-				<ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52">
-					<li><button onclick={() => changeDateRange(7)}>Last 7 Days</button></li>
-					<li><button onclick={() => changeDateRange(30)}>Last 30 Days</button></li>
-					<li><button onclick={() => changeDateRange(90)}>Last 90 Days</button></li>
-					<li><button onclick={() => changeDateRange(365)}>Last Year</button></li>
+				</summary>
+				<ul class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52" role="listbox">
+					<li><button type="button" onclick={() => changeDateRange(7)}>Last 7 Days</button></li>
+					<li><button type="button" onclick={() => changeDateRange(30)}>Last 30 Days</button></li>
+					<li><button type="button" onclick={() => changeDateRange(90)}>Last 90 Days</button></li>
+					<li><button type="button" onclick={() => changeDateRange(365)}>Last Year</button></li>
 				</ul>
-			</div>
+			</details>
 			<button class="btn btn-primary" onclick={exportToCSV}>
 				📥 Export CSV
 			</button>
@@ -147,7 +155,8 @@
 	</div>
 
 	<!-- Rating Breakdown -->
-	{#if data.ratingsBreakdown && data.ratingsBreakdown.total_ratings > 0}
+	{#if data.ratingsBreakdown && (data.ratingsBreakdown.total_ratings ?? 0) > 0}
+		{@const ratings = data.ratingsBreakdown}
 		<div class="card bg-base-100 shadow-xl mb-8">
 			<div class="card-body">
 				<h2 class="card-title text-2xl mb-4">Rating Breakdown</h2>
@@ -157,11 +166,11 @@
 					<div>
 						<h3 class="font-semibold mb-4">Star Distribution</h3>
 						<div class="space-y-2">
-							{#each [5, 4, 3, 2, 1] as stars}
-								{@const count = data.ratingsBreakdown?.[`${['five', 'four', 'three', 'two', 'one'][5 - stars]}_star_count`] || 0}
-								{@const percentage = getRatingPercentage(count, data.ratingsBreakdown?.total_ratings || 0)}
+							{#each starDistribution as entry}
+								{@const count = ratings[entry.key] || 0}
+								{@const percentage = getRatingPercentage(count, ratings.total_ratings || 0)}
 								<div class="flex items-center gap-2">
-									<div class="w-16 text-sm font-medium">{stars} ⭐</div>
+									<div class="w-16 text-sm font-medium">{entry.stars} ⭐</div>
 									<div class="flex-1">
 										<div class="w-full bg-base-300 rounded-full h-4">
 											<div
@@ -184,37 +193,37 @@
 								<div class="flex justify-between mb-1">
 									<span class="text-sm">Helpfulness</span>
 									<span class="text-sm font-bold">
-										{(data.ratingsBreakdown?.avg_helpfulness_rating || 0).toFixed(1)} / 5.0
+										{(ratings.avg_helpfulness_rating ?? 0).toFixed(1)} / 5.0
 									</span>
 								</div>
-								<RatingStars rating={data.ratingsBreakdown?.avg_helpfulness_rating || 0} />
+								<RatingStars rating={ratings.avg_helpfulness_rating ?? 0} />
 							</div>
 
 							<div>
 								<div class="flex justify-between mb-1">
 									<span class="text-sm">Timeliness</span>
 									<span class="text-sm font-bold">
-										{(data.ratingsBreakdown?.avg_timeliness_rating || 0).toFixed(1)} / 5.0
+										{(ratings.avg_timeliness_rating ?? 0).toFixed(1)} / 5.0
 									</span>
 								</div>
-								<RatingStars rating={data.ratingsBreakdown?.avg_timeliness_rating || 0} />
+								<RatingStars rating={ratings.avg_timeliness_rating ?? 0} />
 							</div>
 
 							<div>
 								<div class="flex justify-between mb-1">
 									<span class="text-sm">Communication</span>
 									<span class="text-sm font-bold">
-										{(data.ratingsBreakdown?.avg_communication_rating || 0).toFixed(1)} / 5.0
+										{(ratings.avg_communication_rating ?? 0).toFixed(1)} / 5.0
 									</span>
 								</div>
-								<RatingStars rating={data.ratingsBreakdown?.avg_communication_rating || 0} />
+								<RatingStars rating={ratings.avg_communication_rating ?? 0} />
 							</div>
 
 							<div class="mt-4 pt-4 border-t border-base-300">
 								<div class="stat bg-base-200 rounded-lg p-3">
 									<div class="stat-title text-xs">Would Recommend</div>
 									<div class="stat-value text-xl">
-										{(data.ratingsBreakdown?.recommend_percentage || 0).toFixed(0)}%
+										{(ratings.recommend_percentage ?? 0).toFixed(0)}%
 									</div>
 								</div>
 							</div>

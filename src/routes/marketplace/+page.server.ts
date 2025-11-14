@@ -59,7 +59,15 @@ export const load: PageServerLoad = async ({ url, platform }) => {
 			}
 		>();
 
-	const journeys = journeysResult.results || [];
+	const journeys =
+		(journeysResult.results ||
+			[]) as (Journey & {
+			creator_user_id: number;
+			is_featured: boolean;
+			use_count: number;
+			creator_username: string;
+			creator_email: string;
+		})[];
 
 	// Fetch pricing for all journeys
 	const journeyIds = journeys.map((j) => j.id);

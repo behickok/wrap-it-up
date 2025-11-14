@@ -1,5 +1,5 @@
 <script lang="ts">
-	export type PhysicianEntry = {
+	type PhysicianEntry = {
 		id?: number;
 		name?: string;
 		specialty?: string;

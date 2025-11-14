@@ -138,7 +138,7 @@
 			<p class="text-base-content/70">{definition.description}</p>
 		{/if}
 		<div class="flex gap-3">
-			<button class="btn btn-primary" type="button" on:click={startAdd}>
+			<button class="btn btn-primary" type="button" onclick={startAdd}>
 				{definition.addLabel ?? 'Add Item'}
 			</button>
 		</div>
@@ -175,10 +175,10 @@
 							{/if}
 						{/each}
 						<div class="flex justify-end gap-2">
-							<button class="btn btn-sm btn-outline" type="button" on:click={() => startEdit(index)}>
+							<button class="btn btn-sm btn-outline" type="button" onclick={() => startEdit(index)}>
 								Edit
 							</button>
-							<button class="btn btn-sm btn-error" type="button" on:click={() => deleteItem(index)}>
+							<button class="btn btn-sm btn-error" type="button" onclick={() => deleteItem(index)}>
 								Delete
 							</button>
 						</div>
@@ -209,8 +209,8 @@
 					{/each}
 				</div>
 				<div class="modal-action flex gap-2">
-					<button class="btn btn-ghost" type="button" on:click={cancelEdit}>Cancel</button>
-					<button class="btn btn-primary" type="button" on:click={upsertItem}>
+					<button class="btn btn-ghost" type="button" onclick={cancelEdit}>Cancel</button>
+					<button class="btn btn-primary" type="button" onclick={upsertItem}>
 						{editingIndex === null ? 'Add' : 'Save'}
 					</button>
 				</div>

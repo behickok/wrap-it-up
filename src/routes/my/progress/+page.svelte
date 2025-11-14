@@ -52,9 +52,12 @@
 	// Prepare activity chart data (last 30 days)
 	const activityChartData = $derived(() => {
 		// Fill in missing days with 0
-		const chartData: { date: string; value: number }[] = [];
-		const activityMap = new Map(
-			data.recentActivity.map((a: any) => [a.activity_date, a.event_count])
+		const chartData: { label: string; value: number }[] = [];
+		const activityMap = new Map<string, number>(
+			data.recentActivity.map((a: { activity_date: string; event_count: number }) => [
+				a.activity_date,
+				a.event_count
+			])
 		);
 
 		for (let i = 29; i >= 0; i--) {
@@ -62,7 +65,7 @@
 			date.setDate(date.getDate() - i);
 			const dateStr = date.toISOString().split('T')[0];
 			chartData.push({
-				date: dateStr,
+				label: dateStr,
 				value: activityMap.get(dateStr) || 0
 			});
 		}
@@ -156,12 +159,7 @@
 
 					{#if activityChartData().length > 0}
 						<div class="h-48">
-							<LineChart
-								data={activityChartData()}
-								xLabel="Date"
-								yLabel="Actions"
-								color="oklch(var(--wa))"
-							/>
+							<LineChart data={activityChartData()} color="oklch(var(--wa))" />
 						</div>
 					{:else}
 						<div class="text-center py-8 text-base-content/50">

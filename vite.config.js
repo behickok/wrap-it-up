@@ -3,13 +3,6 @@ import { sveltekit } from '@sveltejs/kit/vite';
 
 export default defineConfig({
 	plugins: [sveltekit()],
-	css: {
-		lightningcss: {
-			drafts: {
-				custom_properties: true
-			}
-		}
-	},
 	test: {
 		expect: { requireAssertions: true },
 		projects: [
@@ -29,15 +22,15 @@ export default defineConfig({
 					setupFiles: ['./vitest-setup-client.js']
 				}
 			},
-				{
-					extends: './vite.config.js',
-					test: {
-						name: 'server',
-						environment: 'node',
-						include: ['src/**/*.{test,spec}.{js,ts}', 'tests/**/*.{test,spec}.{js,ts}'],
-						exclude: ['src/**/*.svelte.{test,spec}.{js,ts}']
-					}
+			{
+				extends: './vite.config.js',
+				test: {
+					name: 'server',
+					environment: 'node',
+					include: ['src/**/*.{test,spec}.{js,ts}', 'tests/**/*.{test,spec}.{js,ts}'],
+					exclude: ['src/**/*.svelte.{test,spec}.{js,ts}']
 				}
-			]
-		}
-	});
+			}
+		]
+	}
+});

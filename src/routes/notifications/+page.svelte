@@ -176,7 +176,9 @@
 											{notification.title}
 										</h3>
 										<p class="text-sm text-base-content/60">
-											{formatRelativeTime(notification.created_at)}
+											{notification.created_at
+												? formatRelativeTime(notification.created_at)
+												: 'Just now'}
 										</p>
 									</div>
 

@@ -86,7 +86,7 @@ export const load: PageServerLoad = async ({ params, locals, platform }) => {
 	const sections = sectionsResult.results || [];
 
 	// Fetch fields for each section
-	const sectionIds = sections.map((s) => s.section_id);
+	const sectionIds = sections.map((s: { section_id: number }) => s.section_id);
 	const fieldsResult =
 		sectionIds.length > 0
 			? await db

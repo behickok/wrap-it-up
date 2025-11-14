@@ -214,7 +214,19 @@
 					</div>
 				{/if}
 			</div>
-			<div class="modal-backdrop" onclick={closeModal}></div>
+			<div
+				class="modal-backdrop"
+				role="button"
+				tabindex="0"
+				onclick={closeModal}
+				onkeydown={(event) => {
+					if (event.key === 'Enter' || event.key === ' ') {
+						event.preventDefault();
+						closeModal();
+					}
+				}}
+				aria-label="Close review modal"
+			></div>
 		</div>
 	{/if}
 {/if}

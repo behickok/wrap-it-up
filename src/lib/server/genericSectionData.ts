@@ -9,6 +9,7 @@ import type {
 	ParsedSectionData,
 	FieldType
 } from '$lib/types';
+import type { D1Database } from '@cloudflare/workers-types';
 import { calculateGenericSectionScore, countCompletedFields } from '$lib/genericScoring';
 
 /**
@@ -42,7 +43,7 @@ export async function getSectionFields(
 
 	if (!result.results) return [];
 
-	return result.results.map((row) => {
+	return result.results.map((row: SectionField & { [key: string]: any }) => {
 		const field: ParsedSectionField = {
 			id: row.id,
 			section_id: row.section_id,

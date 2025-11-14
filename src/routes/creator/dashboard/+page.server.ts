@@ -43,7 +43,7 @@ export const load: PageServerLoad = async ({ locals, platform }) => {
 		.bind(locals.user.id)
 		.all<Journey & JourneyCreator>();
 
-	const journeys = journeysResult.results || [];
+	const journeys = (journeysResult.results || []) as (Journey & JourneyCreator)[];
 
 	// Fetch latest analytics for each journey (last 30 days)
 	const analyticsPromises = journeys.map(async (journey) => {
@@ -67,7 +67,9 @@ export const load: PageServerLoad = async ({ locals, platform }) => {
 	});
 
 	const analyticsData = await Promise.all(analyticsPromises);
-	const analyticsMap = new Map(analyticsData.map((a) => [a.journey_id, a.recent]));
+	const analyticsMap = new Map<number, JourneyAnalytics[]>(
+		analyticsData.map((a) => [a.journey_id, a.recent])
+	);
 
 	// Calculate summary statistics
 	const totalUsers = journeys.reduce((sum, j) => sum + (j.use_count || 0), 0);

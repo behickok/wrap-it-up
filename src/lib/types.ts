@@ -8,6 +8,7 @@ export interface User {
 	last_login: string | null;
 	created_at: string;
 	updated_at: string;
+	role?: string | null;
 }
 
 export interface Session {
@@ -1388,25 +1389,6 @@ export interface SectionAnalytics {
 	created_at: string;
 }
 
-// Analytics event
-export type AnalyticsEventType =
-	| 'journey_started'
-	| 'section_viewed'
-	| 'section_completed'
-	| 'data_saved'
-	| 'journey_completed';
-
-export interface AnalyticsEvent {
-	id: number;
-	user_id: number | null;
-	journey_id: number | null;
-	section_id: number | null;
-	event_type: AnalyticsEventType;
-	event_data: string | null; // JSON
-	session_id: string | null;
-	created_at: string;
-}
-
 // Extended types with joined data
 export interface UserWithRoles extends User {
 	roles: Role[];
@@ -1649,9 +1631,14 @@ export type AnalyticsEventType =
 	| 'page_view'
 	| 'journey_view'
 	| 'enrollment'
+	| 'journey_started'
+	| 'section_viewed'
 	| 'section_start'
+	| 'section_completed'
 	| 'section_complete'
+	| 'data_saved'
 	| 'journey_complete'
+	| 'journey_completed'
 	| 'review_request'
 	| 'review_claim'
 	| 'review_complete'
@@ -1663,7 +1650,7 @@ export type AnalyticsEventType =
 // Analytics event
 export interface AnalyticsEvent {
 	id: number;
-	event_type: string;
+	event_type: AnalyticsEventType;
 	event_category: string | null;
 	user_id: number | null;
 	journey_id: number | null;
@@ -1674,6 +1661,8 @@ export interface AnalyticsEvent {
 	referrer_url: string | null;
 	user_agent: string | null;
 	created_at: string;
+	// Legacy data field
+	event_data?: string | null;
 }
 
 // Daily statistics

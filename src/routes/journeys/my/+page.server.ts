@@ -2,6 +2,21 @@ import { error, redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 import type { Journey, ServiceTier, UserJourney } from '$lib/types';
 
+type JourneyRow = Journey &
+	UserJourney & {
+		user_journey_id: number;
+		tier_name: string;
+		tier_slug: string;
+		creator_username: string;
+		is_featured: boolean;
+	};
+
+type JourneyWithStats = JourneyRow & {
+	totalSections: number;
+	completedSections: number;
+	progressPercentage: number;
+};
+
 export const load: PageServerLoad = async ({ locals, platform }) => {
 	// Require authentication
 	if (!locals.user) {
@@ -39,22 +54,14 @@ export const load: PageServerLoad = async ({ locals, platform }) => {
 			ORDER BY uj.started_at DESC
 		`
 			)
-			.bind(locals.user.id)
-			.all<
-				Journey &
-					UserJourney & {
-						tier_name: string;
-						tier_slug: string;
-						creator_username: string;
-						is_featured: boolean;
-					}
-			>();
+		.bind(locals.user.id)
+		.all<JourneyRow>();
 
-		const journeys = journeysResult.results || [];
+		const journeys = (journeysResult.results || []) as JourneyRow[];
 
 		// For each journey, get section count and completion stats
-		const journeysWithStats = await Promise.all(
-			journeys.map(async (journey) => {
+		const journeysWithStats: JourneyWithStats[] = await Promise.all(
+			journeys.map(async (journey): Promise<JourneyWithStats> => {
 				// Get total sections
 				const sectionsCount = await db
 					.prepare(
@@ -97,9 +104,11 @@ export const load: PageServerLoad = async ({ locals, platform }) => {
 		// Get enrollment stats
 		const stats = {
 			total: journeys.length,
-			inProgress: journeysWithStats.filter((j) => j.progressPercentage > 0 && j.progressPercentage < 100).length,
-			notStarted: journeysWithStats.filter((j) => j.progressPercentage === 0).length,
-			completed: journeysWithStats.filter((j) => j.progressPercentage === 100).length
+			inProgress: journeysWithStats.filter(
+				(journey) => journey.progressPercentage > 0 && journey.progressPercentage < 100
+			).length,
+			notStarted: journeysWithStats.filter((journey) => journey.progressPercentage === 0).length,
+			completed: journeysWithStats.filter((journey) => journey.progressPercentage === 100).length
 		};
 
 		return {

@@ -196,12 +196,13 @@
 										min="0"
 										max="50"
 										bind:value={specForm.years_experience}
+										aria-describedby="years-experience-help"
 									/>
-									<label class="label">
-										<span class="label-text-alt">
+									<div class="label">
+										<span id="years-experience-help" class="label-text-alt">
 											How many years have you worked in this area?
 										</span>
-									</label>
+									</div>
 								</div>
 
 								<!-- Primary Specialization -->
@@ -299,11 +300,13 @@
 											</div>
 
 											<!-- Actions -->
-											<div class="dropdown dropdown-end">
-												<button tabindex="0" class="btn btn-ghost btn-sm btn-circle">⋮</button>
+											<details class="dropdown dropdown-end">
+												<summary class="btn btn-ghost btn-sm btn-circle" aria-haspopup="menu">
+													⋮
+												</summary>
 												<ul
-													tabindex="0"
 													class="dropdown-content z-10 menu p-2 shadow bg-base-100 rounded-box w-40"
+													role="menu"
 												>
 													<li>
 														<button onclick={() => startEdit(spec)}> ✏️ Edit </button>
@@ -322,12 +325,12 @@
 																	if (!confirm('Remove this specialization?')) e.preventDefault();
 																}}
 															>
-																🗑️ Remove
-															</button>
+																	🗑️ Remove
+																</button>
 														</form>
 													</li>
 												</ul>
-											</div>
+											</details>
 										</div>
 									</div>
 								</div>

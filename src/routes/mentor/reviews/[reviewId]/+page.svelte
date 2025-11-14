@@ -2,6 +2,7 @@
 	import type { PageData, ActionData } from './$types';
 	import { enhance } from '$app/forms';
 	import { invalidateAll } from '$app/navigation';
+	import type { ReviewComment } from '$lib/types';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
 
@@ -25,7 +26,9 @@
 
 	// Get comments for field
 	function getFieldComments(fieldId: number | null) {
-		return data.comments.filter((c) => c.field_id === fieldId);
+		return data.comments.filter(
+			(c: ReviewComment & { author_username: string }) => c.field_id === fieldId
+		);
 	}
 
 	// Format date
@@ -402,10 +405,11 @@
 						rows="6"
 						placeholder="Provide comprehensive feedback on the client's work..."
 						required
+					aria-describedby="overall-feedback-help"
 					></textarea>
-					<label class="label">
-						<span class="label-text-alt">Minimum 50 characters</span>
-					</label>
+					<div class="label">
+						<span id="overall-feedback-help" class="label-text-alt">Minimum 50 characters</span>
+					</div>
 				</div>
 
 				{#if reviewAction === 'approve'}
@@ -440,6 +444,11 @@
 				</div>
 			</form>
 		</div>
-		<div class="modal-backdrop" onclick={closeCompleteModal}></div>
+		<button
+			type="button"
+			class="modal-backdrop"
+			aria-label="Close review modal"
+			onclick={closeCompleteModal}
+		></button>
 	</div>
 {/if}

@@ -149,7 +149,9 @@
 			{data.mentors.length === 1 ? 'mentor' : 'mentors'}
 			{#if data.filters.specialization}
 				in <strong>
-					{data.specializations.find((s) => s.slug === data.filters.specialization)?.name}
+					{data.specializations.find(
+						(spec: { slug: string; name: string }) => spec.slug === data.filters.specialization
+					)?.name}
 				</strong>
 			{/if}
 		</p>

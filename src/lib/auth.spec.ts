@@ -57,10 +57,13 @@ describe('password hashing', () => {
 
 describe('session helpers', () => {
 	it('generates URL-safe session IDs', () => {
-		const spy = vi.spyOn(globalThis.crypto, 'getRandomValues').mockImplementation((array: Uint8Array) => {
-			array.set(Uint8Array.from({ length: array.length }, (_, index) => index));
-			return array;
-		});
+		const spy = vi
+			.spyOn(globalThis.crypto, 'getRandomValues')
+			.mockImplementation(<T extends ArrayBufferView>(array: T) => {
+				const view = new Uint8Array(array.buffer, array.byteOffset, array.byteLength);
+				view.set(Uint8Array.from({ length: view.length }, (_, index) => index));
+				return array;
+			});
 
 		const id = generateSessionId();
 
@@ -74,10 +77,13 @@ describe('session helpers', () => {
 	it('creates sessions that expire after the requested window', () => {
 		vi.useFakeTimers();
 		vi.setSystemTime(new Date('2024-01-01T00:00:00.000Z'));
-		const sessionSpy = vi.spyOn(globalThis.crypto, 'getRandomValues').mockImplementation((array: Uint8Array) => {
-			array.set(new TextEncoder().encode('wrap-it-up'.repeat(4).slice(0, array.length)));
-			return array;
-		});
+		const sessionSpy = vi
+			.spyOn(globalThis.crypto, 'getRandomValues')
+			.mockImplementation(<T extends ArrayBufferView>(array: T) => {
+				const view = new Uint8Array(array.buffer, array.byteOffset, array.byteLength);
+				view.set(new TextEncoder().encode('wrap-it-up'.repeat(4).slice(0, view.length)));
+				return array;
+			});
 
 		const session = createSession(42, 3);
 

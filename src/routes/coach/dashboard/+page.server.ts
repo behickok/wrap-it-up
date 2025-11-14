@@ -1,7 +1,14 @@
 import { redirect } from '@sveltejs/kit';
 import type { PageServerLoad, Actions } from './$types';
 import { getUserWithRoles, hasPermission, logCoachAccess } from '$lib/server/permissions';
-import type { CoachClientWithDetails, User } from '$lib/types';
+import type { CoachClientWithDetails } from '$lib/types';
+
+type CoachClientRow = CoachClientWithDetails & {
+	client_username: string;
+	client_email: string;
+	journey_name: string | null;
+	journey_slug: string | null;
+};
 
 export const load: PageServerLoad = async ({ locals, platform }) => {
 	if (!locals.user) {
@@ -75,9 +82,9 @@ export const load: PageServerLoad = async ({ locals, platform }) => {
 		`
 		)
 		.bind(coach.id)
-		.all<CoachClientWithDetails & { client_username: string; client_email: string; journey_name: string; journey_slug: string }>();
+		.all<CoachClientRow>();
 
-	const clients = clientsResult.results || [];
+	const clients: CoachClientRow[] = clientsResult.results || [];
 
 	// Calculate summary stats
 	const activeClients = clients.filter((c) => c.status === 'active').length;

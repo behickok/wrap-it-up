@@ -28,6 +28,15 @@ export const GET: RequestHandler = async ({ locals, platform, url }) => {
 
 	// Get platform overview stats
 	const platformStats = await getPlatformOverviewStats(db);
+	if (!platformStats) {
+		throw error(500, 'Failed to load platform stats');
+	}
+
+	const completionRate =
+		platformStats.total_enrollments > 0
+			? (platformStats.completed_enrollments / platformStats.total_enrollments) * 100
+			: 0;
+	const averageRating = platformStats.average_rating ?? 0;
 
 	// Get daily active users
 	const dauTrend = await getDailyActiveUsers(db, { days });
@@ -51,8 +60,8 @@ export const GET: RequestHandler = async ({ locals, platform, url }) => {
 		['Active Mentors', platformStats.active_mentors],
 		['Total Mentors', platformStats.total_mentors],
 		['Total Enrollments', platformStats.total_enrollments],
-		['Completion Rate (%)', (platformStats.completion_rate || 0).toFixed(2)],
-		['Average Rating', (platformStats.average_rating || 0).toFixed(2)],
+		['Completion Rate (%)', completionRate.toFixed(2)],
+		['Average Rating', averageRating.toFixed(2)],
 		[]
 	];
 

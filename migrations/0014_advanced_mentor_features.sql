@@ -22,9 +22,9 @@ CREATE TABLE IF NOT EXISTS mentor_availability (
     CHECK (start_time < end_time)
 );
 
-CREATE INDEX idx_mentor_availability_mentor ON mentor_availability(mentor_user_id);
-CREATE INDEX idx_mentor_availability_active ON mentor_availability(mentor_user_id, is_active);
-CREATE INDEX idx_mentor_availability_day ON mentor_availability(day_of_week);
+CREATE INDEX IF NOT EXISTS idx_mentor_availability_mentor ON mentor_availability(mentor_user_id);
+CREATE INDEX IF NOT EXISTS idx_mentor_availability_active ON mentor_availability(mentor_user_id, is_active);
+CREATE INDEX IF NOT EXISTS idx_mentor_availability_day ON mentor_availability(day_of_week);
 
 -- Mentor blocked/vacation dates
 CREATE TABLE IF NOT EXISTS mentor_blocked_dates (
@@ -40,9 +40,9 @@ CREATE TABLE IF NOT EXISTS mentor_blocked_dates (
     CHECK (start_date <= end_date)
 );
 
-CREATE INDEX idx_mentor_blocked_dates_mentor ON mentor_blocked_dates(mentor_user_id);
-CREATE INDEX idx_mentor_blocked_dates_active ON mentor_blocked_dates(mentor_user_id, is_active);
-CREATE INDEX idx_mentor_blocked_dates_range ON mentor_blocked_dates(start_date, end_date);
+CREATE INDEX IF NOT EXISTS idx_mentor_blocked_dates_mentor ON mentor_blocked_dates(mentor_user_id);
+CREATE INDEX IF NOT EXISTS idx_mentor_blocked_dates_active ON mentor_blocked_dates(mentor_user_id, is_active);
+CREATE INDEX IF NOT EXISTS idx_mentor_blocked_dates_range ON mentor_blocked_dates(start_date, end_date);
 
 -- ============================================================================
 -- Phase 6.2: Review Templates & Training
@@ -63,10 +63,10 @@ CREATE TABLE IF NOT EXISTS review_templates (
     FOREIGN KEY (mentor_user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
-CREATE INDEX idx_review_templates_mentor ON review_templates(mentor_user_id);
-CREATE INDEX idx_review_templates_section_type ON review_templates(section_type);
-CREATE INDEX idx_review_templates_shared ON review_templates(is_shared);
-CREATE INDEX idx_review_templates_category ON review_templates(category);
+CREATE INDEX IF NOT EXISTS idx_review_templates_mentor ON review_templates(mentor_user_id);
+CREATE INDEX IF NOT EXISTS idx_review_templates_section_type ON review_templates(section_type);
+CREATE INDEX IF NOT EXISTS idx_review_templates_shared ON review_templates(is_shared);
+CREATE INDEX IF NOT EXISTS idx_review_templates_category ON review_templates(category);
 
 -- Mentor training modules
 CREATE TABLE IF NOT EXISTS mentor_training_modules (
@@ -83,9 +83,9 @@ CREATE TABLE IF NOT EXISTS mentor_training_modules (
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX idx_training_modules_order ON mentor_training_modules(order_index);
-CREATE INDEX idx_training_modules_required ON mentor_training_modules(is_required);
-CREATE INDEX idx_training_modules_active ON mentor_training_modules(is_active);
+CREATE INDEX IF NOT EXISTS idx_training_modules_order ON mentor_training_modules(order_index);
+CREATE INDEX IF NOT EXISTS idx_training_modules_required ON mentor_training_modules(is_required);
+CREATE INDEX IF NOT EXISTS idx_training_modules_active ON mentor_training_modules(is_active);
 
 -- Track mentor training progress
 CREATE TABLE IF NOT EXISTS mentor_training_progress (
@@ -103,9 +103,9 @@ CREATE TABLE IF NOT EXISTS mentor_training_progress (
     UNIQUE(mentor_user_id, module_id)
 );
 
-CREATE INDEX idx_training_progress_mentor ON mentor_training_progress(mentor_user_id);
-CREATE INDEX idx_training_progress_module ON mentor_training_progress(module_id);
-CREATE INDEX idx_training_progress_completed ON mentor_training_progress(mentor_user_id, completed_at);
+CREATE INDEX IF NOT EXISTS idx_training_progress_mentor ON mentor_training_progress(mentor_user_id);
+CREATE INDEX IF NOT EXISTS idx_training_progress_module ON mentor_training_progress(module_id);
+CREATE INDEX IF NOT EXISTS idx_training_progress_completed ON mentor_training_progress(mentor_user_id, completed_at);
 
 -- Quality checklists for reviews
 CREATE TABLE IF NOT EXISTS review_quality_checklists (
@@ -119,8 +119,8 @@ CREATE TABLE IF NOT EXISTS review_quality_checklists (
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX idx_quality_checklists_section_type ON review_quality_checklists(section_type);
-CREATE INDEX idx_quality_checklists_active ON review_quality_checklists(is_active);
+CREATE INDEX IF NOT EXISTS idx_quality_checklists_section_type ON review_quality_checklists(section_type);
+CREATE INDEX IF NOT EXISTS idx_quality_checklists_active ON review_quality_checklists(is_active);
 
 -- ============================================================================
 -- Phase 6.3: Mentor Specializations & Matching
@@ -139,8 +139,8 @@ CREATE TABLE IF NOT EXISTS mentor_specializations (
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX idx_specializations_active ON mentor_specializations(is_active);
-CREATE INDEX idx_specializations_slug ON mentor_specializations(slug);
+CREATE INDEX IF NOT EXISTS idx_specializations_active ON mentor_specializations(is_active);
+CREATE INDEX IF NOT EXISTS idx_specializations_slug ON mentor_specializations(slug);
 
 -- Map mentors to their specializations
 CREATE TABLE IF NOT EXISTS mentor_specialization_map (
@@ -157,9 +157,9 @@ CREATE TABLE IF NOT EXISTS mentor_specialization_map (
     CHECK (proficiency_level >= 1 AND proficiency_level <= 5)
 );
 
-CREATE INDEX idx_mentor_specialization_mentor ON mentor_specialization_map(mentor_user_id);
-CREATE INDEX idx_mentor_specialization_spec ON mentor_specialization_map(specialization_id);
-CREATE INDEX idx_mentor_specialization_primary ON mentor_specialization_map(mentor_user_id, is_primary);
+CREATE INDEX IF NOT EXISTS idx_mentor_specialization_mentor ON mentor_specialization_map(mentor_user_id);
+CREATE INDEX IF NOT EXISTS idx_mentor_specialization_spec ON mentor_specialization_map(specialization_id);
+CREATE INDEX IF NOT EXISTS idx_mentor_specialization_primary ON mentor_specialization_map(mentor_user_id, is_primary);
 
 -- Client preferences for mentor matching
 CREATE TABLE IF NOT EXISTS client_mentor_preferences (
@@ -176,8 +176,8 @@ CREATE TABLE IF NOT EXISTS client_mentor_preferences (
     FOREIGN KEY (preferred_mentor_id) REFERENCES users(id) ON DELETE SET NULL
 );
 
-CREATE INDEX idx_client_preferences_user ON client_mentor_preferences(user_id);
-CREATE INDEX idx_client_preferences_mentor ON client_mentor_preferences(preferred_mentor_id);
+CREATE INDEX IF NOT EXISTS idx_client_preferences_user ON client_mentor_preferences(user_id);
+CREATE INDEX IF NOT EXISTS idx_client_preferences_mentor ON client_mentor_preferences(preferred_mentor_id);
 
 -- Track successful mentor-client matches for learning
 CREATE TABLE IF NOT EXISTS mentor_match_history (
@@ -199,10 +199,10 @@ CREATE TABLE IF NOT EXISTS mentor_match_history (
     FOREIGN KEY (section_id) REFERENCES sections(id) ON DELETE CASCADE
 );
 
-CREATE INDEX idx_match_history_mentor ON mentor_match_history(mentor_user_id);
-CREATE INDEX idx_match_history_client ON mentor_match_history(client_user_id);
-CREATE INDEX idx_match_history_review ON mentor_match_history(review_id);
-CREATE INDEX idx_match_history_rating ON mentor_match_history(client_rating);
+CREATE INDEX IF NOT EXISTS idx_match_history_mentor ON mentor_match_history(mentor_user_id);
+CREATE INDEX IF NOT EXISTS idx_match_history_client ON mentor_match_history(client_user_id);
+CREATE INDEX IF NOT EXISTS idx_match_history_review ON mentor_match_history(review_id);
+CREATE INDEX IF NOT EXISTS idx_match_history_rating ON mentor_match_history(client_rating);
 
 -- ============================================================================
 -- Seed Data: Default Specializations
@@ -446,7 +446,7 @@ WHEN NEW.review_notes LIKE '%[template:%'
 BEGIN
     -- This is a simplified version - in practice, you'd parse the template ID from review_notes
     -- and increment the specific template's usage_count
-    NULL; -- Placeholder for future implementation
+    SELECT 1; -- Placeholder for future implementation
 END;
 
 -- ============================================================================

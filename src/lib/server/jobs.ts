@@ -41,6 +41,26 @@ export interface JobResult {
 	data?: any;
 }
 
+type JourneyCacheStats = {
+	total_enrollments: number | null;
+	active_enrollments: number | null;
+	completed_enrollments: number | null;
+	avg_completion_time_days: number | null;
+};
+
+type MentorCacheStats = {
+	total_reviews: number | null;
+	completed_reviews: number | null;
+	pending_reviews: number | null;
+	avg_review_time_hours: number | null;
+	avg_rating: number | null;
+};
+
+type JourneyCompletionRow = {
+	completed_at: string | null;
+	started_at: string | null;
+};
+
 // ============================================================================
 // Job Processor Registry
 // ============================================================================
@@ -172,7 +192,7 @@ async function processCacheRefresh(payload: any, context: JobContext): Promise<J
 			// Refresh journey stats cache
 			const journeys = await context.db
 				.prepare(
-					`SELECT DISTINCT journey_id FROM user_enrollments
+					`SELECT DISTINCT journey_id FROM user_journeys
 					WHERE status IN ('active', 'completed')
 					LIMIT 50`
 				)
@@ -189,14 +209,16 @@ async function processCacheRefresh(payload: any, context: JobContext): Promise<J
 							COUNT(CASE WHEN status = 'active' THEN 1 END) as active_enrollments,
 							COUNT(CASE WHEN status = 'completed' THEN 1 END) as completed_enrollments,
 							AVG(CASE
-								WHEN status = 'completed' AND completed_at IS NOT NULL AND enrolled_at IS NOT NULL
-								THEN JULIANDAY(completed_at) - JULIANDAY(enrolled_at)
+								WHEN status = 'completed' AND completed_at IS NOT NULL AND started_at IS NOT NULL
+								THEN JULIANDAY(completed_at) - JULIANDAY(started_at)
 							END) as avg_completion_time_days
-						FROM user_enrollments
+						FROM user_journeys
 						WHERE journey_id = ?`
 					)
 					.bind(journeyId)
-					.first();
+					.first<JourneyCacheStats>();
+
+				if (!stats) continue;
 
 				// Update cache table
 				await context.db
@@ -208,10 +230,10 @@ async function processCacheRefresh(payload: any, context: JobContext): Promise<J
 					)
 					.bind(
 						journeyId,
-						stats.total_enrollments,
-						stats.active_enrollments,
-						stats.completed_enrollments,
-						stats.avg_completion_time_days
+						stats.total_enrollments ?? 0,
+						stats.active_enrollments ?? 0,
+						stats.completed_enrollments ?? 0,
+						stats.avg_completion_time_days ?? null
 					)
 					.run();
 			}
@@ -250,7 +272,9 @@ async function processCacheRefresh(payload: any, context: JobContext): Promise<J
 						WHERE mentor_user_id = ?`
 					)
 					.bind(mentorUserId)
-					.first();
+					.first<MentorCacheStats>();
+
+				if (!stats) continue;
 
 				// Update cache table
 				await context.db
@@ -262,11 +286,11 @@ async function processCacheRefresh(payload: any, context: JobContext): Promise<J
 					)
 					.bind(
 						mentorUserId,
-						stats.total_reviews,
-						stats.completed_reviews,
-						stats.pending_reviews,
-						stats.avg_review_time_hours,
-						stats.avg_rating
+						stats.total_reviews ?? 0,
+						stats.completed_reviews ?? 0,
+						stats.pending_reviews ?? 0,
+						stats.avg_review_time_hours ?? null,
+						stats.avg_rating ?? null
 					)
 					.run();
 			}
@@ -553,11 +577,12 @@ async function processCertificateGeneration(
 		// Verify journey is actually completed
 		const enrollment = await context.db
 			.prepare(
-				`SELECT * FROM user_enrollments
+				`SELECT completed_at, started_at
+				FROM user_journeys
 				WHERE user_id = ? AND journey_id = ? AND status = 'completed'`
 			)
 			.bind(userId, journeyId)
-			.first();
+			.first<JourneyCompletionRow>();
 
 		if (!enrollment) {
 			throw new Error('Journey not completed');
@@ -584,10 +609,10 @@ async function processCertificateGeneration(
 		const certificateId = `CERT-${Date.now()}-${userId}-${journeyId}`;
 		const verificationCode = Math.random().toString(36).substring(2, 18).toUpperCase();
 
-		const completionTime = enrollment.completed_at && enrollment.enrolled_at
+		const completionTime = enrollment.completed_at && enrollment.started_at
 			? Math.floor(
 					(new Date(enrollment.completed_at).getTime() -
-						new Date(enrollment.enrolled_at).getTime()) /
+						new Date(enrollment.started_at).getTime()) /
 						(1000 * 60 * 60 * 24)
 				)
 			: null;

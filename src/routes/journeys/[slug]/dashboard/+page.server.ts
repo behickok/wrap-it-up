@@ -4,6 +4,7 @@ import { recalculateAndUpdateProgress } from '$lib/journeyProgress';
 import { loadSectionsForUser, type LoadedSection } from '$lib/server/sectionLoader';
 import { getSectionFields, saveSectionData as persistSectionData } from '$lib/server/genericSectionData';
 import type { LegacySectionSlug } from '$lib/server/legacySectionLoaders';
+import type { D1Database } from '@cloudflare/workers-types';
 
 const BASE_SECTION_SLUGS: LegacySectionSlug[] = [
 	'personal',
@@ -273,7 +274,7 @@ export const load: PageServerLoad = async ({ locals, platform, params }) => {
 					financial,
 					insurance,
 					employment,
-					medical: normalizedMedical,
+					medical,
 					physicians: physiciansList,
 					residence,
 					vehicles,

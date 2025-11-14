@@ -270,7 +270,7 @@
 		max-width: 800px;
 	}
 
-	.space-y-4 > :not(:last-child) {
+	:global(.space-y-4 > :not(:last-child)) {
 		margin-bottom: 1rem;
 	}
 </style>

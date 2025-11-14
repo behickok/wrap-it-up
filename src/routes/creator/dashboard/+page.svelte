@@ -1,10 +1,13 @@
 <script lang="ts">
 	import type { PageData } from './$types';
+	import type { JourneyAnalytics } from '$lib/types';
 
 	let { data }: { data: PageData } = $props();
 
+	type NumericJourneyMetric = 'total_users' | 'avg_completion_percentage' | 'avg_score';
+
 	// Calculate trend for a metric
-	function calculateTrend(analytics: any[], metric: string): string {
+	function calculateTrend(analytics: JourneyAnalytics[], metric: NumericJourneyMetric): string {
 		if (analytics.length < 2) return '0';
 		const latest = analytics[0]?.[metric] || 0;
 		const previous = analytics[1]?.[metric] || 0;
@@ -14,7 +17,7 @@
 	}
 
 	// Get the latest metric value
-	function getLatestMetric(journeyId: number, metric: string): number {
+	function getLatestMetric(journeyId: number, metric: NumericJourneyMetric): number {
 		const analytics = data.analytics.get(journeyId);
 		return analytics?.[0]?.[metric] || 0;
 	}
@@ -227,9 +230,5 @@
 <style>
 	.stat {
 		padding: 1.5rem;
-	}
-
-	.sparkline-bar {
-		min-width: 4px;
 	}
 </style>

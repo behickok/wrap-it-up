@@ -22,10 +22,10 @@ CREATE TABLE IF NOT EXISTS user_milestones (
     FOREIGN KEY (journey_id) REFERENCES journeys(id) ON DELETE SET NULL
 );
 
-CREATE INDEX idx_user_milestones_user ON user_milestones(user_id);
-CREATE INDEX idx_user_milestones_journey ON user_milestones(journey_id);
-CREATE INDEX idx_user_milestones_type ON user_milestones(milestone_type);
-CREATE INDEX idx_user_milestones_date ON user_milestones(achieved_at);
+CREATE INDEX IF NOT EXISTS idx_user_milestones_user ON user_milestones(user_id);
+CREATE INDEX IF NOT EXISTS idx_user_milestones_journey ON user_milestones(journey_id);
+CREATE INDEX IF NOT EXISTS idx_user_milestones_type ON user_milestones(milestone_type);
+CREATE INDEX IF NOT EXISTS idx_user_milestones_date ON user_milestones(achieved_at);
 
 -- Activity streaks tracking
 CREATE TABLE IF NOT EXISTS user_activity_streaks (
@@ -40,8 +40,8 @@ CREATE TABLE IF NOT EXISTS user_activity_streaks (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
-CREATE INDEX idx_activity_streaks_user ON user_activity_streaks(user_id);
-CREATE INDEX idx_activity_streaks_current ON user_activity_streaks(current_streak DESC);
+CREATE INDEX IF NOT EXISTS idx_activity_streaks_user ON user_activity_streaks(user_id);
+CREATE INDEX IF NOT EXISTS idx_activity_streaks_current ON user_activity_streaks(current_streak DESC);
 
 -- Journey completion certificates
 CREATE TABLE IF NOT EXISTS journey_certificates (
@@ -61,16 +61,17 @@ CREATE TABLE IF NOT EXISTS journey_certificates (
     FOREIGN KEY (journey_id) REFERENCES journeys(id) ON DELETE CASCADE
 );
 
-CREATE INDEX idx_certificates_user ON journey_certificates(user_id);
-CREATE INDEX idx_certificates_journey ON journey_certificates(journey_id);
-CREATE INDEX idx_certificates_id ON journey_certificates(certificate_id);
-CREATE INDEX idx_certificates_date ON journey_certificates(issue_date);
+CREATE INDEX IF NOT EXISTS idx_certificates_user ON journey_certificates(user_id);
+CREATE INDEX IF NOT EXISTS idx_certificates_journey ON journey_certificates(journey_id);
+CREATE INDEX IF NOT EXISTS idx_certificates_id ON journey_certificates(certificate_id);
+CREATE INDEX IF NOT EXISTS idx_certificates_date ON journey_certificates(issue_date);
 
 -- ============================================================================
 -- Phase 7.2: Journey Templates & Customization
 -- ============================================================================
 
 -- Journey templates for sharing/duplicating
+DROP TABLE IF EXISTS journey_templates;
 CREATE TABLE IF NOT EXISTS journey_templates (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
@@ -91,13 +92,13 @@ CREATE TABLE IF NOT EXISTS journey_templates (
     FOREIGN KEY (creator_user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
-CREATE INDEX idx_journey_templates_creator ON journey_templates(creator_user_id);
-CREATE INDEX idx_journey_templates_source ON journey_templates(source_journey_id);
-CREATE INDEX idx_journey_templates_public ON journey_templates(is_public);
-CREATE INDEX idx_journey_templates_featured ON journey_templates(is_featured);
-CREATE INDEX idx_journey_templates_category ON journey_templates(category);
-CREATE INDEX idx_journey_templates_downloads ON journey_templates(downloads DESC);
-CREATE INDEX idx_journey_templates_rating ON journey_templates(rating DESC);
+CREATE INDEX IF NOT EXISTS idx_journey_templates_creator ON journey_templates(creator_user_id);
+CREATE INDEX IF NOT EXISTS idx_journey_templates_source ON journey_templates(source_journey_id);
+CREATE INDEX IF NOT EXISTS idx_journey_templates_public ON journey_templates(is_public);
+CREATE INDEX IF NOT EXISTS idx_journey_templates_featured ON journey_templates(is_featured);
+CREATE INDEX IF NOT EXISTS idx_journey_templates_category ON journey_templates(category);
+CREATE INDEX IF NOT EXISTS idx_journey_templates_downloads ON journey_templates(downloads DESC);
+CREATE INDEX IF NOT EXISTS idx_journey_templates_rating ON journey_templates(rating DESC);
 
 -- Template ratings/reviews
 CREATE TABLE IF NOT EXISTS journey_template_reviews (
@@ -113,9 +114,9 @@ CREATE TABLE IF NOT EXISTS journey_template_reviews (
     CHECK (rating >= 1 AND rating <= 5)
 );
 
-CREATE INDEX idx_template_reviews_template ON journey_template_reviews(template_id);
-CREATE INDEX idx_template_reviews_user ON journey_template_reviews(user_id);
-CREATE INDEX idx_template_reviews_rating ON journey_template_reviews(rating);
+CREATE INDEX IF NOT EXISTS idx_template_reviews_template ON journey_template_reviews(template_id);
+CREATE INDEX IF NOT EXISTS idx_template_reviews_user ON journey_template_reviews(user_id);
+CREATE INDEX IF NOT EXISTS idx_template_reviews_rating ON journey_template_reviews(rating);
 
 -- Journey versions for version control
 CREATE TABLE IF NOT EXISTS journey_versions (
@@ -133,9 +134,9 @@ CREATE TABLE IF NOT EXISTS journey_versions (
     UNIQUE(journey_id, version_number)
 );
 
-CREATE INDEX idx_journey_versions_journey ON journey_versions(journey_id);
-CREATE INDEX idx_journey_versions_published ON journey_versions(is_published);
-CREATE INDEX idx_journey_versions_number ON journey_versions(journey_id, version_number DESC);
+CREATE INDEX IF NOT EXISTS idx_journey_versions_journey ON journey_versions(journey_id);
+CREATE INDEX IF NOT EXISTS idx_journey_versions_published ON journey_versions(is_published);
+CREATE INDEX IF NOT EXISTS idx_journey_versions_number ON journey_versions(journey_id, version_number DESC);
 
 -- Add customization columns to journeys table
 ALTER TABLE journeys ADD COLUMN theme_colors TEXT; -- JSON: {primary, secondary, accent, background}
@@ -166,9 +167,9 @@ CREATE TABLE IF NOT EXISTS push_subscriptions (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
-CREATE INDEX idx_push_subscriptions_user ON push_subscriptions(user_id);
-CREATE INDEX idx_push_subscriptions_active ON push_subscriptions(is_active);
-CREATE INDEX idx_push_subscriptions_endpoint ON push_subscriptions(endpoint);
+CREATE INDEX IF NOT EXISTS idx_push_subscriptions_user ON push_subscriptions(user_id);
+CREATE INDEX IF NOT EXISTS idx_push_subscriptions_active ON push_subscriptions(is_active);
+CREATE INDEX IF NOT EXISTS idx_push_subscriptions_endpoint ON push_subscriptions(endpoint);
 
 -- Offline sync queue (for PWA offline support)
 CREATE TABLE IF NOT EXISTS offline_sync_queue (
@@ -186,9 +187,9 @@ CREATE TABLE IF NOT EXISTS offline_sync_queue (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
-CREATE INDEX idx_offline_sync_user ON offline_sync_queue(user_id);
-CREATE INDEX idx_offline_sync_status ON offline_sync_queue(status);
-CREATE INDEX idx_offline_sync_created ON offline_sync_queue(created_at);
+CREATE INDEX IF NOT EXISTS idx_offline_sync_user ON offline_sync_queue(user_id);
+CREATE INDEX IF NOT EXISTS idx_offline_sync_status ON offline_sync_queue(status);
+CREATE INDEX IF NOT EXISTS idx_offline_sync_created ON offline_sync_queue(created_at);
 
 -- ============================================================================
 -- Phase 7.4: Accessibility Features
@@ -210,7 +211,7 @@ CREATE TABLE IF NOT EXISTS user_accessibility_preferences (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
-CREATE INDEX idx_accessibility_prefs_user ON user_accessibility_preferences(user_id);
+CREATE INDEX IF NOT EXISTS idx_accessibility_prefs_user ON user_accessibility_preferences(user_id);
 
 -- ============================================================================
 -- Seed Data: Milestone Types

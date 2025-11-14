@@ -10,7 +10,8 @@
 		placeholder = '',
 		required = false,
 		rows = 3,
-		options = [] as SelectOption[]
+		options = [] as SelectOption[],
+		step = undefined as string | number | undefined
 	} = $props();
 
 	// Ensure value is never undefined
@@ -99,7 +100,7 @@
 			bind:value
 			{placeholder}
 			{required}
-			step="0.01"
+			step={step ?? '0.01'}
 			class="input input-bordered w-full"
 		/>
 	{:else}

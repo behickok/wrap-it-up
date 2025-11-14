@@ -613,6 +613,21 @@ export async function getPlatformStats(db: D1Database, date?: string): Promise<a
 /**
  * Calculate and update daily platform statistics
  */
+type PlatformStatsRow = {
+	total_users: number;
+	active_users: number;
+	new_users: number;
+	total_journeys: number;
+	active_journeys: number;
+	total_enrollments: number;
+	new_enrollments: number;
+	total_reviews: number;
+	completed_reviews: number;
+	avg_review_time_hours: number | null;
+	total_mentors: number;
+	active_mentors: number;
+};
+
 export async function calculateDailyStats(db: D1Database, date?: string): Promise<void> {
 	const targetDate = date || new Date().toISOString().split('T')[0];
 
@@ -623,21 +638,25 @@ export async function calculateDailyStats(db: D1Database, date?: string): Promis
 				(SELECT COUNT(*) FROM users) as total_users,
 				(SELECT COUNT(DISTINCT user_id) FROM analytics_events WHERE DATE(created_at) = ?) as active_users,
 				(SELECT COUNT(*) FROM users WHERE DATE(created_at) = ?) as new_users,
-				(SELECT COUNT(*) FROM journeys WHERE status = 'published') as total_journeys,
-				(SELECT COUNT(DISTINCT journey_id) FROM user_enrollments WHERE status = 'active') as active_journeys,
-				(SELECT COUNT(*) FROM user_enrollments) as total_enrollments,
-				(SELECT COUNT(*) FROM user_enrollments WHERE DATE(enrolled_at) = ?) as new_enrollments,
+				(SELECT COUNT(*) FROM journeys WHERE is_active = 1) as total_journeys,
+				(SELECT COUNT(DISTINCT journey_id) FROM user_journeys WHERE status = 'active') as active_journeys,
+				(SELECT COUNT(*) FROM user_journeys) as total_enrollments,
+				(SELECT COUNT(*) FROM user_journeys WHERE DATE(started_at) = ?) as new_enrollments,
 				(SELECT COUNT(*) FROM section_reviews) as total_reviews,
 				(SELECT COUNT(*) FROM section_reviews WHERE status = 'completed' AND DATE(completed_at) = ?) as completed_reviews,
 				(SELECT AVG(JULIANDAY(completed_at) - JULIANDAY(claimed_at)) * 24
 					FROM section_reviews
 					WHERE status = 'completed' AND DATE(completed_at) = ?) as avg_review_time_hours,
-				(SELECT COUNT(*) FROM users WHERE role = 'mentor') as total_mentors,
+				(SELECT COUNT(*) FROM mentors) as total_mentors,
 				(SELECT COUNT(DISTINCT mentor_user_id) FROM section_reviews WHERE DATE(claimed_at) = ?) as active_mentors
 			`
 		)
 		.bind(targetDate, targetDate, targetDate, targetDate, targetDate, targetDate)
-		.first();
+		.first<PlatformStatsRow>();
+
+	if (!stats) {
+		return;
+	}
 
 	// Insert or update the stats
 	await db

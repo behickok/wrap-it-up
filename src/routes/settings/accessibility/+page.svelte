@@ -10,24 +10,42 @@
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
 
-	// Form state
-	let preferences = $state({
-		high_contrast_mode: data.preferences.high_contrast_mode === 1,
-		font_size: data.preferences.font_size || 'normal',
-		reduce_motion: data.preferences.reduce_motion === 1,
-		screen_reader_mode: data.preferences.screen_reader_mode === 1,
-		keyboard_navigation_hints: data.preferences.keyboard_navigation_hints === 1,
-		focus_indicators_enhanced: data.preferences.focus_indicators_enhanced === 1,
-		color_blind_mode: data.preferences.color_blind_mode || ''
-	});
-
 	// Font size options
 	const FONT_SIZES = [
 		{ value: 'small', label: 'Small', demo: 'text-sm' },
 		{ value: 'normal', label: 'Normal', demo: 'text-base' },
 		{ value: 'large', label: 'Large', demo: 'text-lg' },
 		{ value: 'x-large', label: 'Extra Large', demo: 'text-xl' }
-	];
+	] as const;
+
+	type FontSizeOption = (typeof FONT_SIZES)[number]['value'];
+	type PreferencesState = {
+		high_contrast_mode: boolean;
+		font_size: FontSizeOption;
+		reduce_motion: boolean;
+		screen_reader_mode: boolean;
+		keyboard_navigation_hints: boolean;
+		focus_indicators_enhanced: boolean;
+		color_blind_mode: string;
+	};
+
+	const FONT_SIZE_VALUES: Record<FontSizeOption, string> = {
+		small: '14px',
+		normal: '16px',
+		large: '18px',
+		'x-large': '20px'
+	};
+
+	// Form state
+	let preferences: PreferencesState = $state({
+		high_contrast_mode: data.preferences.high_contrast_mode === 1,
+		font_size: (data.preferences.font_size || 'normal') as FontSizeOption,
+		reduce_motion: data.preferences.reduce_motion === 1,
+		screen_reader_mode: data.preferences.screen_reader_mode === 1,
+		keyboard_navigation_hints: data.preferences.keyboard_navigation_hints === 1,
+		focus_indicators_enhanced: data.preferences.focus_indicators_enhanced === 1,
+		color_blind_mode: data.preferences.color_blind_mode || ''
+	});
 
 	// Color blind modes
 	const COLOR_BLIND_MODES = [
@@ -47,12 +65,7 @@
 
 			// Font size
 			root.setAttribute('data-font-size', preferences.font_size);
-			root.style.fontSize = {
-				small: '14px',
-				normal: '16px',
-				large: '18px',
-				'x-large': '20px'
-			}[preferences.font_size];
+			root.style.fontSize = FONT_SIZE_VALUES[preferences.font_size];
 
 			// Reduce motion
 			root.classList.toggle('reduce-motion', preferences.reduce_motion);

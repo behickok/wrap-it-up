@@ -49,17 +49,17 @@
 		</div>
 		<div class="flex gap-2">
 			<!-- Date Range Selector -->
-			<div class="dropdown dropdown-end">
-				<label tabindex="0" class="btn btn-outline">
+			<details class="dropdown dropdown-end">
+				<summary class="btn btn-outline" aria-haspopup="listbox">
 					📅 Last {data.dateRange.days} Days
-				</label>
-				<ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52">
-					<li><button onclick={() => changeDateRange(7)}>Last 7 Days</button></li>
-					<li><button onclick={() => changeDateRange(30)}>Last 30 Days</button></li>
-					<li><button onclick={() => changeDateRange(90)}>Last 90 Days</button></li>
-					<li><button onclick={() => changeDateRange(365)}>Last Year</button></li>
+				</summary>
+				<ul class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52" role="listbox">
+					<li><button type="button" onclick={() => changeDateRange(7)}>Last 7 Days</button></li>
+					<li><button type="button" onclick={() => changeDateRange(30)}>Last 30 Days</button></li>
+					<li><button type="button" onclick={() => changeDateRange(90)}>Last 90 Days</button></li>
+					<li><button type="button" onclick={() => changeDateRange(365)}>Last Year</button></li>
 				</ul>
-			</div>
+			</details>
 			<button class="btn btn-primary" onclick={exportToCSV}>
 				📥 Export CSV
 			</button>

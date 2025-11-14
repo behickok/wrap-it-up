@@ -162,9 +162,9 @@
 						pattern="[a-z0-9-]+"
 						class="input input-bordered w-full"
 					/>
-					<label class="label">
+					<div class="label">
 						<span class="label-text-alt">Use lowercase letters, numbers, and hyphens only</span>
-					</label>
+					</div>
 				</div>
 
 				<div class="form-control mb-4">
@@ -210,7 +210,19 @@
 				</div>
 			</form>
 		</div>
-		<div class="modal-backdrop" onclick={() => (showCreateModal = false)}></div>
+		<div
+			class="modal-backdrop"
+			role="button"
+			tabindex="0"
+			onclick={() => (showCreateModal = false)}
+			onkeydown={(event) => {
+				if (event.key === 'Enter' || event.key === ' ') {
+					event.preventDefault();
+					showCreateModal = false;
+				}
+			}}
+			aria-label="Close create journey modal"
+		></div>
 	</div>
 {/if}
 

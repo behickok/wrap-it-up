@@ -100,7 +100,7 @@ export const load: PageServerLoad = async ({ locals, platform, params }) => {
 			.all<{ field_id: number; field_value: string }>();
 
 		const sectionDataMap = new Map<number, string>();
-		(sectionDataResult.results || []).forEach((data) => {
+		(sectionDataResult.results || []).forEach((data: { field_id: number; field_value: string }) => {
 			sectionDataMap.set(data.field_id, data.field_value);
 		});
 

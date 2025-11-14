@@ -233,22 +233,29 @@
 					use:enhance={() => {
 						return async ({ result, update }) => {
 							await update();
-							if (result.type === 'success' && result.data?.success) {
-								showCreateForm = false;
-								await invalidateAll();
-								alert('Transaction created successfully!');
-							} else if (result.data?.error) {
-								alert(`Error: ${result.data.error}`);
+							if (result.type === 'success') {
+								if (result.data?.success) {
+									showCreateForm = false;
+									await invalidateAll();
+									alert('Transaction created successfully!');
+								} else if (result.data?.error) {
+									alert(`Error: ${result.data.error}`);
+								}
 							}
 						};
 					}}
 				>
 					<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 						<div class="form-control">
-							<label class="label">
+							<label class="label" for="transaction_type">
 								<span class="label-text">Transaction Type *</span>
 							</label>
-							<select name="transaction_type" class="select select-bordered" required>
+							<select
+								id="transaction_type"
+								name="transaction_type"
+								class="select select-bordered"
+								required
+							>
 								<option value="">Select type...</option>
 								<option value="subscription">Subscription</option>
 								<option value="review">Review</option>
@@ -259,10 +266,11 @@
 						</div>
 
 						<div class="form-control">
-							<label class="label">
+							<label class="label" for="transaction_amount">
 								<span class="label-text">Amount *</span>
 							</label>
 							<input
+								id="transaction_amount"
 								type="number"
 								name="amount"
 								step="0.01"
@@ -274,10 +282,11 @@
 						</div>
 
 						<div class="form-control">
-							<label class="label">
+							<label class="label" for="transaction_user_id">
 								<span class="label-text">User ID *</span>
 							</label>
 							<input
+								id="transaction_user_id"
 								type="number"
 								name="user_id"
 								class="input input-bordered"
@@ -287,10 +296,11 @@
 						</div>
 
 						<div class="form-control">
-							<label class="label">
+							<label class="label" for="transaction_journey_id">
 								<span class="label-text">Journey ID *</span>
 							</label>
 							<input
+								id="transaction_journey_id"
 								type="number"
 								name="journey_id"
 								class="input input-bordered"
@@ -300,10 +310,11 @@
 						</div>
 
 						<div class="form-control md:col-span-2">
-							<label class="label">
+							<label class="label" for="transaction_description">
 								<span class="label-text">Description</span>
 							</label>
 							<input
+								id="transaction_description"
 								type="text"
 								name="description"
 								class="input input-bordered"
@@ -312,10 +323,11 @@
 						</div>
 
 						<div class="form-control md:col-span-2">
-							<label class="label">
+							<label class="label" for="transaction_notes">
 								<span class="label-text">Notes</span>
 							</label>
 							<textarea
+								id="transaction_notes"
 								name="notes"
 								class="textarea textarea-bordered"
 								rows="2"
@@ -343,10 +355,10 @@
 			<div class="grid grid-cols-1 md:grid-cols-5 gap-4">
 				<!-- Type Filter -->
 				<div class="form-control">
-					<label class="label">
+					<label class="label" for="filter_type">
 						<span class="label-text">Type</span>
 					</label>
-					<select bind:value={typeFilter} class="select select-bordered">
+					<select id="filter_type" bind:value={typeFilter} class="select select-bordered">
 						<option value="">All Types</option>
 						<option value="subscription">Subscription</option>
 						<option value="review">Review</option>
@@ -359,10 +371,10 @@
 
 				<!-- Status Filter -->
 				<div class="form-control">
-					<label class="label">
+					<label class="label" for="filter_status">
 						<span class="label-text">Status</span>
 					</label>
-					<select bind:value={statusFilter} class="select select-bordered">
+					<select id="filter_status" bind:value={statusFilter} class="select select-bordered">
 						<option value="">All Statuses</option>
 						<option value="pending">Pending</option>
 						<option value="completed">Completed</option>
@@ -374,10 +386,11 @@
 
 				<!-- Search -->
 				<div class="form-control">
-					<label class="label">
+					<label class="label" for="filter_search">
 						<span class="label-text">Search</span>
 					</label>
 					<input
+						id="filter_search"
 						type="text"
 						bind:value={searchQuery}
 						placeholder="User or journey..."
@@ -388,18 +401,28 @@
 
 				<!-- Start Date -->
 				<div class="form-control">
-					<label class="label">
+					<label class="label" for="filter_start_date">
 						<span class="label-text">Start Date</span>
 					</label>
-					<input type="date" bind:value={startDate} class="input input-bordered" />
+					<input
+						id="filter_start_date"
+						type="date"
+						bind:value={startDate}
+						class="input input-bordered"
+					/>
 				</div>
 
 				<!-- End Date -->
 				<div class="form-control">
-					<label class="label">
+					<label class="label" for="filter_end_date">
 						<span class="label-text">End Date</span>
 					</label>
-					<input type="date" bind:value={endDate} class="input input-bordered" />
+					<input
+						id="filter_end_date"
+						type="date"
+						bind:value={endDate}
+						class="input input-bordered"
+					/>
 				</div>
 			</div>
 
@@ -495,12 +518,14 @@
 												use:enhance={() => {
 													return async ({ result, update }) => {
 														await update();
-														if (result.type === 'success' && result.data?.success) {
-															cancelEditing();
-															await invalidateAll();
-															alert('Transaction updated successfully!');
-														} else if (result.data?.error) {
-															alert(`Error: ${result.data.error}`);
+														if (result.type === 'success') {
+															if (result.data?.success) {
+																cancelEditing();
+																await invalidateAll();
+																alert('Transaction updated successfully!');
+															} else if (result.data?.error) {
+																alert(`Error: ${result.data.error}`);
+															}
 														}
 													};
 												}}

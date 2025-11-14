@@ -122,7 +122,7 @@
 							class="input input-bordered join-item flex-1"
 							value={data.filters.searchQuery || ''}
 						/>
-						<button type="submit" class="btn btn-primary join-item">
+						<button type="submit" class="btn btn-primary join-item" aria-label="Search templates">
 							<svg
 								xmlns="http://www.w3.org/2000/svg"
 								class="h-5 w-5"
@@ -219,7 +219,7 @@
 						<div class="flex flex-wrap items-center gap-3 text-xs text-base-content/60 mb-3">
 							{#if template.rating > 0}
 								<div class="flex items-center gap-1">
-									<RatingStars rating={template.rating} size="xs" />
+									<RatingStars rating={template.rating} size="sm" />
 									<span>({template.rating_count})</span>
 								</div>
 							{/if}

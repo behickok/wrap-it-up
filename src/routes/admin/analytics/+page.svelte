@@ -79,29 +79,42 @@
 	// Prepare DAU chart data
 	const dauChartData = $derived(
 		data.dauTrend.map((d: any) => ({
-			date: d.date,
-			value: d.active_users
+			label: d.date,
+			value: d.active_users ?? 0
 		}))
 	);
 
 	// Calculate funnel conversion rates
 	const funnelData = $derived(() => {
-		if (!data.enrollmentFunnel) return [];
-		const { page_views, enrollments, completions } = data.enrollmentFunnel;
-		return [
-			{ stage: 'Page Views', count: page_views, percentage: 100 },
-			{
-				stage: 'Enrollments',
-				count: enrollments,
-				percentage: page_views > 0 ? (enrollments / page_views) * 100 : 0
-			},
-			{
-				stage: 'Completions',
-				count: completions,
-				percentage: enrollments > 0 ? (completions / enrollments) * 100 : 0
-			}
+		const funnel = data.enrollmentFunnel;
+		if (!funnel) return [];
+		const stages = [
+			{ label: 'Page Views', value: funnel.views },
+			{ label: 'Enrollments', value: funnel.enrollments },
+			{ label: 'Started Sections', value: funnel.started_sections },
+			{ label: 'Completed Sections', value: funnel.completed_sections },
+			{ label: 'Completed Journeys', value: funnel.journey_completions }
 		];
+
+		return stages.map((stage, index) => {
+			const previous = stages[index - 1]?.value ?? stage.value;
+			const percentage =
+				previous && previous > 0 ? Math.round(((stage.value || 0) / previous) * 100) : 0;
+			return {
+				stage: stage.label,
+				count: stage.value || 0,
+				percentage: index === 0 ? 100 : percentage
+			};
+		});
 	});
+
+	const platformStats = data.platformStats;
+	function getCompletionRate(): number {
+		if (!platformStats) return 0;
+		const totalEnrollments = platformStats.total_enrollments || 0;
+		const completed = platformStats.completed_enrollments || 0;
+		return totalEnrollments > 0 ? (completed / totalEnrollments) * 100 : 0;
+	}
 </script>
 
 <svelte:head>
@@ -162,13 +175,14 @@
 	<!-- Platform Overview Cards -->
 	<div class="mb-8">
 		<h2 class="text-xl font-semibold mb-4">Platform Overview</h2>
+		{#if platformStats}
 		<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
 			<!-- Total Users -->
 			<div class="stat bg-base-100 shadow rounded-lg">
 				<div class="stat-title">Total Users</div>
-				<div class="stat-value text-primary">{formatNumber(data.platformStats.total_users)}</div>
+				<div class="stat-value text-primary">{formatNumber(platformStats.total_users)}</div>
 				<div class="stat-desc">
-					{formatNumber(data.platformStats.new_users_30d)} new in 30d
+					{formatNumber(platformStats.new_users_30d)} new in 30d
 				</div>
 			</div>
 
@@ -176,19 +190,19 @@
 			<div class="stat bg-base-100 shadow rounded-lg">
 				<div class="stat-title">Active Journeys</div>
 				<div class="stat-value text-secondary">
-					{formatNumber(data.platformStats.active_journeys)}
+					{formatNumber(platformStats.active_journeys)}
 				</div>
 				<div class="stat-desc">
-					{formatNumber(data.platformStats.total_journeys)} total
+					{formatNumber(platformStats.total_journeys)} total
 				</div>
 			</div>
 
 			<!-- Active Mentors -->
 			<div class="stat bg-base-100 shadow rounded-lg">
 				<div class="stat-title">Active Mentors</div>
-				<div class="stat-value text-accent">{formatNumber(data.platformStats.active_mentors)}</div>
+				<div class="stat-value text-accent">{formatNumber(platformStats.active_mentors)}</div>
 				<div class="stat-desc">
-					{formatNumber(data.platformStats.total_mentors)} total
+					{formatNumber(platformStats.total_mentors)} total
 				</div>
 			</div>
 
@@ -196,10 +210,10 @@
 			<div class="stat bg-base-100 shadow rounded-lg">
 				<div class="stat-title">Total Enrollments</div>
 				<div class="stat-value text-info">
-					{formatNumber(data.platformStats.total_enrollments)}
+					{formatNumber(platformStats.total_enrollments)}
 				</div>
 				<div class="stat-desc">
-					{formatPercentage(data.platformStats.completion_rate)} completion rate
+					{formatPercentage(getCompletionRate())} completion rate
 				</div>
 			</div>
 
@@ -214,6 +228,9 @@
 				</div>
 			</div>
 		</div>
+		{:else}
+		<div class="alert alert-warning">Platform statistics are currently unavailable.</div>
+		{/if}
 	</div>
 
 	<!-- User Growth Chart -->
@@ -227,12 +244,7 @@
 
 				{#if dauChartData.length > 0}
 					<div class="h-64">
-						<LineChart
-							data={dauChartData}
-							xLabel="Date"
-							yLabel="Active Users"
-							color="oklch(var(--p))"
-						/>
+						<LineChart data={dauChartData} color="oklch(var(--p))" />
 					</div>
 				{:else}
 					<div class="text-center py-8 text-base-content/50">
@@ -305,7 +317,7 @@
 											</a>
 										</td>
 										<td class="text-right font-semibold">
-											{formatNumber(journey.total_enrollments)}
+											{formatNumber(Number(journey.total_enrollments ?? 0))}
 										</td>
 									</tr>
 								{/each}
@@ -339,7 +351,7 @@
 											</a>
 										</td>
 										<td class="text-right font-semibold">
-											{formatNumber(journey.total_completions)}
+											{formatNumber(Number(journey.total_completions ?? 0))}
 										</td>
 									</tr>
 								{/each}
@@ -373,7 +385,11 @@
 											</a>
 										</td>
 										<td class="text-right">
-											<RatingStars rating={journey.average_rating || 0} size="sm" showValue />
+											<RatingStars
+												rating={Number(journey.average_rating ?? 0)}
+												size="sm"
+												showValue
+											/>
 										</td>
 									</tr>
 								{/each}

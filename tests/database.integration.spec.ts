@@ -7,9 +7,12 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { load } from '../src/routes/+page.server';
 import { GET as exportDataGet } from '../src/routes/api/export-data/+server';
 
+type SqliteInstance = InstanceType<typeof Database>;
 type D1Like = ReturnType<typeof wrapSqliteAsD1>;
+type LoadResult = Awaited<ReturnType<typeof load>>;
+type NonVoidLoadResult = Exclude<LoadResult, void>;
 
-function wrapSqliteAsD1(db: Database.Database) {
+function wrapSqliteAsD1(db: SqliteInstance) {
 	return {
 		prepare(query: string) {
 			const statement = db.prepare(query);
@@ -36,7 +39,7 @@ function wrapSqliteAsD1(db: Database.Database) {
 	};
 }
 
-function execSqlScript(db: Database.Database, script: string) {
+function execSqlScript(db: SqliteInstance, script: string) {
 	let buffer = '';
 	for (const line of script.split('\n')) {
 		const trimmed = line.trim();
@@ -98,11 +101,11 @@ describe('Database integration', () => {
 	});
 
 	it('loads dashboard data from the seeded dataset', async () => {
-		const result = await load({
+		const result = (await load({
 			locals: { user: { id: 1 } },
 			platform: { env: { DB: d1 } },
 			params: { slug: 'care' }
-		} as any);
+		} as any)) as NonVoidLoadResult;
 
 		expect(result.sectionData.personal.legal_name).toBe('Jordan Avery Wells');
 		expect(result.sectionData.credentials).toHaveLength(3);

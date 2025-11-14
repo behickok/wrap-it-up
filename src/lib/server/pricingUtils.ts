@@ -10,6 +10,7 @@ import type {
 	JourneyPricing,
 	BillingCycle
 } from '$lib/types';
+import type { D1Database } from '@cloudflare/workers-types';
 
 /**
  * Calculate pricing breakdown with platform fee

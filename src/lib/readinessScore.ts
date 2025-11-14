@@ -48,7 +48,7 @@ export function calculateReadinessScore(completions: SectionCompletion[]): Readi
 	};
 }
 
-function calculateSimpleListScore(items: any[], importantKeys: string[] = []): number {
+function calculateSimpleListScore(items: any[], importantKeys: readonly string[] = []): number {
 	if (!Array.isArray(items) || items.length === 0) return 0;
 
 	let score = 30; // base for having at least one entry
@@ -79,7 +79,7 @@ function calculateSimpleListScore(items: any[], importantKeys: string[] = []): n
  * @returns Score (0-100 points)
  */
 export function calculateSectionScore(sectionName: string, data: any): number {
-        if (!data) return 0;
+	if (!data) return 0;
 
 	// Variable-length sections with specialized scoring
 	switch (sectionName) {
@@ -129,11 +129,14 @@ export function calculateSectionScore(sectionName: string, data: any): number {
 		case 'home_setup':
 			const fields = SECTION_FIELDS[sectionName];
 			if (fields) {
+				const criticalFields = fields.critical ? [...fields.critical] : [];
+				const importantFields = fields.important ? [...fields.important] : [];
+				const optionalFields = fields.optional ? [...fields.optional] : [];
 				return calculateFieldBasedScore(
 					data,
-					fields.critical || [],
-					fields.important || [],
-					fields.optional || []
+					criticalFields,
+					importantFields,
+					optionalFields
 				);
 			}
 			return 0;

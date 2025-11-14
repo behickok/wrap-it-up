@@ -9,6 +9,94 @@
 import type { D1Database } from '@cloudflare/workers-types';
 import type { AnalyticsEventType, AnalyticsEventMetadata } from '$lib/types';
 
+type EnrollmentFunnelRow = {
+	views: number | null;
+	enrollments: number | null;
+	started_sections: number | null;
+	completed_sections: number | null;
+	journey_completions: number | null;
+};
+
+type MentorPerformanceStatsRow = {
+	total_reviews: number | null;
+	completed_reviews: number | null;
+	in_progress_reviews: number | null;
+	pending_reviews: number | null;
+	avg_turnaround_hours: number | null;
+	avg_response_hours: number | null;
+};
+
+type MentorRatingsBreakdownRow = {
+	total_ratings: number | null;
+	avg_overall_rating: number | null;
+	avg_helpfulness_rating: number | null;
+	avg_timeliness_rating: number | null;
+	avg_communication_rating: number | null;
+	recommend_percentage: number | null;
+	five_star_count: number | null;
+	four_star_count: number | null;
+	three_star_count: number | null;
+	two_star_count: number | null;
+	one_star_count: number | null;
+};
+
+type MentorEarningsSummaryRow = {
+	total_earnings: number | null;
+	review_earnings: number | null;
+	revenue_share_earnings: number | null;
+	bonus_earnings: number | null;
+	pending_amount: number | null;
+	paid_out_amount: number | null;
+	total_transactions: number | null;
+};
+
+type PlatformOverviewStatsRow = {
+	total_users: number;
+	new_users_7d: number;
+	new_users_30d: number;
+	active_journeys: number;
+	total_journeys: number;
+	active_journey_users: number;
+	total_enrollments: number;
+	completed_enrollments: number;
+	active_mentors: number;
+	total_mentors: number;
+	pending_mentor_applications: number;
+	pending_reviews: number;
+	total_mentor_earnings: number | null;
+	reviews_completed_7d: number;
+	average_rating: number | null;
+};
+
+type CreatorJourneyAnalyticsRow = {
+	journey_id: number;
+	journey_name: string;
+	journey_slug: string;
+	total_enrollments: number | null;
+	active_users: number | null;
+	completed_users: number | null;
+	total_reviews: number | null;
+	avg_review_rating: number | null;
+	total_mentor_payments: number | null;
+};
+
+type JourneyEngagementTrendRow = {
+	date: string;
+	views: number | null;
+	enrollments: number | null;
+	active_users: number | null;
+};
+
+type SectionCompletionRateRow = {
+	section_id: number;
+	section_name: string;
+	section_slug: string;
+	total_attempts: number | null;
+	completions: number | null;
+	completion_rate: number | null;
+	avg_score: number | null;
+};
+
 // ============================================================================
 // EVENT TRACKING
 // ============================================================================
@@ -277,8 +365,8 @@ export async function getCreatorJourneyAnalytics(
 	if (startDate) bindings.push(startDate);
 	if (endDate) bindings.push(endDate);
 
-	const result = await (bindings.length > 0 ? stmt.bind(...bindings) : stmt).all();
-	return result.results;
+	const result = await (bindings.length > 0 ? stmt.bind(...bindings) : stmt).all<CreatorJourneyAnalyticsRow>();
+	return result.results || [];
 }
 
 /**
@@ -309,9 +397,9 @@ export async function getJourneyEngagementTrends(
 	`
 		)
 		.bind(journeyId, days)
-		.all();
+		.all<JourneyEngagementTrendRow>();
 
-	return result.results;
+	return result.results || [];
 }
 
 /**
@@ -347,9 +435,9 @@ export async function getSectionCompletionRates(
 	`
 		)
 		.bind(journeyId)
-		.all();
+		.all<SectionCompletionRateRow>();
 
-	return result.results;
+	return result.results || [];
 }
 
 // ============================================================================
@@ -388,7 +476,7 @@ export async function getMentorPerformanceStats(
 	`
 		)
 		.bind(mentorUserId, ...(startDate && endDate ? [startDate, endDate] : startDate ? [startDate] : endDate ? [endDate] : []))
-		.first();
+		.first<MentorPerformanceStatsRow>();
 
 	return result;
 }
@@ -424,7 +512,7 @@ export async function getMentorRatingsBreakdown(
 	`
 		)
 		.bind(mentorUserId)
-		.first();
+		.first<MentorRatingsBreakdownRow>();
 
 	return result;
 }
@@ -460,7 +548,7 @@ export async function getMentorEarningsSummary(
 	`
 		)
 		.bind(mentorUserId, ...(startDate && endDate ? [startDate, endDate] : startDate ? [startDate] : endDate ? [endDate] : []))
-		.first();
+		.first<MentorEarningsSummaryRow>();
 
 	return result;
 }
@@ -515,15 +603,20 @@ export async function getPlatformOverviewStats(db: D1Database) {
 			(SELECT COUNT(*) FROM users WHERE created_at >= date('now', '-7 days')) as new_users_7d,
 			(SELECT COUNT(*) FROM users WHERE created_at >= date('now', '-30 days')) as new_users_30d,
 			(SELECT COUNT(*) FROM journeys WHERE is_active = 1) as active_journeys,
+			(SELECT COUNT(*) FROM journeys) as total_journeys,
 			(SELECT COUNT(DISTINCT user_id) FROM user_journeys WHERE status = 'active') as active_journey_users,
+			(SELECT COUNT(*) FROM user_journeys) as total_enrollments,
+			(SELECT COUNT(*) FROM user_journeys WHERE status = 'completed') as completed_enrollments,
 			(SELECT COUNT(*) FROM mentor_profiles WHERE is_active = 1) as active_mentors,
+			(SELECT COUNT(*) FROM mentor_profiles) as total_mentors,
 			(SELECT COUNT(*) FROM mentor_applications WHERE status = 'pending') as pending_mentor_applications,
 			(SELECT COUNT(*) FROM section_reviews WHERE status IN ('requested', 'in_review')) as pending_reviews,
 			(SELECT SUM(total_earnings) FROM mentor_profiles) as total_mentor_earnings,
-			(SELECT COUNT(*) FROM section_reviews WHERE reviewed_at >= date('now', '-7 days')) as reviews_completed_7d
+			(SELECT COUNT(*) FROM section_reviews WHERE reviewed_at >= date('now', '-7 days')) as reviews_completed_7d,
+			(SELECT AVG(overall_rating) FROM mentor_ratings) as average_rating
 	`
 		)
-		.first();
+		.first<PlatformOverviewStatsRow>();
 
 	return result;
 }
@@ -604,18 +697,26 @@ export async function getEnrollmentFunnel(
 	`
 		)
 		.bind(...bindings)
-		.first();
+		.first<EnrollmentFunnelRow>();
 
 	// Calculate conversion rates
 	if (result) {
+		const views = result.views ?? 0;
+		const enrollments = result.enrollments ?? 0;
+		const startedSections = result.started_sections ?? 0;
+		const journeyCompletions = result.journey_completions ?? 0;
 		return {
-			...result,
-			view_to_enrollment_rate: result.views ? (result.enrollments / result.views) * 100 : 0,
-			enrollment_to_active_rate: result.enrollments
-				? (result.started_sections / result.enrollments) * 100
+			views,
+			enrollments,
+			started_sections: startedSections,
+			completed_sections: result.completed_sections ?? 0,
+			journey_completions: journeyCompletions,
+			view_to_enrollment_rate: views ? (enrollments / views) * 100 : 0,
+			enrollment_to_active_rate: enrollments
+				? (startedSections / enrollments) * 100
 				: 0,
-			active_to_completion_rate: result.started_sections
-				? (result.journey_completions / result.started_sections) * 100
+			active_to_completion_rate: startedSections
+				? (journeyCompletions / startedSections) * 100
 				: 0
 		};
 	}

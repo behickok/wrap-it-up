@@ -284,7 +284,6 @@ let isExporting = $state(false);
 							sectionId={section.slug}
 							sectionData={data.sectionData}
 							userId={data.userId}
-							data={data}
 							fields={data.sectionFields?.[section.slug]}
 							sectionDefinition={data.sectionDefinitions?.[section.slug]}
 						/>
@@ -518,7 +517,4 @@ let isExporting = $state(false);
 		font-size: 0.875rem;
 	}
 
-	.section-body {
-		/* Content from SectionContent component will go here */
-	}
 </style>

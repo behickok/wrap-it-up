@@ -3,6 +3,15 @@
 -- Date: 2025-11-13
 
 -- =======================
+-- CLEANUP LEGACY TABLES (from 0006)
+-- =======================
+
+-- Legacy mentor review comments stored review_id references.
+-- The new schema uses section_review_id and additional metadata,
+-- so we drop the old table to avoid column conflicts when re-creating it.
+DROP TABLE IF EXISTS review_comments;
+
+-- =======================
 -- MENTOR APPLICATIONS
 -- =======================
 

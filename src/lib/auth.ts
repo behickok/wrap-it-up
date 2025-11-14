@@ -1,5 +1,6 @@
 // Authentication utilities for password hashing and session management
 import type { User, Session } from './types';
+import type { D1Database } from '@cloudflare/workers-types';
 
 /**
  * Hash a password using Web Crypto API (PBKDF2)

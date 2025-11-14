@@ -92,7 +92,7 @@ export const load: PageServerLoad = async ({ locals, platform, params }) => {
 		const pricingResult = await db
 			.prepare(
 				`
-			SELECT jp.*, st.name as tier_name, st.slug as tier_slug, st.features_json
+			SELECT jp.*, st.name as tier_name, st.slug as tier_slug, st.features_json, st.description as tier_description
 			FROM journey_pricing jp
 			JOIN service_tiers st ON jp.tier_id = st.id
 			WHERE jp.journey_id = ? AND jp.is_active = 1
@@ -105,16 +105,36 @@ export const load: PageServerLoad = async ({ locals, platform, params }) => {
 					tier_name: string;
 					tier_slug: string;
 					features_json: string | null;
+					tier_description: string | null;
 				}
 			>();
 
-		const pricing = pricingResult.results || [];
+		const pricing =
+			(pricingResult.results ||
+				[]) as (JourneyPricing & {
+				tier_name: string;
+				tier_slug: string;
+				features_json: string | null;
+				tier_description: string | null;
+			})[];
 
 		// Parse features JSON
-		const pricingWithFeatures = pricing.map((p) => ({
-			...p,
-			features: p.features_json ? JSON.parse(p.features_json) : []
-		}));
+		const pricingWithFeatures = pricing.map((p) => {
+			let features: string[] = [];
+			if (p.features_json) {
+				try {
+					const parsed = JSON.parse(p.features_json);
+					features = Array.isArray(parsed) ? parsed : [];
+				} catch {
+					features = [];
+				}
+			}
+
+			return {
+				...p,
+				features
+			};
+		});
 
 		// Track journey view event
 		await AnalyticsEvents.journeyView(db, {

@@ -157,9 +157,9 @@ export async function getUserThreads(
 	query += ' ORDER BY last_message_at DESC NULLS LAST, created_at DESC LIMIT ? OFFSET ?';
 	bindings.push(limit, offset);
 
-	const result = await db.prepare(query).bind(...bindings).all();
+	const result = await db.prepare(query).bind(...bindings).all<MessageThreadSummary>();
 
-	return result.results as MessageThreadSummary[];
+	return result.results ?? [];
 }
 
 /**
@@ -296,10 +296,10 @@ export async function getThreadMessages(
 	query += ' ORDER BY created_at DESC LIMIT ? OFFSET ?';
 	bindings.push(limit, offset);
 
-	const result = await db.prepare(query).bind(...bindings).all();
+	const result = await db.prepare(query).bind(...bindings).all<Message>();
 
 	// Return in ascending order (oldest first)
-	return (result.results as Message[]).reverse();
+	return (result.results ?? []).reverse();
 }
 
 /**
@@ -472,12 +472,11 @@ export async function getUnreadCountsByThread(
 			GROUP BY thread_id`
 		)
 		.bind(userId)
-		.all();
+		.all<{ thread_id: number; unread_count: number }>();
 
 	const counts: Record<number, number> = {};
 	for (const row of result.results || []) {
-		const r = row as any;
-		counts[r.thread_id] = r.unread_count;
+		counts[row.thread_id] = row.unread_count;
 	}
 
 	return counts;
@@ -513,9 +512,9 @@ export async function searchMessages(
 			LIMIT ? OFFSET ?`
 		)
 		.bind(userId, userId, `%${searchQuery}%`, limit, offset)
-		.all();
+		.all<Message>();
 
-	return result.results as Message[];
+	return result.results ?? [];
 }
 
 // ============================================================================

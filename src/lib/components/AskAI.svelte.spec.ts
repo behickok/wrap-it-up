@@ -22,7 +22,7 @@ beforeEach(() => {
 	});
 
 	it('opens the modal when the CTA is clicked', async () => {
-		render(AskAI, { props: { sectionName: 'Contacts' } });
+		render(AskAI, { target: document.body, props: { sectionName: 'Contacts' } });
 
 		await page.getByRole('button', { name: 'Ask AI for Help' }).click();
 
@@ -33,7 +33,7 @@ beforeEach(() => {
 	});
 
 	it('submits the user question and renders the AI response', async () => {
-		render(AskAI, { props: { sectionName: 'Contacts' } });
+		render(AskAI, { target: document.body, props: { sectionName: 'Contacts' } });
 
 		await page.getByRole('button', { name: 'Ask AI for Help' }).click();
 		await page

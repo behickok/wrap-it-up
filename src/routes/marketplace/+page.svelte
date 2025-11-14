@@ -56,10 +56,11 @@
 			<div class="flex flex-wrap gap-4 items-end">
 				<!-- Search -->
 				<div class="form-control flex-1 min-w-[250px]">
-					<label class="label">
+					<label class="label" for="journey-search">
 						<span class="label-text">Search journeys</span>
 					</label>
 					<input
+						id="journey-search"
 						type="text"
 						bind:value={searchQuery}
 						placeholder="Search by name or description..."
@@ -70,10 +71,14 @@
 
 				<!-- Category Filter -->
 				<div class="form-control min-w-[200px]">
-					<label class="label">
+					<label class="label" for="category-filter">
 						<span class="label-text">Category</span>
 					</label>
-					<select bind:value={selectedCategory} class="select select-bordered">
+					<select
+						id="category-filter"
+						bind:value={selectedCategory}
+						class="select select-bordered"
+					>
 						<option value="">All Categories</option>
 						{#each data.allCategories as category}
 							<option value={category.name}>
@@ -206,6 +211,7 @@
 <style>
 	.line-clamp-3 {
 		display: -webkit-box;
+		line-clamp: 3;
 		-webkit-line-clamp: 3;
 		-webkit-box-orient: vertical;
 		overflow: hidden;

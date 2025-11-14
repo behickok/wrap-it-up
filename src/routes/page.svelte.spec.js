@@ -27,24 +27,41 @@ function createPageData() {
 		pets: []
 	};
 
+	/** @type {Record<string, number>} */
+	const sectionScores = {};
+	SECTIONS.forEach((section, index) => {
+		sectionScores[section.id] = index === 0 ? 80 : 40;
+	});
+
 	const readinessScore = {
 		total_score: 72,
-		sections: SECTIONS.reduce((acc, section, index) => {
-			acc[section.id] = index === 0 ? 80 : 40;
-			return acc;
-		}, {})
+		sections: sectionScores
 	};
 
 	return {
 		readinessScore,
 		sectionData,
-		userId: 1
+		userId: 1,
+		userJourneys: [],
+		isMentor: false,
+		user: {
+			id: 1,
+			email: 'test@example.com',
+			username: 'tester',
+			is_active: true,
+			last_login: null,
+			created_at: new Date().toISOString(),
+			updated_at: new Date().toISOString()
+		},
+		featuredJourneys: [],
+		enrolledJourneys: [],
+		availableJourneys: []
 	};
 }
 
 describe('/+page.svelte', () => {
 	it('renders the export call-to-action with a working button', async () => {
-		render(Page, { props: { data: createPageData() } });
+		render(Page, { target: document.body, props: { data: createPageData() } });
 
 		const heading = page.getByRole('heading', {
 			level: 2,
@@ -57,7 +74,7 @@ describe('/+page.svelte', () => {
 	});
 
 	it('shows journey tabs for each planning category', async () => {
-		render(Page, { props: { data: createPageData() } });
+		render(Page, { target: document.body, props: { data: createPageData() } });
 
 		const planTab = page.getByRole('tab', { name: /Plan Legal & Financial Foundation/ });
 		await expect.element(planTab).toBeInTheDocument();
@@ -67,7 +84,7 @@ describe('/+page.svelte', () => {
 	});
 
 	it('lists the sections for the active category in the sidebar', async () => {
-		render(Page, { props: { data: createPageData() } });
+		render(Page, { target: document.body, props: { data: createPageData() } });
 
 		const legalButton = page.getByRole('button', { name: /Legal Documents/ });
 		await expect.element(legalButton).toBeInTheDocument();

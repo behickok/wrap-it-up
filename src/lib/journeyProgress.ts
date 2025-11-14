@@ -6,6 +6,7 @@
 import { calculateSectionScore } from './readinessScore';
 import { getSectionDataBySlugs } from './server/genericSectionData';
 import { loadLegacySectionData, type LegacySectionSlug } from './server/legacySectionLoaders';
+import type { D1Database } from '@cloudflare/workers-types';
 
 const PROGRESS_SECTION_SLUGS: LegacySectionSlug[] = [
 	'credentials',

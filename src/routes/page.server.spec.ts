@@ -36,10 +36,10 @@ function createStubDb(options: { journeys?: any[]; userJourneys?: any[] }) {
 
 describe('load', () => {
 	it('returns marketing data when the database binding is missing', async () => {
-		const result = await load({
+		const result = (await load({
 			locals: { user: null },
 			platform: { env: {} }
-		} as any);
+		} as any)) as any;
 
 		expect(result).toEqual({
 			user: null,
@@ -76,10 +76,10 @@ describe('load', () => {
 			]
 		});
 
-		const result = await load({
+		const result = (await load({
 			locals: { user: { id: 1, email: 'casey@example.com' } },
 			platform: { env: { DB: db } }
-		} as any);
+		} as any)) as any;
 
 		expect(result.user?.email).toBe('casey@example.com');
 		expect(result.enrolledJourneys).toHaveLength(1);

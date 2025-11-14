@@ -2,9 +2,27 @@
 	import { enhance } from '$app/forms';
 	import { invalidateAll } from '$app/navigation';
 	import type { PageData } from './$types';
-	import type { FieldType, SectionField } from '$lib/types';
+import type { FieldType, SectionField } from '$lib/types';
 
-	let { data }: { data: PageData } = $props();
+let { data }: { data: PageData } = $props();
+type ServiceTierData = (typeof data.serviceTiers)[number];
+type SectionData = (typeof data.sections)[number];
+type FieldData = (typeof data.fields)[number];
+type JourneyCategoryData = (typeof data.journeyCategories)[number];
+type CategoryData = (typeof data.allCategories)[number];
+
+const availableCategories: CategoryData[] = data.allCategories.filter(
+	(category: CategoryData) =>
+		!data.journeyCategories.find(
+			(jc: JourneyCategoryData) => jc.category_id === category.id
+		)
+);
+function getSectionsByCategory(categoryId: number) {
+	return data.sections.filter((section: SectionData) => section.category_id === categoryId);
+}
+function findSectionById(sectionId: number) {
+	return data.sections.find((section: SectionData) => section.section_id === sectionId) ?? null;
+}
 
 	// Tab state
 	let activeTab = $state<'info' | 'categories' | 'sections' | 'pricing' | 'preview'>('info');
@@ -61,9 +79,9 @@
 	let previewSectionId = $state<number | null>(null);
 
 	// Pricing state
-	let pricingData = $state(
-		data.serviceTiers.map((tier) => {
-			const existing = data.journeyPricing.find((p) => p.tier_id === tier.id);
+let pricingData = $state(
+	data.serviceTiers.map((tier: ServiceTierData) => {
+		const existing = data.journeyPricing.find((p) => p.tier_id === tier.id);
 			return {
 				tier_id: tier.id,
 				tier_name: tier.name,
@@ -128,8 +146,8 @@
 		}
 	}
 
-	function openSectionEditor(sectionId: number) {
-		const section = data.sections.find((s) => s.section_id === sectionId);
+function openSectionEditor(sectionId: number) {
+	const section = data.sections.find((s: SectionData) => s.section_id === sectionId);
 		if (section) {
 			editingSection = sectionId;
 			sectionForm = {
@@ -143,8 +161,8 @@
 		}
 	}
 
-	function openFieldEditor(fieldId: number) {
-		const field = data.fields.find((f) => f.id === fieldId);
+function openFieldEditor(fieldId: number) {
+	const field = data.fields.find((f: FieldData) => f.id === fieldId);
 		if (field) {
 			editingField = fieldId;
 			fieldForm = {
@@ -188,9 +206,9 @@
 		editingField = null;
 	}
 
-	function getSectionFields(sectionId: number) {
-		return data.fields.filter((f) => f.section_id === sectionId);
-	}
+function getSectionFields(sectionId: number) {
+	return data.fields.filter((f: FieldData) => f.section_id === sectionId);
+}
 
 	function getCategoryColor(categoryName: string): string {
 		const colors: Record<string, string> = {
@@ -219,12 +237,12 @@
 		event.preventDefault();
 		if (!draggedFieldId || draggedFieldId === targetFieldId) return;
 
-		const sectionId = data.fields.find((f) => f.id === draggedFieldId)?.section_id;
+	const sectionId = data.fields.find((f: FieldData) => f.id === draggedFieldId)?.section_id;
 		if (!sectionId) return;
 
-		const sectionFields = getSectionFields(sectionId);
-		const draggedIndex = sectionFields.findIndex((f) => f.id === draggedFieldId);
-		const targetIndex = sectionFields.findIndex((f) => f.id === targetFieldId);
+	const sectionFields = getSectionFields(sectionId);
+	const draggedIndex = sectionFields.findIndex((f: FieldData) => f.id === draggedFieldId);
+	const targetIndex = sectionFields.findIndex((f: FieldData) => f.id === targetFieldId);
 
 		if (draggedIndex === -1 || targetIndex === -1) return;
 
@@ -498,7 +516,7 @@
 								required
 							>
 								<option value={null} disabled selected>Choose a category...</option>
-								{#each data.allCategories.filter((c) => !data.journeyCategories.find((jc) => jc.category_id === c.id)) as category}
+								{#each availableCategories as category}
 									<option value={category.id}>
 										{category.icon || '📁'} {category.name}
 									</option>
@@ -527,7 +545,19 @@
 						</div>
 					</form>
 				</div>
-				<div class="modal-backdrop" onclick={() => (showCategoryPicker = false)}></div>
+		<div
+			class="modal-backdrop"
+			role="button"
+			tabindex="0"
+			onclick={() => (showCategoryPicker = false)}
+			onkeydown={(event) => {
+				if (event.key === 'Enter' || event.key === ' ') {
+					event.preventDefault();
+					showCategoryPicker = false;
+				}
+			}}
+			aria-label="Close category picker"
+		></div>
 			</div>
 		{/if}
 	{:else if activeTab === 'sections'}
@@ -558,7 +588,7 @@
 			{:else}
 				<!-- Group sections by category -->
 				{#each data.journeyCategories as jc}
-					{@const categorySections = data.sections.filter((s) => s.category_id === jc.category_id)}
+					{@const categorySections = getSectionsByCategory(jc.category_id)}
 					{#if categorySections.length > 0}
 						<div class="mb-6">
 							<h3 class="text-xl font-semibold mb-4 flex items-center gap-2">
@@ -608,8 +638,9 @@
 														{#if sectionFields.length > 0}
 															<div class="space-y-2">
 																{#each sectionFields as field}
-																	<div
-																		class="flex items-center gap-2 p-2 bg-base-200 rounded cursor-move"
+									<div
+										role="listitem"
+										class="flex items-center gap-2 p-2 bg-base-200 rounded cursor-move"
 																		draggable="true"
 																		ondragstart={() => handleDragStart(field.id)}
 																		ondragover={handleDragOver}
@@ -754,9 +785,9 @@
 								pattern="[a-z0-9_]+"
 								class="input input-bordered"
 							/>
-							<label class="label">
+							<div class="label">
 								<span class="label-text-alt">Use lowercase letters, numbers, and underscores</span>
-							</label>
+							</div>
 						</div>
 
 						<div class="form-control mb-4">
@@ -832,7 +863,19 @@
 						</div>
 					</form>
 				</div>
-				<div class="modal-backdrop" onclick={resetSectionForm}></div>
+		<div
+			class="modal-backdrop"
+			role="button"
+			tabindex="0"
+			onclick={resetSectionForm}
+			onkeydown={(event) => {
+				if (event.key === 'Enter' || event.key === ' ') {
+					event.preventDefault();
+					resetSectionForm();
+				}
+			}}
+			aria-label="Close section form"
+		></div>
 			</div>
 		{/if}
 
@@ -893,9 +936,9 @@
 								placeholder="e.g., wedding_date"
 								class="input input-bordered"
 							/>
-							<label class="label">
+							<div class="label">
 								<span class="label-text-alt">Use lowercase letters, numbers, and underscores</span>
-							</label>
+							</div>
 						</div>
 
 						<div class="grid grid-cols-2 gap-4 mb-4">
@@ -976,11 +1019,11 @@
 								placeholder="JSON config (e.g., rows, options)"
 								class="textarea textarea-bordered font-mono text-sm"
 							></textarea>
-							<label class="label">
+							<div class="label">
 								<span class="label-text-alt"
 									>Optional JSON configuration for select options, text area rows, etc.</span
 								>
-							</label>
+							</div>
 						</div>
 
 						<div class="form-control mb-4">
@@ -1004,7 +1047,19 @@
 						</div>
 					</form>
 				</div>
-				<div class="modal-backdrop" onclick={resetFieldForm}></div>
+		<div
+			class="modal-backdrop"
+			role="button"
+			tabindex="0"
+			onclick={resetFieldForm}
+			onkeydown={(event) => {
+				if (event.key === 'Enter' || event.key === ' ') {
+					event.preventDefault();
+					resetFieldForm();
+				}
+			}}
+			aria-label="Close field form"
+		></div>
 			</div>
 		{/if}
 	{:else if activeTab === 'pricing'}
@@ -1067,9 +1122,9 @@
 
 							<!-- Monthly Pricing -->
 							<div class="form-control mt-4">
-								<label class="label">
+								<div class="label">
 									<span class="label-text font-semibold">Monthly Price</span>
-								</label>
+								</div>
 								<label class="input-group">
 									<span>$</span>
 									<input
@@ -1105,14 +1160,14 @@
 
 							<!-- Annual Pricing -->
 							<div class="form-control">
-								<label class="label">
+								<div class="label">
 									<span class="label-text font-semibold">Annual Price</span>
 									{#if pricing.monthly_price > 0}
 										<span class="label-text-alt">
 											(${(pricing.monthly_price * 12).toFixed(2)} if monthly)
 										</span>
 									{/if}
-								</label>
+								</div>
 								<label class="input-group">
 									<span>$</span>
 									<input
@@ -1203,7 +1258,7 @@
 
 			<!-- Category and Section Navigation -->
 			{#each data.journeyCategories as jc}
-				{@const categorySections = data.sections.filter((s) => s.category_id === jc.category_id)}
+				{@const categorySections = getSectionsByCategory(jc.category_id)}
 				{#if categorySections.length > 0}
 					<div class="card bg-base-100 shadow-lg">
 						<div class="card-body">
@@ -1236,7 +1291,7 @@
 
 			<!-- Section Preview -->
 			{#if previewSectionId}
-				{@const section = data.sections.find((s) => s.section_id === previewSectionId)}
+				{@const section = findSectionById(previewSectionId)}
 				{@const sectionFields = section ? getSectionFields(section.section_id) : []}
 				{#if section}
 					<div class="card bg-base-100 shadow-xl border-2 border-primary">
@@ -1269,9 +1324,9 @@
 											</label>
 
 											{#if field.help_text}
-												<label class="label">
+												<div class="label">
 													<span class="label-text-alt">{field.help_text}</span>
-												</label>
+												</div>
 											{/if}
 
 											<!-- Field Type Preview -->

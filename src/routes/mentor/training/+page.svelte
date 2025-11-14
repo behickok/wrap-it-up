@@ -238,6 +238,7 @@
 
 <!-- Module Content Modal -->
 {#if activeModule}
+	{@const status = getStatusBadge(activeModule)}
 	<div class="modal modal-open">
 		<div class="modal-box max-w-4xl max-h-[90vh] flex flex-col">
 			<!-- Header -->
@@ -248,7 +249,6 @@
 						<p class="text-base-content/70">{activeModule.description}</p>
 					{/if}
 					<div class="flex items-center gap-2 mt-2">
-						{@const status = getStatusBadge(activeModule)}
 						<span class="badge {status.class}">{status.label}</span>
 						{#if activeModule.is_required}
 							<span class="badge badge-error badge-outline">Required</span>
@@ -295,6 +295,11 @@
 				{/if}
 			</div>
 		</div>
-		<div class="modal-backdrop" onclick={closeModule}></div>
+		<button
+			type="button"
+			class="modal-backdrop"
+			aria-label="Close training module"
+			onclick={closeModule}
+		></button>
 	</div>
 {/if}

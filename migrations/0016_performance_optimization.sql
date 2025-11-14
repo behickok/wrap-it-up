@@ -194,16 +194,16 @@ CREATE INDEX IF NOT EXISTS idx_asset_perf ON asset_performance(asset_type, recor
 -- Additional Indexes for Existing Tables (Based on Common Queries)
 -- ============================================================================
 
--- User enrollments - frequently filtered by status and date
-CREATE INDEX IF NOT EXISTS idx_enrollments_user_status ON user_enrollments(user_id, status, enrolled_at);
-CREATE INDEX IF NOT EXISTS idx_enrollments_journey_status ON user_enrollments(journey_id, status);
+-- User enrollments (user_journeys) - frequently filtered by status and date
+CREATE INDEX IF NOT EXISTS idx_enrollments_user_status ON user_journeys(user_id, status, started_at);
+CREATE INDEX IF NOT EXISTS idx_enrollments_journey_status ON user_journeys(journey_id, status);
 
--- Section progress - frequently joined with user and section
-CREATE INDEX IF NOT EXISTS idx_section_progress_composite ON section_progress(user_id, section_id, status);
+-- Section progress - frequently joined with user journey and section
+CREATE INDEX IF NOT EXISTS idx_section_progress_composite ON user_journey_progress(user_journey_id, section_id, is_completed);
 
 -- Section reviews - frequently filtered by status and dates
 CREATE INDEX IF NOT EXISTS idx_reviews_mentor_status ON section_reviews(mentor_user_id, status, claimed_at);
-CREATE INDEX IF NOT EXISTS idx_reviews_client_status ON section_reviews(client_user_id, status, created_at);
+CREATE INDEX IF NOT EXISTS idx_reviews_client_status ON section_reviews(user_journey_id, status, requested_at);
 
 -- Analytics events - frequently aggregated by type and date
 CREATE INDEX IF NOT EXISTS idx_analytics_composite ON analytics_events(event_type, user_id, created_at);
@@ -213,8 +213,8 @@ CREATE INDEX IF NOT EXISTS idx_analytics_journey ON analytics_events(journey_id,
 CREATE INDEX IF NOT EXISTS idx_mentor_rating ON mentor_profiles(average_rating DESC, total_reviews DESC);
 
 -- Journey templates - frequently filtered and sorted
-CREATE INDEX IF NOT EXISTS idx_templates_category ON journey_templates(category, is_public, average_rating DESC);
-CREATE INDEX IF NOT EXISTS idx_templates_featured ON journey_templates(is_featured, average_rating DESC);
+CREATE INDEX IF NOT EXISTS idx_templates_category ON journey_templates(category, is_public, rating DESC);
+CREATE INDEX IF NOT EXISTS idx_templates_featured ON journey_templates(is_featured, rating DESC);
 
 -- User accessibility preferences - frequently joined with users
 CREATE INDEX IF NOT EXISTS idx_accessibility_user ON user_accessibility_preferences(user_id);
@@ -311,7 +311,7 @@ END;
 
 -- Update journey stats cache when enrollment status changes
 CREATE TRIGGER IF NOT EXISTS update_journey_stats_on_enrollment
-AFTER UPDATE ON user_enrollments
+AFTER UPDATE ON user_journeys
 FOR EACH ROW
 WHEN NEW.status != OLD.status
 BEGIN
@@ -330,12 +330,12 @@ BEGIN
         COUNT(CASE WHEN status = 'active' THEN 1 END) as active,
         COUNT(CASE WHEN status = 'completed' THEN 1 END) as completed,
         AVG(CASE
-            WHEN status = 'completed' AND completed_at IS NOT NULL AND enrolled_at IS NOT NULL
-            THEN JULIANDAY(completed_at) - JULIANDAY(enrolled_at)
+            WHEN status = 'completed' AND completed_at IS NOT NULL AND started_at IS NOT NULL
+            THEN JULIANDAY(completed_at) - JULIANDAY(started_at)
         END) as avg_days,
         CAST(COUNT(CASE WHEN status = 'completed' THEN 1 END) * 100.0 / COUNT(*) AS REAL) as rate,
         CURRENT_TIMESTAMP
-    FROM user_enrollments
+    FROM user_journeys
     WHERE journey_id = NEW.journey_id;
 END;
 

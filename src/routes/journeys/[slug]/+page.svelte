@@ -172,7 +172,6 @@
 							{:else}
 								<div class="space-y-4">
 									{#each data.pricing as tier}
-										{@const features = parseTierFeatures(tier.features_json)}
 										<div class="border-2 rounded-lg p-4 {tier.tier_slug === 'premium' ? 'border-primary bg-primary/5' : 'border-base-300'}">
 											<div class="flex justify-between items-start mb-2">
 												<h3 class="font-bold text-lg">{tier.tier_name}</h3>

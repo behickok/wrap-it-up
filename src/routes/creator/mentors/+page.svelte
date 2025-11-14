@@ -2,6 +2,7 @@
 	import type { PageData, ActionData } from './$types';
 	import { enhance } from '$app/forms';
 	import { invalidateAll } from '$app/navigation';
+	import type { MentorApplicationWithUser } from '$lib/types';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
 
@@ -19,7 +20,9 @@
 
 	// Get application by ID
 	const getApplication = (id: number) => {
-		return data.pendingApplications.find((app) => app.id === id);
+		return data.pendingApplications.find(
+			(app: MentorApplicationWithUser) => app.id === id
+		);
 	};
 
 	// Format date
@@ -399,7 +402,12 @@
 					</div>
 				</form>
 			</div>
-			<div class="modal-backdrop" onclick={closeReviewModal}></div>
+			<button
+				type="button"
+				class="modal-backdrop"
+				aria-label="Close review modal"
+				onclick={closeReviewModal}
+			></button>
 		</div>
 	{/if}
 {/if}
@@ -464,6 +472,7 @@
 				<div class="form-control mb-4">
 					<label class="label" for="review_rate">
 						<span class="label-text">Review Rate ($) *</span>
+						<span class="label-text-alt">Amount paid per completed review</span>
 					</label>
 					<input
 						type="number"
@@ -475,14 +484,12 @@
 						step="1"
 						required
 					/>
-					<label class="label">
-						<span class="label-text-alt">Amount paid per completed review</span>
-					</label>
 				</div>
 
 				<div class="form-control mb-4">
 					<label class="label" for="revenue_share">
 						<span class="label-text">Revenue Share (%)</span>
+						<span class="label-text-alt">Percentage of Guided tier subscription revenue</span>
 					</label>
 					<input
 						type="number"
@@ -494,9 +501,6 @@
 						max="100"
 						step="0.1"
 					/>
-					<label class="label">
-						<span class="label-text-alt">Percentage of Guided tier subscription revenue</span>
-					</label>
 				</div>
 
 				<div class="form-control mb-4">
@@ -522,6 +526,11 @@
 				</div>
 			</form>
 		</div>
-		<div class="modal-backdrop" onclick={closeAssignModal}></div>
+		<button
+			type="button"
+			class="modal-backdrop"
+			aria-label="Close assign mentor modal"
+			onclick={closeAssignModal}
+		></button>
 	</div>
 {/if}

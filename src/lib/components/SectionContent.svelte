@@ -38,7 +38,7 @@
 		} | null;
 	};
 
-	const props = $props<SectionContentProps>();
+	const props: SectionContentProps = $props();
 
 	const sectionId = $derived(props.sectionId);
 	const data = $derived(props.data);
@@ -46,11 +46,11 @@
 	const providedUserId = $derived(props.userId);
 	const providedUser = $derived(props.user);
 
-	const fields = $derived(props.fields ?? data?.sectionFields?.[sectionId] ?? []);
+	const fields = $derived(props.fields ?? []);
 	const sectionDefinition = $derived(props.sectionDefinition);
 
 	const section = $derived(sectionDefinition ?? SECTIONS.find((s) => s.id === sectionId));
-	const sectionData = $derived(() => {
+	const sectionData: Record<string, any> = $derived(() => {
 		const dataSection = data?.sectionData;
 		const propSection = providedSectionData;
 
@@ -62,7 +62,7 @@
 			return propSection[sectionId];
 		}
 
-		return dataSection ?? propSection ?? {};
+		return (dataSection ?? propSection ?? {}) as Record<string, any>;
 	});
 	const userId = $derived(
 		providedUserId ?? data?.userId ?? providedUser?.id ?? data?.user?.id
@@ -91,15 +91,23 @@
 
 	let formData = $state<Record<string, any>>({});
 	$effect(() => {
-		formData = { ...sectionData, ...(sectionData?.history ?? {}) };
+		const currentData = sectionData && typeof sectionData === 'object' ? sectionData : {};
+		const history = currentData && typeof currentData === 'object' ? (currentData as any).history ?? {} : {};
+		formData = { ...(currentData as Record<string, any>), ...(history as Record<string, any>) };
 	});
 	const physiciansList = $derived(
-		Array.isArray(formData?.physicians) ? formData.physicians : []
+		Array.isArray((sectionData as any)?.physicians)
+			? ((sectionData as Record<string, any>).physicians as any[])
+			: []
 	);
 	const familyMembersList = $derived(
-		Array.isArray(sectionData?.members) ? sectionData.members : []
+		Array.isArray((sectionData as any)?.members)
+			? ((sectionData as Record<string, any>).members as any[])
+			: []
 	);
-	const familyHistory = $derived(sectionData?.history || {});
+	const familyHistory = $derived(
+		(sectionData && typeof sectionData === 'object' && (sectionData as any).history) || {}
+	);
 	let saving = $state(false);
 
 	function getCategoryColor(category: string): string {
@@ -166,18 +174,18 @@
 	{:else}
 		<form
 			method="POST"
-			action="/section/{sectionId}?/save"
-				use:enhance={() => {
-					saving = true;
-					return async ({ update }) => {
-						try {
-							await update();
-						} finally {
-							saving = false;
-						}
-					};
-				}}
-			>
+			action={`/section/${sectionId}?/save`}
+			use:enhance={() => {
+				saving = true;
+				return async ({ update }) => {
+					try {
+						await update();
+					} finally {
+						saving = false;
+					}
+				};
+			}}
+		>
 			<div class="card shadow-xl p-8 mb-6" style="background-color: var(--color-card);">
 				{#if sectionId === 'personal'}
 				<div class="mb-10">

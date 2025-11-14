@@ -8,6 +8,7 @@ import {
 	getDailyActiveUsers,
 	getPlatformOverviewStats
 } from '$lib/server/analytics';
+import type { Journey } from '$lib/types';
 
 export const load: PageServerLoad = async ({ locals, platform, url }) => {
 	if (!locals.user) {
@@ -51,7 +52,7 @@ export const load: PageServerLoad = async ({ locals, platform, url }) => {
 		.bind(locals.user.id)
 		.all();
 
-	const journeys = journeysResult.results || [];
+	const journeys = (journeysResult.results || []) as Journey[];
 
 	// Get analytics for creator's journeys
 	const journeyAnalytics = await getCreatorJourneyAnalytics(db, {
@@ -61,7 +62,7 @@ export const load: PageServerLoad = async ({ locals, platform, url }) => {
 	});
 
 	// Get engagement trends for each journey
-	const engagementTrendsPromises = journeys.map(async (journey: any) => {
+	const engagementTrendsPromises = journeys.map(async (journey) => {
 		const trends = await getJourneyEngagementTrends(db, {
 			journeyId: journey.id,
 			days
@@ -72,13 +73,14 @@ export const load: PageServerLoad = async ({ locals, platform, url }) => {
 		};
 	});
 
-	const engagementTrendsData = await Promise.all(engagementTrendsPromises);
-	const engagementTrendsMap = new Map(
-		engagementTrendsData.map((t) => [t.journey_id, t.trends])
+	const engagementTrendsData: { journey_id: number; trends: Awaited<ReturnType<typeof getJourneyEngagementTrends>> }[] =
+		await Promise.all(engagementTrendsPromises);
+	const engagementTrendsMap = new Map<number, Awaited<ReturnType<typeof getJourneyEngagementTrends>>>(
+		engagementTrendsData.map((entry) => [entry.journey_id, entry.trends])
 	);
 
 	// Get section completion rates for each journey
-	const sectionStatsPromises = journeys.map(async (journey: any) => {
+	const sectionStatsPromises = journeys.map(async (journey) => {
 		const sections = await getSectionCompletionRates(db, {
 			journeyId: journey.id
 		});
@@ -88,29 +90,29 @@ export const load: PageServerLoad = async ({ locals, platform, url }) => {
 		};
 	});
 
-	const sectionStatsData = await Promise.all(sectionStatsPromises);
-	const sectionStatsMap = new Map(sectionStatsData.map((s) => [s.journey_id, s.sections]));
+	const sectionStatsData: { journey_id: number; sections: Awaited<ReturnType<typeof getSectionCompletionRates>> }[] =
+		await Promise.all(sectionStatsPromises);
+	const sectionStatsMap = new Map<number, Awaited<ReturnType<typeof getSectionCompletionRates>>>(
+		sectionStatsData.map((entry) => [entry.journey_id, entry.sections])
+	);
 
 	// Calculate overall summary statistics
 	const totalEnrollments = journeyAnalytics.reduce(
-		(sum: number, j: any) => sum + (j.total_enrollments || 0),
+		(sum, j) => sum + (j.total_enrollments ?? 0),
 		0
 	);
-	const totalActiveUsers = journeyAnalytics.reduce(
-		(sum: number, j: any) => sum + (j.active_users || 0),
-		0
-	);
+	const totalActiveUsers = journeyAnalytics.reduce((sum, j) => sum + (j.active_users ?? 0), 0);
 	const totalCompletedUsers = journeyAnalytics.reduce(
-		(sum: number, j: any) => sum + (j.completed_users || 0),
+		(sum, j) => sum + (j.completed_users ?? 0),
 		0
 	);
 	const totalReviews = journeyAnalytics.reduce(
-		(sum: number, j: any) => sum + (j.total_reviews || 0),
+		(sum, j) => sum + (j.total_reviews ?? 0),
 		0
 	);
 
 	const avgRating =
-		journeyAnalytics.reduce((sum: number, j: any) => sum + (j.avg_review_rating || 0), 0) /
+		journeyAnalytics.reduce((sum, j) => sum + (j.avg_review_rating ?? 0), 0) /
 		Math.max(journeyAnalytics.length, 1);
 
 	const completionRate =

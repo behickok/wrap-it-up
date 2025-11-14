@@ -3,6 +3,19 @@
 	import { enhance } from '$app/forms';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
+	type MentorApplicationFormData = {
+		error?: string;
+		bio?: string;
+		expertise?: string;
+		experienceYears?: number;
+		education?: string;
+		certifications?: string;
+		whyMentor?: string;
+		sampleFeedback?: string;
+		availabilityHours?: number;
+		hourlyRate?: number;
+	};
+	const formValues: MentorApplicationFormData = form ?? {};
 
 	// Get status badge class
 	function getStatusBadgeClass(status: string): string {
@@ -162,9 +175,9 @@
 			<div class="card-body">
 				<h2 class="card-title text-2xl mb-4">Application Form</h2>
 
-				{#if form?.error}
+				{#if formValues.error}
 					<div class="alert alert-error mb-4">
-						<span>{form.error}</span>
+						<span>{formValues.error}</span>
 					</div>
 				{/if}
 
@@ -180,12 +193,13 @@
 							rows="5"
 							class="textarea textarea-bordered"
 							placeholder="Tell us about your professional background, experience, and what makes you a great mentor..."
-							value={form?.bio || ''}
+							value={formValues.bio || ''}
+							aria-describedby="bio-help"
 							required
 						></textarea>
-						<label class="label">
-							<span class="label-text-alt">Minimum 100 characters</span>
-						</label>
+						<div class="label">
+							<span id="bio-help" class="label-text-alt">Minimum 100 characters</span>
+						</div>
 					</div>
 
 					<!-- Expertise -->
@@ -199,12 +213,13 @@
 							name="expertise"
 							class="input input-bordered"
 							placeholder="e.g., Estate Planning, Healthcare Navigation, Wedding Planning"
-							value={form?.expertise || ''}
+							value={formValues.expertise || ''}
+							aria-describedby="expertise-help"
 							required
 						/>
-						<label class="label">
-							<span class="label-text-alt">Separate multiple areas with commas</span>
-						</label>
+						<div class="label">
+							<span id="expertise-help" class="label-text-alt">Separate multiple areas with commas</span>
+						</div>
 					</div>
 
 					<!-- Experience Years -->
@@ -220,7 +235,7 @@
 							min="0"
 							step="1"
 							placeholder="5"
-							value={form?.experienceYears || ''}
+							value={formValues.experienceYears || ''}
 							required
 						/>
 					</div>
@@ -236,7 +251,7 @@
 							rows="3"
 							class="textarea textarea-bordered"
 							placeholder="Your educational background (degrees, schools, etc.)"
-							value={form?.education || ''}
+							value={formValues.education || ''}
 						></textarea>
 					</div>
 
@@ -251,7 +266,7 @@
 							rows="3"
 							class="textarea textarea-bordered"
 							placeholder="Relevant certifications, licenses, or credentials"
-							value={form?.certifications || ''}
+							value={formValues.certifications || ''}
 						></textarea>
 					</div>
 
@@ -266,12 +281,13 @@
 							rows="4"
 							class="textarea textarea-bordered"
 							placeholder="What motivates you to help others? What do you hope to achieve as a mentor?"
-							value={form?.whyMentor || ''}
+							value={formValues.whyMentor || ''}
+							aria-describedby="why-mentor-help"
 							required
 						></textarea>
-						<label class="label">
-							<span class="label-text-alt">Minimum 50 characters</span>
-						</label>
+						<div class="label">
+							<span id="why-mentor-help" class="label-text-alt">Minimum 50 characters</span>
+						</div>
 					</div>
 
 					<!-- Sample Feedback -->
@@ -285,12 +301,15 @@
 							rows="5"
 							class="textarea textarea-bordered"
 							placeholder="Provide a sample of how you would give constructive feedback to someone working through a journey section. Show your mentoring style..."
-							value={form?.sampleFeedback || ''}
+							value={formValues.sampleFeedback || ''}
+							aria-describedby="sample-feedback-help"
 							required
 						></textarea>
-						<label class="label">
-							<span class="label-text-alt">Minimum 100 characters - show us your feedback style</span>
-						</label>
+						<div class="label">
+							<span id="sample-feedback-help" class="label-text-alt">
+								Minimum 100 characters - show us your feedback style
+							</span>
+						</div>
 					</div>
 
 					<!-- Availability -->
@@ -307,12 +326,15 @@
 							max="40"
 							step="1"
 							placeholder="10"
-							value={form?.availabilityHours || ''}
+							value={formValues.availabilityHours || ''}
+							aria-describedby="availability-help"
 							required
 						/>
-						<label class="label">
-							<span class="label-text-alt">How many hours per week can you dedicate to mentoring?</span>
-						</label>
+						<div class="label">
+							<span id="availability-help" class="label-text-alt">
+								How many hours per week can you dedicate to mentoring?
+							</span>
+						</div>
 					</div>
 
 					<!-- Hourly Rate -->
@@ -328,14 +350,15 @@
 							min="0"
 							step="1"
 							placeholder="50"
-							value={form?.hourlyRate || ''}
+							value={formValues.hourlyRate || ''}
+							aria-describedby="hourly-rate-help"
 							required
 						/>
-						<label class="label">
-							<span class="label-text-alt"
-								>This is your base rate - actual rates are negotiated per journey</span
-							>
-						</label>
+						<div class="label">
+							<span id="hourly-rate-help" class="label-text-alt">
+								This is your base rate - actual rates are negotiated per journey
+							</span>
+						</div>
 					</div>
 
 					<!-- Submit -->

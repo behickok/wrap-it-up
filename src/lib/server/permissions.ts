@@ -12,6 +12,7 @@ import type {
 	CoachClient,
 	SectionShare
 } from '$lib/types';
+import type { D1Database } from '@cloudflare/workers-types';
 
 /**
  * Fetch user with roles and permissions

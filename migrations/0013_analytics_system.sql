@@ -5,6 +5,14 @@
 -- Dependencies: Phase 4 Complete (Mentor Review System)
 
 -- =======================
+-- CLEANUP LEGACY ANALYTICS STRUCTURES (from prior phases)
+-- =======================
+
+DROP TABLE IF EXISTS analytics_events;
+DROP TABLE IF EXISTS journey_analytics;
+DROP TABLE IF EXISTS section_analytics;
+
+-- =======================
 -- ANALYTICS EVENTS
 -- =======================
 
@@ -37,12 +45,12 @@ CREATE TABLE IF NOT EXISTS analytics_events (
 );
 
 -- Indexes for fast event querying
-CREATE INDEX idx_analytics_events_type ON analytics_events(event_type);
-CREATE INDEX idx_analytics_events_type_date ON analytics_events(event_type, created_at);
-CREATE INDEX idx_analytics_events_user ON analytics_events(user_id);
-CREATE INDEX idx_analytics_events_journey ON analytics_events(journey_id);
-CREATE INDEX idx_analytics_events_category ON analytics_events(event_category);
-CREATE INDEX idx_analytics_events_date ON analytics_events(created_at);
+CREATE INDEX IF NOT EXISTS idx_analytics_events_type ON analytics_events(event_type);
+CREATE INDEX IF NOT EXISTS idx_analytics_events_type_date ON analytics_events(event_type, created_at);
+CREATE INDEX IF NOT EXISTS idx_analytics_events_user ON analytics_events(user_id);
+CREATE INDEX IF NOT EXISTS idx_analytics_events_journey ON analytics_events(journey_id);
+CREATE INDEX IF NOT EXISTS idx_analytics_events_category ON analytics_events(event_category);
+CREATE INDEX IF NOT EXISTS idx_analytics_events_date ON analytics_events(created_at);
 
 -- =======================
 -- DAILY STATISTICS
@@ -98,7 +106,7 @@ CREATE TABLE IF NOT EXISTS daily_stats (
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX idx_daily_stats_date ON daily_stats(stat_date);
+CREATE INDEX IF NOT EXISTS idx_daily_stats_date ON daily_stats(stat_date);
 
 -- =======================
 -- SYSTEM METRICS
@@ -121,9 +129,9 @@ CREATE TABLE IF NOT EXISTS system_metrics (
     recorded_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX idx_system_metrics_name ON system_metrics(metric_name);
-CREATE INDEX idx_system_metrics_name_time ON system_metrics(metric_name, recorded_at);
-CREATE INDEX idx_system_metrics_category ON system_metrics(metric_category);
+CREATE INDEX IF NOT EXISTS idx_system_metrics_name ON system_metrics(metric_name);
+CREATE INDEX IF NOT EXISTS idx_system_metrics_name_time ON system_metrics(metric_name, recorded_at);
+CREATE INDEX IF NOT EXISTS idx_system_metrics_category ON system_metrics(metric_category);
 
 -- =======================
 -- JOURNEY ANALYTICS
@@ -172,9 +180,9 @@ CREATE TABLE IF NOT EXISTS journey_analytics (
     UNIQUE(journey_id, stat_date)
 );
 
-CREATE INDEX idx_journey_analytics_journey ON journey_analytics(journey_id);
-CREATE INDEX idx_journey_analytics_date ON journey_analytics(stat_date);
-CREATE INDEX idx_journey_analytics_journey_date ON journey_analytics(journey_id, stat_date);
+CREATE INDEX IF NOT EXISTS idx_journey_analytics_journey ON journey_analytics(journey_id);
+CREATE INDEX IF NOT EXISTS idx_journey_analytics_date ON journey_analytics(stat_date);
+CREATE INDEX IF NOT EXISTS idx_journey_analytics_journey_date ON journey_analytics(journey_id, stat_date);
 
 -- =======================
 -- MENTOR ANALYTICS
@@ -223,9 +231,9 @@ CREATE TABLE IF NOT EXISTS mentor_analytics (
     UNIQUE(mentor_user_id, stat_date)
 );
 
-CREATE INDEX idx_mentor_analytics_mentor ON mentor_analytics(mentor_user_id);
-CREATE INDEX idx_mentor_analytics_date ON mentor_analytics(stat_date);
-CREATE INDEX idx_mentor_analytics_mentor_date ON mentor_analytics(mentor_user_id, stat_date);
+CREATE INDEX IF NOT EXISTS idx_mentor_analytics_mentor ON mentor_analytics(mentor_user_id);
+CREATE INDEX IF NOT EXISTS idx_mentor_analytics_date ON mentor_analytics(stat_date);
+CREATE INDEX IF NOT EXISTS idx_mentor_analytics_mentor_date ON mentor_analytics(mentor_user_id, stat_date);
 
 -- =======================
 -- USER ENGAGEMENT METRICS
@@ -262,9 +270,9 @@ CREATE TABLE IF NOT EXISTS user_engagement_metrics (
     UNIQUE(user_id, metric_date)
 );
 
-CREATE INDEX idx_user_engagement_user ON user_engagement_metrics(user_id);
-CREATE INDEX idx_user_engagement_date ON user_engagement_metrics(metric_date);
-CREATE INDEX idx_user_engagement_score ON user_engagement_metrics(engagement_score);
+CREATE INDEX IF NOT EXISTS idx_user_engagement_user ON user_engagement_metrics(user_id);
+CREATE INDEX IF NOT EXISTS idx_user_engagement_date ON user_engagement_metrics(metric_date);
+CREATE INDEX IF NOT EXISTS idx_user_engagement_score ON user_engagement_metrics(engagement_score);
 
 -- =======================
 -- FUNNEL ANALYTICS
@@ -306,8 +314,8 @@ CREATE TABLE IF NOT EXISTS funnel_analytics (
     UNIQUE(journey_id, stat_date)
 );
 
-CREATE INDEX idx_funnel_analytics_journey ON funnel_analytics(journey_id);
-CREATE INDEX idx_funnel_analytics_date ON funnel_analytics(stat_date);
+CREATE INDEX IF NOT EXISTS idx_funnel_analytics_journey ON funnel_analytics(journey_id);
+CREATE INDEX IF NOT EXISTS idx_funnel_analytics_date ON funnel_analytics(stat_date);
 
 -- =======================
 -- SECTION ANALYTICS
@@ -346,9 +354,9 @@ CREATE TABLE IF NOT EXISTS section_analytics (
     UNIQUE(section_id, journey_id, stat_date)
 );
 
-CREATE INDEX idx_section_analytics_section ON section_analytics(section_id);
-CREATE INDEX idx_section_analytics_journey ON section_analytics(journey_id);
-CREATE INDEX idx_section_analytics_date ON section_analytics(stat_date);
+CREATE INDEX IF NOT EXISTS idx_section_analytics_section ON section_analytics(section_id);
+CREATE INDEX IF NOT EXISTS idx_section_analytics_journey ON section_analytics(journey_id);
+CREATE INDEX IF NOT EXISTS idx_section_analytics_date ON section_analytics(stat_date);
 
 -- =======================
 -- VIEWS FOR ANALYTICS DASHBOARDS

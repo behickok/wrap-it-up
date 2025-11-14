@@ -48,13 +48,19 @@
 		onInput?.(value);
 	}
 
-	// Get typed config
+	const config: any = field.field_config ?? {};
+
+	const getConfigValue = <T>(key: string): T | undefined => {
+		return config[key] as T | undefined;
+	};
+
 	const getConfig = <T extends FieldConfig>(): T => {
-		return (field.field_config || {}) as T;
+		return config as T;
 	};
 
 	// Get placeholder
-	const placeholder = field.placeholder || getConfig().placeholder || '';
+	const placeholder =
+		(field as any)?.placeholder ?? getConfigValue<string>('placeholder') ?? '';
 </script>
 
 <div class="form-control mb-6">
@@ -84,8 +90,8 @@
 			placeholder={placeholder}
 			required={field.is_required}
 			disabled={disabled}
-			maxlength={getConfig().maxLength}
-			pattern={getConfig().pattern}
+			maxlength={getConfigValue<number>('maxLength')}
+			pattern={getConfigValue<string>('pattern')}
 			class="input input-bordered w-full"
 			class:input-error={error}
 		/>

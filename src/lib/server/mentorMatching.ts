@@ -83,7 +83,7 @@ async function getEligibleMentors(db: D1Database, criteria: MatchCriteria): Prom
 		const clientPrefs = await db
 			.prepare('SELECT blocked_mentor_ids FROM client_mentor_preferences WHERE user_id = ?')
 			.bind(criteria.clientUserId)
-			.first();
+			.first<{ blocked_mentor_ids: string | null }>();
 
 		if (clientPrefs?.blocked_mentor_ids) {
 			try {
@@ -219,9 +219,9 @@ async function calculateMatchScore(
 				WHERE mentor_user_id = ? AND client_user_id = ? AND client_rating >= 4`
 			)
 			.bind(mentor.user_id, criteria.clientUserId)
-			.first();
+			.first<{ avg_rating: number | null; match_count: number | null }>();
 
-		if (pastMatches && pastMatches.match_count > 0) {
+		if (pastMatches && (pastMatches.match_count ?? 0) > 0) {
 			score += 25;
 			reasons.push('Successfully worked together before');
 		}
@@ -237,9 +237,9 @@ async function calculateMatchScore(
 				WHERE sr.mentor_user_id = ? AND ujp.journey_id = ? AND sr.status = 'completed'`
 			)
 			.bind(mentor.user_id, criteria.journeyId)
-			.first();
+			.first<{ review_count: number | null }>();
 
-		if (journeyExperience && journeyExperience.review_count > 0) {
+		if (journeyExperience && (journeyExperience.review_count ?? 0) > 0) {
 			score += 10;
 			reasons.push('Experience with this journey');
 		}
@@ -327,7 +327,7 @@ export async function isMentorAvailable(db: D1Database, mentorUserId: number): P
 			AND DATE('now') BETWEEN start_date AND end_date`
 		)
 		.bind(mentorUserId)
-		.first();
+		.first<{ count: number }>();
 
 	if (blocked && blocked.count > 0) {
 		return false;
@@ -340,9 +340,9 @@ export async function isMentorAvailable(db: D1Database, mentorUserId: number): P
 			WHERE mentor_user_id = ? AND is_active = 1`
 		)
 		.bind(mentorUserId)
-		.first();
+		.first<{ count: number }>();
 
-	return availability && availability.count > 0;
+	return (availability?.count ?? 0) > 0;
 }
 
 /**
@@ -359,7 +359,11 @@ export async function getClientPreferences(
 	const prefs = await db
 		.prepare('SELECT * FROM client_mentor_preferences WHERE user_id = ?')
 		.bind(clientUserId)
-		.first();
+		.first<{
+			preferred_mentor_id: number | null;
+			blocked_mentor_ids: string | null;
+			preferred_specializations: string | null;
+		}>();
 
 	if (!prefs) {
 		return null;

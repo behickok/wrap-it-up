@@ -1,5 +1,5 @@
 import type { PageServerLoad } from './$types';
-import type { Transaction, RevenueSummary } from '$lib/types';
+import type { Transaction, RevenueSummary, Journey, JourneyCreator } from '$lib/types';
 import { getCreatorRevenueSummary } from '$lib/server/pricingUtils';
 import { redirect } from '@sveltejs/kit';
 
@@ -17,6 +17,8 @@ export const load: PageServerLoad = async ({ platform, locals }) => {
 	const userId = locals.user.id;
 
 	// Get creator's journeys
+	type CreatorJourney = Journey & Pick<JourneyCreator, 'is_published' | 'is_featured' | 'use_count'>;
+
 	const journeysResult = await db
 		.prepare(
 			`
@@ -25,20 +27,13 @@ export const load: PageServerLoad = async ({ platform, locals }) => {
 		JOIN journey_creators jc ON j.id = jc.journey_id
 		WHERE jc.creator_user_id = ? AND j.is_active = 1
 		ORDER BY j.created_at DESC
-	`
+		`
 		)
 		.bind(userId)
-		.all<{
-			id: number;
-			name: string;
-			slug: string;
-			is_published: boolean;
-			is_featured: boolean;
-			use_count: number;
-		}>();
+		.all<CreatorJourney>();
 
-	const journeys = journeysResult.results || [];
-	const journeyIds = journeys.map((j) => j.id);
+	const journeys = (journeysResult.results || []) as CreatorJourney[];
+	const journeyIds = journeys.map((journey) => journey.id);
 
 	// Get revenue summary
 	const revenueSummary = await getCreatorRevenueSummary(db, userId);
