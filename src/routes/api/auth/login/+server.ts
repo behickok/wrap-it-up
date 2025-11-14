@@ -1,6 +1,7 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { verifyPassword, createSession } from '$lib/auth';
+import { AnalyticsEvents } from '$lib/server/analytics';
 
 export const POST: RequestHandler = async ({ request, platform, cookies }) => {
 	const db = platform?.env?.DB;
@@ -72,6 +73,11 @@ export const POST: RequestHandler = async ({ request, platform, cookies }) => {
 			sameSite: 'lax',
 			maxAge: 60 * 60 * 24 * 7 // 7 days
 		});
+
+		// Track login event
+		await AnalyticsEvents.login(db, {
+			userId: user.id
+		}).catch((err) => console.error('Failed to track login:', err));
 
 		return json({
 			success: true,

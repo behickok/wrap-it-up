@@ -1,6 +1,7 @@
 import { error, redirect, fail } from '@sveltejs/kit';
 import type { PageServerLoad, Actions } from './$types';
 import type { SectionReviewWithContext, ReviewComment, SectionField } from '$lib/types';
+import { AnalyticsEvents } from '$lib/server/analytics';
 
 export const load: PageServerLoad = async ({ locals, platform, params }) => {
 	// Require authentication
@@ -149,9 +150,9 @@ export const actions: Actions = {
 		try {
 			// Check review status
 			const review = await db
-				.prepare('SELECT status FROM section_reviews WHERE id = ?')
+				.prepare('SELECT status, user_journey_id, section_id FROM section_reviews WHERE id = ?')
 				.bind(reviewId)
-				.first<{ status: string }>();
+				.first<{ status: string; user_journey_id: number; section_id: number }>();
 
 			if (!review) {
 				return fail(404, { error: 'Review not found' });
@@ -160,6 +161,12 @@ export const actions: Actions = {
 			if (review.status !== 'requested') {
 				return fail(400, { error: 'Review has already been claimed or completed' });
 			}
+
+			// Get journey_id from user_journey
+			const userJourney = await db
+				.prepare('SELECT journey_id FROM user_journeys WHERE id = ?')
+				.bind(review.user_journey_id)
+				.first<{ journey_id: number }>();
 
 			// Claim the review
 			await db
@@ -174,6 +181,16 @@ export const actions: Actions = {
 				)
 				.bind(locals.user.id, reviewId)
 				.run();
+
+			// Track review claim event
+			if (userJourney) {
+				await AnalyticsEvents.reviewClaim(db, {
+					userId: locals.user.id,
+					journeyId: userJourney.journey_id,
+					sectionId: review.section_id,
+					metadata: { reviewId }
+				}).catch((err) => console.error('Failed to track review claim:', err));
+			}
 
 			return { success: true, message: 'Review claimed successfully!' };
 		} catch (err) {
@@ -265,9 +282,9 @@ export const actions: Actions = {
 		try {
 			// Get review to calculate turnaround time
 			const review = await db
-				.prepare('SELECT claimed_at, mentor_user_id FROM section_reviews WHERE id = ?')
+				.prepare('SELECT claimed_at, mentor_user_id, user_journey_id, section_id FROM section_reviews WHERE id = ?')
 				.bind(reviewId)
-				.first<{ claimed_at: string; mentor_user_id: number | null }>();
+				.first<{ claimed_at: string; mentor_user_id: number | null; user_journey_id: number; section_id: number }>();
 
 			if (!review || review.mentor_user_id !== locals.user.id) {
 				return fail(403, { error: 'Unauthorized to complete this review' });
@@ -277,6 +294,12 @@ export const actions: Actions = {
 			const claimedAt = new Date(review.claimed_at);
 			const now = new Date();
 			const turnaroundHours = (now.getTime() - claimedAt.getTime()) / (1000 * 60 * 60);
+
+			// Get journey_id from user_journey
+			const userJourney = await db
+				.prepare('SELECT journey_id FROM user_journeys WHERE id = ?')
+				.bind(review.user_journey_id)
+				.first<{ journey_id: number }>();
 
 			// Complete the review
 			await db
@@ -311,7 +334,7 @@ export const actions: Actions = {
 			const stats = await db
 				.prepare(
 					`
-				SELECT 
+				SELECT
 					AVG(turnaround_hours) as avg_turnaround,
 					AVG(overall_rating) as avg_rating
 				FROM section_reviews
@@ -334,6 +357,16 @@ export const actions: Actions = {
 					)
 					.bind(stats.avg_turnaround || 0, stats.avg_rating || 0, locals.user.id)
 					.run();
+			}
+
+			// Track review completion event
+			if (userJourney) {
+				await AnalyticsEvents.reviewComplete(db, {
+					userId: locals.user.id,
+					journeyId: userJourney.journey_id,
+					sectionId: review.section_id,
+					metadata: { reviewId, turnaroundHours }
+				}).catch((err) => console.error('Failed to track review completion:', err));
 			}
 
 			throw redirect(303, '/mentor/dashboard');

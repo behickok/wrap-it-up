@@ -1636,3 +1636,249 @@ export interface ReviewCommentWithAuthor extends ReviewComment {
 	author_username: string;
 	field_name?: string;
 }
+
+// =======================
+// ANALYTICS SYSTEM (Phase 5)
+// =======================
+
+// Analytics event metadata type
+export type AnalyticsEventMetadata = Record<string, any>;
+
+// Analytics event types
+export type AnalyticsEventType =
+	| 'page_view'
+	| 'journey_view'
+	| 'enrollment'
+	| 'section_start'
+	| 'section_complete'
+	| 'journey_complete'
+	| 'review_request'
+	| 'review_claim'
+	| 'review_complete'
+	| 'mentor_application'
+	| 'mentor_approval'
+	| 'login'
+	| 'register';
+
+// Analytics event
+export interface AnalyticsEvent {
+	id: number;
+	event_type: string;
+	event_category: string | null;
+	user_id: number | null;
+	journey_id: number | null;
+	section_id: number | null;
+	session_id: string | null;
+	metadata: string | null; // JSON
+	page_url: string | null;
+	referrer_url: string | null;
+	user_agent: string | null;
+	created_at: string;
+}
+
+// Daily statistics
+export interface DailyStats {
+	id: number;
+	stat_date: string;
+	new_users: number;
+	active_users: number;
+	returning_users: number;
+	journey_views: number;
+	new_enrollments: number;
+	active_journeys: number;
+	completed_journeys: number;
+	sections_started: number;
+	sections_completed: number;
+	reviews_requested: number;
+	reviews_claimed: number;
+	reviews_completed: number;
+	mentor_applications: number;
+	sessions_booked: number;
+	sessions_completed: number;
+	revenue_total: number;
+	revenue_subscriptions: number;
+	revenue_reviews: number;
+	revenue_sessions: number;
+	avg_session_duration_seconds: number;
+	total_page_views: number;
+	unique_page_views: number;
+	churned_users: number;
+	paused_journeys: number;
+	cancelled_journeys: number;
+	created_at: string;
+	updated_at: string;
+}
+
+// System metrics
+export interface SystemMetric {
+	id: number;
+	metric_name: string;
+	metric_category: string | null;
+	metric_value: number;
+	metric_unit: string | null;
+	metadata: string | null; // JSON
+	recorded_at: string;
+}
+
+// Journey analytics (aggregated)
+export interface JourneyAnalyticsSummary {
+	id: number;
+	journey_id: number;
+	stat_date: string;
+	views: number;
+	unique_visitors: number;
+	enrollments: number;
+	conversion_rate: number;
+	active_users: number;
+	sections_completed: number;
+	avg_progress_percentage: number;
+	completions: number;
+	completion_rate: number;
+	avg_completion_days: number;
+	reviews_requested: number;
+	reviews_completed: number;
+	avg_review_rating: number;
+	sessions_booked: number;
+	sessions_completed: number;
+	revenue: number;
+	created_at: string;
+	updated_at: string;
+}
+
+// Mentor analytics (aggregated)
+export interface MentorAnalyticsSummary {
+	id: number;
+	mentor_user_id: number;
+	stat_date: string;
+	reviews_claimed: number;
+	reviews_completed: number;
+	reviews_in_progress: number;
+	avg_turnaround_hours: number;
+	avg_response_hours: number;
+	avg_rating: number;
+	avg_helpfulness_rating: number;
+	avg_timeliness_rating: number;
+	avg_communication_rating: number;
+	ratings_count: number;
+	approval_rate: number;
+	revision_rate: number;
+	earnings_total: number;
+	earnings_from_reviews: number;
+	earnings_from_revenue_share: number;
+	available_hours: number;
+	utilized_hours: number;
+	utilization_rate: number;
+	created_at: string;
+	updated_at: string;
+}
+
+// User engagement metrics
+export interface UserEngagementMetrics {
+	id: number;
+	user_id: number;
+	metric_date: string;
+	login_count: number;
+	sessions_count: number;
+	total_time_minutes: number;
+	pages_viewed: number;
+	sections_viewed: number;
+	sections_started: number;
+	sections_completed: number;
+	reviews_requested: number;
+	messages_sent: number;
+	engagement_score: number;
+	created_at: string;
+	updated_at: string;
+}
+
+// Funnel analytics
+export interface FunnelAnalytics {
+	id: number;
+	journey_id: number;
+	stat_date: string;
+	stage_1_views: number;
+	stage_2_view_sections: number;
+	stage_3_enroll: number;
+	stage_4_complete_profile: number;
+	stage_5_active: number;
+	stage_6_halfway: number;
+	stage_7_completed: number;
+	conversion_view_to_enroll: number;
+	conversion_enroll_to_active: number;
+	conversion_active_to_complete: number;
+	overall_conversion_rate: number;
+	dropoff_stage_1_2: number;
+	dropoff_stage_2_3: number;
+	dropoff_stage_3_4: number;
+	dropoff_stage_4_5: number;
+	dropoff_stage_5_6: number;
+	dropoff_stage_6_7: number;
+	created_at: string;
+	updated_at: string;
+}
+
+// Section analytics (aggregated)
+export interface SectionAnalyticsSummary {
+	id: number;
+	section_id: number;
+	journey_id: number;
+	stat_date: string;
+	views: number;
+	starts: number;
+	completions: number;
+	completion_rate: number;
+	avg_completion_time_minutes: number;
+	abandon_rate: number;
+	reviews_requested: number;
+	avg_review_rating: number;
+	revision_requests: number;
+	help_requests: number;
+	created_at: string;
+	updated_at: string;
+}
+
+// Creator dashboard data
+export interface CreatorDashboardData {
+	journey_id: number;
+	journey_name: string;
+	journey_slug: string;
+	total_enrollments: number;
+	active_users: number;
+	completed_users: number;
+	total_reviews: number;
+	avg_review_rating: number;
+	total_mentor_payments: number;
+}
+
+// Mentor dashboard data
+export interface MentorDashboardData {
+	total_reviews: number;
+	completed_reviews: number;
+	in_progress_reviews: number;
+	pending_reviews: number;
+	avg_turnaround_hours: number;
+	avg_response_hours: number;
+	avg_overall_rating: number;
+	avg_helpfulness_rating: number;
+	avg_timeliness_rating: number;
+	avg_communication_rating: number;
+	recommend_percentage: number;
+	total_earnings: number;
+	review_earnings: number;
+	revenue_share_earnings: number;
+	pending_amount: number;
+}
+
+// Platform overview data
+export interface PlatformOverviewData {
+	total_users: number;
+	new_users_7d: number;
+	new_users_30d: number;
+	active_journeys: number;
+	active_journey_users: number;
+	active_mentors: number;
+	pending_mentor_applications: number;
+	pending_reviews: number;
+	total_mentor_earnings: number;
+	reviews_completed_7d: number;
+}
