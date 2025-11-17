@@ -21,12 +21,15 @@ export const POST: RequestHandler = async ({ request, platform, cookies }) => {
 			);
 		}
 
+		const normalizedIdentifier = String(emailOrUsername).trim();
+		const identifierKey = normalizedIdentifier.toLowerCase();
+
 		// Try to find user by email or username
 		const user = await db
 			.prepare(
-				'SELECT * FROM users WHERE (email = ? OR username = ?) AND is_active = 1'
+				'SELECT * FROM users WHERE (LOWER(email) = ? OR LOWER(username) = ?) AND is_active = 1'
 			)
-			.bind(emailOrUsername, emailOrUsername)
+			.bind(identifierKey, identifierKey)
 			.first<{
 				id: number;
 				email: string;

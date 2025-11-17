@@ -6,7 +6,7 @@ import JourneyVisual from './JourneyVisual.svelte';
 
 describe('JourneyVisual', () => {
 	it('highlights the plan label when plan is active', async () => {
-		render(JourneyVisual, { target: document.body, props: { activeCategory: 'plan' } });
+		render(JourneyVisual, { props: { activeCategory: 'plan' } });
 
 		const planLabel = page.getByText(/^Plan$/);
 		const legacyLabel = page.getByText(/^Legacy$/);
@@ -18,7 +18,7 @@ describe('JourneyVisual', () => {
 	});
 
 	it('highlights the legacy label when legacy is active', async () => {
-		render(JourneyVisual, { target: document.body, props: { activeCategory: 'legacy' } });
+		render(JourneyVisual, { props: { activeCategory: 'legacy' } });
 
 		const planLabel = page.getByText(/^Plan$/);
 		const legacyLabel = page.getByText(/^Legacy$/);

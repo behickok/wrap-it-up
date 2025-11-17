@@ -72,7 +72,8 @@ describe('POST /api/ask-ai', () => {
 	it('handles upstream errors gracefully', async () => {
 		globalThis.fetch = vi.fn(async () => ({
 			ok: false,
-			json: async () => ({})
+			json: async () => ({}),
+			text: async () => 'Upstream failure'
 		})) as any;
 
 		const response = await POST({
@@ -84,9 +85,8 @@ describe('POST /api/ask-ai', () => {
 		} as any);
 
 		expect(response.status).toBe(500);
-		expect(await response.json()).toEqual({
-			success: false,
-			error: 'An error occurred while processing your request'
-		});
+		const body = await response.json();
+		expect(body.success).toBe(false);
+		expect(body.error).toContain('OpenAI API request failed');
 	});
 });

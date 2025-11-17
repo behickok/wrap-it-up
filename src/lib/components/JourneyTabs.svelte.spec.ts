@@ -6,7 +6,7 @@ import JourneyTabs from './JourneyTabs.svelte';
 
 describe('JourneyTabs', () => {
 	it('marks the active category tab as selected', async () => {
-		render(JourneyTabs, { target: document.body, props: { activeCategory: 'plan' } });
+		render(JourneyTabs, { props: { activeCategory: 'plan' } });
 
 		const planTab = page.getByRole('tab', { name: /Plan Legal & Financial Foundation/ });
 		const legacyTab = page.getByRole('tab', { name: /Legacy End-of-Life Planning/ });
@@ -17,10 +17,7 @@ describe('JourneyTabs', () => {
 
 	it('invokes onCategoryChange when another tab is clicked', async () => {
 		const onCategoryChange = vi.fn();
-		render(JourneyTabs, {
-			target: document.body,
-			props: { activeCategory: 'plan', onCategoryChange }
-		});
+		render(JourneyTabs, { props: { activeCategory: 'plan', onCategoryChange } });
 
 		await page.getByRole('tab', { name: /Legacy End-of-Life Planning/ }).click();
 

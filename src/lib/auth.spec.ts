@@ -12,7 +12,8 @@ import {
 	isValidEmail,
 	isValidPassword,
 	isValidUsername,
-	verifyPassword
+	verifyPassword,
+	cleanupExpiredSessions
 } from './auth';
 
 type MockDb = ReturnType<typeof createDb>;
@@ -112,6 +113,26 @@ describe('session helpers', () => {
 
 		expect(isSessionValid(futureSession)).toBe(true);
 		expect(isSessionValid(pastSession)).toBe(false);
+	});
+
+	it('cleans up expired sessions in the database', async () => {
+		const executions: { sql: string; params: any[] }[] = [];
+
+		const db = {
+			prepare: (sql: string) => ({
+				bind: (...params: any[]) => ({
+					run: vi.fn(async () => {
+						executions.push({ sql, params });
+					})
+				})
+			})
+		};
+
+		await cleanupExpiredSessions(db as any);
+
+		expect(executions).toHaveLength(1);
+		expect(executions[0].sql).toContain('DELETE FROM sessions');
+		expect(Number.isNaN(new Date(executions[0].params[0]).valueOf())).toBe(false);
 	});
 });
 

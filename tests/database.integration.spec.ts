@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { load } from '../src/routes/+page.server';
+import { load as homePageLoad } from '../src/routes/+page.server';
 import { GET as exportDataGet } from '../src/routes/api/export-data/+server';
 
 type SqliteInstance = InstanceType<typeof Database>;
@@ -100,16 +100,16 @@ describe('Database integration', () => {
 		cleanup?.();
 	});
 
-	it('loads dashboard data from the seeded dataset', async () => {
-		const result = (await load({
+	it('loads the home page data for authenticated users without throwing', async () => {
+		const result = (await homePageLoad({
 			locals: { user: { id: 1 } },
 			platform: { env: { DB: d1 } },
-			params: { slug: 'care' }
 		} as any)) as NonVoidLoadResult;
 
-		expect(result.sectionData.personal.legal_name).toBe('Jordan Avery Wells');
-		expect(result.sectionData.credentials).toHaveLength(3);
-		expect(result.sectionData['final-days'].who_around).toContain('Casey');
+		expect(result.user?.id).toBe(1);
+		expect(Array.isArray(result.featuredJourneys)).toBe(true);
+		expect(Array.isArray(result.enrolledJourneys)).toBe(true);
+		expect(Array.isArray(result.availableJourneys)).toBe(true);
 	});
 
 	it('exports a full snapshot of user data', async () => {

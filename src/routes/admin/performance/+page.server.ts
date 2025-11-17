@@ -3,7 +3,6 @@
  * Phase 8: Admin dashboard for monitoring platform performance
  */
 
-import { redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 import {
 	getSlowQueries,
@@ -15,10 +14,7 @@ import {
 } from '$lib/server/performance';
 
 export const load: PageServerLoad = async ({ locals, platform }) => {
-	// Admin only
-	if (!locals.user || locals.user.role !== 'admin') {
-		throw redirect(302, '/');
-	}
+	requireAdmin({ locals });
 
 	const db = platform?.env?.DB;
 	if (!db) {
@@ -155,3 +151,4 @@ function calculateWebVitalsScores(vitals: any[]): Record<string, any> {
 
 	return scores;
 }
+import { requireAdmin } from '../-guards.server';

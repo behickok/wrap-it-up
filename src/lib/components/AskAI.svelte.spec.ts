@@ -8,13 +8,13 @@ const originalFetch = globalThis.fetch;
 let fetchMock: ReturnType<typeof vi.fn>;
 
 describe('AskAI', () => {
-beforeEach(() => {
-	fetchMock = vi.fn(async () => ({
-		ok: true,
-		json: async () => ({ success: true, answer: 'Here is your guidance.' })
-	}));
-	globalThis.fetch = fetchMock as any;
-});
+	beforeEach(() => {
+		fetchMock = vi.fn(async () => ({
+			ok: true,
+			json: async () => ({ success: true, answer: 'Here is your guidance.' })
+		}));
+		globalThis.fetch = fetchMock as any;
+	});
 
 	afterEach(() => {
 		globalThis.fetch = originalFetch;
@@ -22,7 +22,7 @@ beforeEach(() => {
 	});
 
 	it('opens the modal when the CTA is clicked', async () => {
-		render(AskAI, { target: document.body, props: { sectionName: 'Contacts' } });
+		render(AskAI, { props: { sectionName: 'Contacts' } });
 
 		await page.getByRole('button', { name: 'Ask AI for Help' }).click();
 
@@ -33,7 +33,7 @@ beforeEach(() => {
 	});
 
 	it('submits the user question and renders the AI response', async () => {
-		render(AskAI, { target: document.body, props: { sectionName: 'Contacts' } });
+		render(AskAI, { props: { sectionName: 'Contacts' } });
 
 		await page.getByRole('button', { name: 'Ask AI for Help' }).click();
 		await page

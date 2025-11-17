@@ -13,46 +13,46 @@
 ## 1. AUTHENTICATION & USER MANAGEMENT
 
 ### 1.1 User Registration
-- [ ] Register with valid email and password
-- [ ] Register with valid username (3-20 chars, alphanumeric + underscore only)
-- [ ] Validate email format
-- [ ] Validate password strength (min 8 chars, uppercase, lowercase, number)
-- [ ] Validate username format
-- [ ] Prevent duplicate email registration
-- [ ] Prevent duplicate username registration
-- [ ] Hash passwords securely (PBKDF2)
-- [ ] Create new user with default notification preferences
-- [ ] Verify user is marked as active
+- [x] Register with valid email and password (`tests/register.api.spec.ts`)
+- [x] Register with valid username (3-20 chars, alphanumeric + underscore only) (`tests/register.api.spec.ts`)
+- [x] Validate email format (`tests/register.api.spec.ts`)
+- [x] Validate password strength (min 8 chars, uppercase, lowercase, number) (`tests/register.api.spec.ts`)
+- [x] Validate username format (`tests/register.api.spec.ts`)
+- [x] Prevent duplicate email registration (`tests/register.api.spec.ts`)
+- [x] Prevent duplicate username registration (`tests/register.api.spec.ts`)
+- [x] Hash passwords securely (PBKDF2) (`src/lib/auth.spec.ts`)
+- [x] Create new user with default notification preferences (`tests/register.api.spec.ts`)
+- [x] Verify user is marked as active (`tests/register.api.spec.ts`)
 
 ### 1.2 User Login
-- [ ] Login with email and password
-- [ ] Login with username and password
-- [ ] Invalid credentials rejection
-- [ ] Case-insensitive email/username login
-- [ ] Session creation and token generation
-- [ ] Session expiration (7 days default)
-- [ ] Redirect to dashboard on successful login
-- [ ] Redirect unauthenticated users to login
-- [ ] Remember login state across page reloads
-- [ ] Last login timestamp update
+- [x] Login with email and password (`src/routes/api/auth/login/login.server.spec.ts`)
+- [x] Login with username and password (`src/routes/api/auth/login/login.server.spec.ts`)
+- [x] Invalid credentials rejection (`src/routes/api/auth/login/login.server.spec.ts`)
+- [x] Case-insensitive email/username login (`src/routes/api/auth/login/login.server.spec.ts`)
+- [x] Session creation and token generation (`src/routes/api/auth/login/login.server.spec.ts`)
+- [x] Session expiration (7 days default) (`src/routes/api/auth/login/login.server.spec.ts`)
+- [x] Redirect to dashboard on successful login (`e2e/login.spec.ts`)
+- [x] Redirect unauthenticated users to login (`e2e/demo.spec.ts`)
+- [x] Remember login state across page reloads (`e2e/login.spec.ts`)
+- [x] Last login timestamp update (`src/routes/api/auth/login/login.server.spec.ts`)
 
 ### 1.3 User Logout
-- [ ] Destroy session on logout
-- [ ] Redirect to login page after logout
-- [ ] Clear authentication cookies
+- [x] Destroy session on logout (`src/routes/api/auth/logout/logout.server.spec.ts`)
+- [x] Redirect to login page after logout (`e2e/login.spec.ts`)
+- [x] Clear authentication cookies (`src/routes/api/auth/logout/logout.server.spec.ts`)
 - [ ] Invalidate all active sessions (optional)
 
 ### 1.4 User Authentication Persistence
-- [ ] Maintain session across navigation
-- [ ] Validate session expiration
-- [ ] Clean up expired sessions
-- [ ] Handle session not found error
+- [x] Maintain session across navigation (`e2e/login.spec.ts`)
+- [x] Validate session expiration (`src/lib/auth.spec.ts`)
+- [x] Clean up expired sessions (`src/lib/auth.spec.ts`)
+- [x] Handle session not found error (`src/hooks.server.spec.ts`)
 
 ### 1.5 User Profile
-- [ ] View current user profile
-- [ ] Display username, email, join date
-- [ ] Update user information
-- [ ] View user activity/last login
+- [x] View current user profile (`tests/user-profile.api.spec.ts`)
+- [x] Display username, email, join date (`tests/user-profile.api.spec.ts`)
+- [x] Update user information (`tests/user-profile.api.spec.ts`)
+- [x] View user activity/last login (`tests/user-profile.api.spec.ts`)
 
 ---
 
@@ -986,4 +986,3 @@ The system includes 18+ specialized sections for end-of-life planning:
 - [ ] Cookies enabled
 - [ ] LocalStorage available
 - [ ] WebStorage API
-
