@@ -3,10 +3,9 @@ import type { PageServerLoad, Actions } from './$types';
 import { recalculateAndUpdateProgress } from '$lib/journeyProgress';
 import { loadSectionsForUser, type LoadedSection } from '$lib/server/sectionLoader';
 import { getSectionFields, saveSectionData as persistSectionData } from '$lib/server/genericSectionData';
-import type { LegacySectionSlug } from '$lib/server/legacySectionLoaders';
 import type { D1Database } from '@cloudflare/workers-types';
 
-const BASE_SECTION_SLUGS: LegacySectionSlug[] = [
+const BASE_SECTION_SLUGS = [
 	'personal',
 	'credentials',
 	'contacts',
@@ -26,9 +25,9 @@ const BASE_SECTION_SLUGS: LegacySectionSlug[] = [
 	'vehicles',
 	'family',
 	'pets'
-];
+] as const;
 
-const WEDDING_SLUGS: LegacySectionSlug[] = [
+const WEDDING_SLUGS = [
 	'marriage_license',
 	'prenup',
 	'joint_accounts',
@@ -38,7 +37,7 @@ const WEDDING_SLUGS: LegacySectionSlug[] = [
 	'guest_list',
 	'registry',
 	'home_setup'
-];
+] as const;
 
 export const load: PageServerLoad = async ({ locals, platform, params }) => {
 	if (!locals.user) {
@@ -167,19 +166,23 @@ export const load: PageServerLoad = async ({ locals, platform, params }) => {
 		const completionPercentage = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
 
 		// Load section data via generic storage with legacy fallback
-		const sectionSlugsForJourney: LegacySectionSlug[] =
+		const fallbackSlugs =
 			journey.slug === 'wedding'
 				? [...BASE_SECTION_SLUGS, ...WEDDING_SLUGS]
 				: [...BASE_SECTION_SLUGS];
+		const sectionSlugs =
+			sections.length > 0
+				? sections.map((section: { slug: string }) => section.slug).filter(Boolean)
+				: fallbackSlugs;
 
-		const loadedSections = await loadSectionsForUser(db, userId, sectionSlugsForJourney);
+		const loadedSections = await loadSectionsForUser(db, userId, sectionSlugs);
 
-		const getSectionEntry = (slug: LegacySectionSlug) => loadedSections[slug];
-		const asArray = (slug: LegacySectionSlug): any[] => {
+		const getSectionEntry = (slug: string) => loadedSections[slug];
+		const asArray = (slug: string): any[] => {
 			const value = getSectionEntry(slug)?.data;
 			return Array.isArray(value) ? value : [];
 		};
-		const asObject = (slug: LegacySectionSlug): Record<string, any> => {
+		const asObject = (slug: string): Record<string, any> => {
 			const value = getSectionEntry(slug)?.data;
 			return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
 		};
@@ -239,7 +242,13 @@ export const load: PageServerLoad = async ({ locals, platform, params }) => {
 		}
 
 		const sectionFields = Object.fromEntries(
-			sectionSlugsForJourney.map((slug) => [slug, getSectionEntry(slug)?.fields ?? []])
+			sectionSlugs.map((slug) => [slug, getSectionEntry(slug)?.fields ?? []])
+		);
+		const sectionDefinitions = Object.fromEntries(
+			sectionSlugs.map((slug) => [slug, getSectionEntry(slug)?.section ?? null])
+		);
+		const sectionDataBySlug = Object.fromEntries(
+			sectionSlugs.map((slug) => [slug, getSectionEntry(slug)?.data ?? {}])
 		);
 
 		// Get available mentors (for Premium tier session booking)
@@ -261,6 +270,7 @@ export const load: PageServerLoad = async ({ locals, platform, params }) => {
 				mentors: mentorsResult?.results || [],
 				// Section data for forms
 				sectionData: {
+					...sectionDataBySlug,
 					personal,
 					credentials,
 					contacts,
@@ -280,13 +290,11 @@ export const load: PageServerLoad = async ({ locals, platform, params }) => {
 					vehicles,
 					family: normalizedFamily,
 					pets,
-					property: [],
+					property: sectionDataBySlug.property ?? [],
 					...(journey.slug === 'wedding' ? weddingSectionData : {})
 				},
 				sectionFields,
-				sectionDefinitions: Object.fromEntries(
-					sectionSlugsForJourney.map((slug) => [slug, getSectionEntry(slug)?.section ?? null])
-				),
+				sectionDefinitions,
 				userId: locals.user.id
 			};
 	} catch (err) {
@@ -339,7 +347,7 @@ function ensureObjectData<T extends Record<string, any>>(value: any): T {
 async function loadSectionEntry(
 	db: D1Database,
 	userId: number,
-	slug: LegacySectionSlug
+	slug: string
 ): Promise<LoadedSection> {
 	const sections = await loadSectionsForUser(db, userId, [slug]);
 	const entry = sections[slug];

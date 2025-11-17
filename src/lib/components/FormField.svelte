@@ -74,7 +74,7 @@
 			{name}
 			bind:value
 			{required}
-			class="select select-bordered w-full"
+			class="select select-bordered w-full text-base-content"
 		>
 			<option value="">Select...</option>
 			{#each normalizedOptions as option}

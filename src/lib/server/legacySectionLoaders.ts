@@ -36,12 +36,52 @@ export const LEGACY_SECTION_SLUGS = [
 
 export type LegacySectionSlug = (typeof LEGACY_SECTION_SLUGS)[number];
 
+function getLegacyDefault(slug: LegacySectionSlug): any {
+	switch (slug) {
+		case 'personal':
+		case 'final-days':
+		case 'after-death':
+		case 'funeral':
+		case 'obituary':
+		case 'conclusion':
+		case 'medical':
+		case 'residence':
+		case 'family':
+		case 'marriage_license':
+		case 'prenup':
+		case 'joint_accounts':
+		case 'name_change':
+		case 'venue':
+		case 'home_setup':
+			return {};
+		case 'credentials':
+		case 'contacts':
+		case 'legal':
+		case 'documents':
+		case 'financial':
+		case 'insurance':
+		case 'employment':
+		case 'physicians':
+		case 'vehicles':
+		case 'pets':
+		case 'property':
+		case 'vendors':
+		case 'guest_list':
+		case 'registry':
+			return [];
+		default:
+			return {};
+	}
+}
+
 export async function loadLegacySectionData(
 	db: D1Database,
 	userId: number,
 	slug: LegacySectionSlug
 ): Promise<any> {
-	switch (slug) {
+	const fallback = getLegacyDefault(slug);
+	try {
+		switch (slug) {
 		case 'personal': {
 			const record = await db
 				.prepare('SELECT * FROM personal_info WHERE user_id = ? AND person_type = ?')
@@ -192,5 +232,9 @@ export async function loadLegacySectionData(
 		}
 		default:
 			return DEFAULT_EMPTY_OBJECT;
+		}
+	} catch (error) {
+		console.warn(`Legacy section data unavailable for ${slug}:`, error);
+		return fallback;
 	}
 }

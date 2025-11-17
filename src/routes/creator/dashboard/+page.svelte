@@ -1,13 +1,13 @@
 <script lang="ts">
 	import type { PageData } from './$types';
-	import type { JourneyAnalytics } from '$lib/types';
+	import type { JourneyAnalyticsSummary } from '$lib/types';
 
 	let { data }: { data: PageData } = $props();
 
-	type NumericJourneyMetric = 'total_users' | 'avg_completion_percentage' | 'avg_score';
+	type NumericJourneyMetric = 'active_users' | 'avg_progress_percentage' | 'avg_review_rating';
 
 	// Calculate trend for a metric
-	function calculateTrend(analytics: JourneyAnalytics[], metric: NumericJourneyMetric): string {
+	function calculateTrend(analytics: JourneyAnalyticsSummary[], metric: NumericJourneyMetric): string {
 		if (analytics.length < 2) return '0';
 		const latest = analytics[0]?.[metric] || 0;
 		const previous = analytics[1]?.[metric] || 0;
@@ -78,9 +78,9 @@
 					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
 				</svg>
 			</div>
-			<div class="stat-title">Avg Score</div>
-			<div class="stat-value text-success">{data.summary.avgScore}</div>
-			<div class="stat-desc">Out of 100 points</div>
+			<div class="stat-title">Avg Rating</div>
+			<div class="stat-value text-success">{data.summary.avgRating}</div>
+			<div class="stat-desc">Out of 5</div>
 		</div>
 	</div>
 
@@ -105,10 +105,10 @@
 			<div class="grid gap-6">
 				{#each data.journeys as journey}
 					{@const analytics = data.analytics.get(journey.id) || []}
-					{@const latestUsers = getLatestMetric(journey.id, 'total_users')}
-					{@const latestCompletion = getLatestMetric(journey.id, 'avg_completion_percentage')}
-					{@const latestScore = getLatestMetric(journey.id, 'avg_score')}
-					{@const userTrend = calculateTrend(analytics, 'total_users')}
+					{@const latestUsers = getLatestMetric(journey.id, 'active_users')}
+					{@const latestCompletion = getLatestMetric(journey.id, 'avg_progress_percentage')}
+					{@const latestRating = getLatestMetric(journey.id, 'avg_review_rating')}
+					{@const userTrend = calculateTrend(analytics, 'active_users')}
 
 					<div class="card bg-base-100 shadow-xl">
 						<div class="card-body">
@@ -134,7 +134,7 @@
 										<!-- Analytics Summary -->
 										<div class="grid grid-cols-3 gap-4 mt-4">
 											<div>
-												<div class="text-sm text-base-content/60">Users</div>
+												<div class="text-sm text-base-content/60">Active Users</div>
 												<div class="text-2xl font-bold">{latestUsers}</div>
 												{#if analytics.length > 1}
 													<div class="text-sm" class:text-success={parseFloat(userTrend) > 0} class:text-error={parseFloat(userTrend) < 0}>
@@ -147,8 +147,10 @@
 												<div class="text-2xl font-bold">{Math.round(latestCompletion)}%</div>
 											</div>
 											<div>
-												<div class="text-sm text-base-content/60">Avg Score</div>
-												<div class="text-2xl font-bold">{Math.round(latestScore)}</div>
+												<div class="text-sm text-base-content/60">Avg Rating</div>
+												<div class="text-2xl font-bold">
+													{latestRating ? latestRating.toFixed(1) : '0.0'}
+												</div>
 											</div>
 										</div>
 									</div>
@@ -186,7 +188,7 @@
 											<div
 												class="flex-1 bg-primary rounded-t transition-all hover:bg-primary-focus"
 												style="height: {(day.active_users / Math.max(...analytics.map(a => a.active_users), 1)) * 100}%"
-												title="{day.metric_date}: {day.active_users} active users"
+												title="{day.stat_date}: {day.active_users} active users"
 											></div>
 										{/each}
 									</div>

@@ -3,10 +3,12 @@
  * Bridges old section_completion system with new user_journey_progress system
  */
 
-import { calculateSectionScore } from './readinessScore';
-import { getSectionDataBySlugs } from './server/genericSectionData';
-import { loadLegacySectionData, type LegacySectionSlug } from './server/legacySectionLoaders';
+import { calculateGenericSectionScore } from './genericScoring';
+import { getSectionFields } from './server/genericSectionData';
+import { loadSectionsForUser } from './server/sectionLoader';
+import type { LegacySectionSlug } from './server/legacySectionLoaders';
 import type { D1Database } from '@cloudflare/workers-types';
+import type { ParsedSectionField } from './types';
 
 const PROGRESS_SECTION_SLUGS: LegacySectionSlug[] = [
 	'credentials',
@@ -43,6 +45,8 @@ interface UpdateProgressOptions {
 	userId: number;
 	sectionSlug: string;
 	sectionData: any;
+	sectionId?: number;
+	fields?: ParsedSectionField[];
 }
 
 /**
@@ -50,11 +54,29 @@ interface UpdateProgressOptions {
  * Also maintains backward compatibility with section_completion table
  */
 export async function updateSectionProgress(options: UpdateProgressOptions): Promise<void> {
-	const { db, userId, sectionSlug, sectionData } = options;
+	const { db, userId, sectionSlug, sectionData, sectionId: providedSectionId, fields: providedFields } = options;
 
 	try {
-		// Calculate score for this section
-		const score = calculateSectionScore(sectionSlug, sectionData);
+		// Get section ID if not provided
+		let sectionId = providedSectionId;
+		if (!sectionId) {
+			const sectionResult = await db
+				.prepare(`SELECT id FROM sections WHERE slug = ?`)
+				.bind(sectionSlug)
+				.first<{ id: number }>();
+
+			if (!sectionResult) {
+				console.warn(`[Progress Update] Section not found: ${sectionSlug}`);
+				return;
+			}
+			sectionId = sectionResult.id;
+		}
+
+		// Get fields if not provided
+		const fields = providedFields || await getSectionFields(db, sectionId);
+
+		// Calculate score using generic scoring system with database fields
+		const score = calculateGenericSectionScore(fields, sectionData);
 		const isCompleted = score >= 80;
 
 		// Update old section_completion table (backward compatibility)
@@ -168,7 +190,7 @@ export function getSectionDataForScoring(sectionSlug: string, allData: any): any
 	case 'home_setup':
 		return allData.home_setup || {};
 	default:
-		return {};
+		return allData?.[sectionSlug] ?? {};
 	}
 }
 
@@ -176,120 +198,98 @@ export function getSectionDataForScoring(sectionSlug: string, allData: any): any
  * Fetches all section data needed for progress calculation
  */
 export async function fetchAllSectionData(db: D1Database, userId: number): Promise<any> {
-	const genericSectionData = await getSectionDataBySlugs(db, userId, PROGRESS_SECTION_SLUGS);
-	const memo = new Map<LegacySectionSlug, Promise<any>>();
+	const sectionsResult = await db
+		.prepare(
+			`SELECT DISTINCT s.slug
+			 FROM user_journeys uj
+			 JOIN journey_sections js ON uj.journey_id = js.journey_id
+			 JOIN sections s ON js.section_id = s.id
+			 WHERE uj.user_id = ? AND uj.status = 'active'`
+		)
+		.bind(userId)
+		.all<{ slug: string }>();
 
-	const getOrFallback = (slug: LegacySectionSlug): Promise<any> => {
-		if (!memo.has(slug)) {
-			const record = genericSectionData[slug];
-			memo.set(slug, record ? Promise.resolve(record.data) : loadLegacySectionData(db, userId, slug));
-		}
-		return memo.get(slug)!;
-	};
+	const activeSlugs = (sectionsResult.results || [])
+		.map((row) => row.slug)
+		.filter((slug): slug is string => typeof slug === 'string' && slug.length > 0);
 
-	const sectionSequence: LegacySectionSlug[] = [
-		'credentials',
-		'contacts',
-		'legal',
-		'financial',
-		'insurance',
-		'employment',
-		'vehicles',
-		'pets',
-		'personal',
-		'medical',
-		'residence',
-		'family',
-		'final-days',
-		'after-death',
-		'funeral',
-		'obituary',
-		'conclusion',
-		'marriage_license',
-		'prenup',
-		'joint_accounts',
-		'name_change',
-		'venue',
-		'vendors',
-		'guest_list',
-		'registry',
-		'home_setup'
-	];
+	const sectionSequence = Array.from(new Set([...activeSlugs, ...PROGRESS_SECTION_SLUGS]));
 
-	const results = await Promise.all(sectionSequence.map((slug) => getOrFallback(slug)));
+	const loadedSections = await loadSectionsForUser(db, userId, sectionSequence);
 
-	const [
+	const getData = (slug: string): any => loadedSections[slug]?.data ?? null;
+
+	const personal = getData('personal') ?? {};
+	const credentials = getData('credentials') ?? [];
+	const contacts = getData('contacts') ?? [];
+	const legal = getData('legal') ?? [];
+	const financial = getData('financial') ?? [];
+	const insurance = getData('insurance') ?? [];
+	const employment = getData('employment') ?? [];
+	const vehicles = getData('vehicles') ?? [];
+	const pets = getData('pets') ?? [];
+	const medicalRaw = getData('medical') ?? {};
+	const physiciansData =
+		Array.isArray(medicalRaw?.physicians) && medicalRaw.physicians.length > 0
+			? medicalRaw.physicians
+			: getData('physicians') ?? [];
+	const residence = getData('residence') ?? {};
+	const familyRaw = getData('family');
+	const family =
+		familyRaw && typeof familyRaw === 'object'
+			? {
+					members: Array.isArray(familyRaw.members) ? familyRaw.members : [],
+					history: familyRaw.history ?? {}
+			  }
+			: { members: [], history: {} };
+	const finalDays = getData('final-days') ?? {};
+	const afterDeath = getData('after-death') ?? {};
+	const funeral = getData('funeral') ?? {};
+	const obituary = getData('obituary') ?? {};
+	const conclusion = getData('conclusion') ?? {};
+	const marriageLicense = getData('marriage_license') ?? {};
+	const prenup = getData('prenup') ?? {};
+	const jointAccounts = getData('joint_accounts') ?? {};
+	const nameChange = getData('name_change') ?? {};
+	const venue = getData('venue') ?? {};
+	const vendors = getData('vendors') ?? [];
+	const guestList = getData('guest_list') ?? [];
+	const registry = getData('registry') ?? [];
+	const homeSetup = getData('home_setup') ?? {};
+
+	const normalizedMedical =
+		medicalRaw && typeof medicalRaw === 'object'
+			? { ...medicalRaw, physicians: physiciansData }
+			: { physicians: physiciansData };
+
+	return {
 		credentials,
 		contacts,
 		legal,
 		financial,
 		insurance,
 		employment,
+		physicians: physiciansData,
 		vehicles,
 		pets,
 		personal,
-		medical,
+		medical: normalizedMedical,
 		residence,
 		family,
-		finalDays,
-		afterDeath,
+		'final-days': finalDays,
+		'after-death': afterDeath,
 		funeral,
 		obituary,
 		conclusion,
-		weddingMarriageLicense,
-		weddingPrenup,
-		weddingJointFinances,
-		weddingNameChange,
-		weddingVenue,
-		weddingVendors,
-		weddingGuestList,
-		weddingRegistry,
-		weddingHomeSetup
-	] = results;
-
-	const physicians =
-		Array.isArray(medical?.physicians) && medical.physicians.length > 0
-			? medical.physicians
-			: await getOrFallback('physicians');
-
-	const normalizedMedical =
-		medical && typeof medical === 'object'
-			? { ...medical, physicians: Array.isArray(medical.physicians) ? medical.physicians : physicians }
-			: { physicians };
-
-	const normalizedFamily = {
-		members: Array.isArray(family?.members) ? family.members : [],
-		history: family?.history ?? {}
-	};
-
-	return {
-		credentials: credentials ?? [],
-		contacts: contacts ?? [],
-		legal: legal ?? [],
-		financial: financial ?? [],
-		insurance: insurance ?? [],
-		employment: employment ?? [],
-		physicians: physicians ?? [],
-		vehicles: vehicles ?? [],
-		pets: pets ?? [],
-		personal: personal ?? {},
-		medical: normalizedMedical,
-		residence: residence ?? {},
-		family: normalizedFamily,
-		'final-days': finalDays ?? {},
-		'after-death': afterDeath ?? {},
-		funeral: funeral ?? {},
-		obituary: obituary ?? {},
-		conclusion: conclusion ?? {},
-		marriage_license: weddingMarriageLicense ?? {},
-		prenup: weddingPrenup ?? {},
-		joint_accounts: weddingJointFinances ?? {},
-		name_change: weddingNameChange ?? {},
-		venue: weddingVenue ?? {},
-		vendors: weddingVendors ?? [],
-		guest_list: weddingGuestList ?? [],
-		registry: weddingRegistry ?? [],
-		home_setup: weddingHomeSetup ?? {}
+		marriage_license: marriageLicense,
+		prenup,
+		joint_accounts: jointAccounts,
+		name_change: nameChange,
+		venue,
+		vendors,
+		guest_list: guestList,
+		registry,
+		home_setup: homeSetup
 	};
 }
 
@@ -302,6 +302,21 @@ export async function recalculateAndUpdateProgress(
 	userId: number,
 	sectionSlug: string
 ): Promise<void> {
+	// Get section ID and fields from database
+	const sectionResult = await db
+		.prepare(`SELECT id FROM sections WHERE slug = ?`)
+		.bind(sectionSlug)
+		.first<{ id: number }>();
+
+	if (!sectionResult) {
+		console.warn(`[Progress Update] Section not found: ${sectionSlug}`);
+		return;
+	}
+
+	const sectionId = sectionResult.id;
+	const fields = await getSectionFields(db, sectionId);
+
+	// Load user's data for this section
 	const allData = await fetchAllSectionData(db, userId);
 	const sectionData = getSectionDataForScoring(sectionSlug, allData);
 
@@ -309,6 +324,8 @@ export async function recalculateAndUpdateProgress(
 		db,
 		userId,
 		sectionSlug,
-		sectionData
+		sectionData,
+		sectionId,
+		fields
 	});
 }

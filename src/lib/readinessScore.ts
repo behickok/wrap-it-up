@@ -74,6 +74,15 @@ function calculateSimpleListScore(items: any[], importantKeys: readonly string[]
 /**
  * Calculate section score using point-based system
  * Routes to appropriate scoring function based on section type
+ *
+ * @deprecated This function uses hardcoded field definitions and is being phased out.
+ * New code should use calculateGenericSectionScore() from genericScoring.ts with
+ * fields loaded from the database via getSectionFields().
+ *
+ * This function remains for backward compatibility with legacy sections (credentials,
+ * pets, contacts, insurance, financial, employment) that haven't been migrated to
+ * the generic section_fields system yet.
+ *
  * @param sectionName - The section identifier
  * @param data - The section data (can be single object or array)
  * @returns Score (0-100 points)
@@ -122,11 +131,12 @@ export function calculateSectionScore(sectionName: string, data: any): number {
 		case 'funeral':
 		case 'conclusion':
 		case 'marriage_license':
-		case 'prenup':
-		case 'joint_accounts':
-		case 'name_change':
-		case 'venue':
-		case 'home_setup':
+	case 'prenup':
+	case 'joint_accounts':
+	case 'name_change':
+	case 'venue':
+	case 'planning_your_wedding':
+	case 'home_setup':
 			const fields = SECTION_FIELDS[sectionName];
 			if (fields) {
 				const criticalFields = fields.critical ? [...fields.critical] : [];

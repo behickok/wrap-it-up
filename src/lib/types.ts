@@ -1117,29 +1117,6 @@ export interface SectionShare {
 	created_at: string;
 }
 
-// Journey analytics
-export interface JourneyAnalytics {
-	id: number;
-	journey_id: number;
-	metric_date: string;
-	// Engagement
-	total_users: number;
-	active_users: number;
-	new_users: number;
-	completed_users: number;
-	// Progress
-	avg_completion_percentage: number;
-	avg_score: number;
-	total_sections_completed: number;
-	// Retention
-	retention_7day: number;
-	retention_30day: number;
-	// Other
-	total_sessions: number;
-	avg_session_duration_minutes: number;
-	created_at: string;
-}
-
 // ============================================================================
 // PRICING & REVENUE TYPES
 // ============================================================================

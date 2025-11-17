@@ -22,14 +22,15 @@
 	let isSubmitting = $state(false);
 	let errorMessage = $state<string | null>(null);
 
-	$effect(() => {
-		listItems = items?.map((item) => ({ ...item })) ?? [];
-		updateSerializedData();
-	});
+$effect(() => {
+	const incomingItems = items?.map((item) => ({ ...item })) ?? [];
+	listItems = incomingItems;
+	updateSerializedData(incomingItems);
+});
 
-	function updateSerializedData() {
-		serializedData = JSON.stringify(listItems ?? []);
-	}
+function updateSerializedData(currentItems: ListItem[] = listItems ?? []) {
+	serializedData = JSON.stringify(currentItems);
+}
 
 	function startAdd() {
 		editingIndex = null;
@@ -101,7 +102,7 @@
 		}
 
 		listItems = updated;
-		updateSerializedData();
+		updateSerializedData(updated);
 		submitChanges();
 		isFormOpen = false;
 		editingIndex = null;
@@ -111,7 +112,7 @@
 		const updated = [...listItems];
 		updated.splice(index, 1);
 		listItems = updated;
-		updateSerializedData();
+		updateSerializedData(updated);
 		submitChanges();
 	}
 

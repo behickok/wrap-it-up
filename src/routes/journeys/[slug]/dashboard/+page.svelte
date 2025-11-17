@@ -222,7 +222,7 @@ let isExporting = $state(false);
 			<div class="sidebar-content">
 				<h3 class="sidebar-title">Sections</h3>
 				<ul class="section-list">
-					{#each sectionsInCategory as section}
+			{#each sectionsInCategory as section (section.id)}
 						{@const progress = getSectionProgress(section.id)}
 						<li>
 							<button
@@ -282,7 +282,7 @@ let isExporting = $state(false);
 					<div class="section-body">
 						<SectionContent
 							sectionId={section.slug}
-							sectionData={data.sectionData}
+							sectionData={data.sectionData?.[section.slug]}
 							userId={data.userId}
 							fields={data.sectionFields?.[section.slug]}
 							sectionDefinition={data.sectionDefinitions?.[section.slug]}

@@ -507,6 +507,11 @@ export const SECTION_FIELDS = {
 		important: ['contact_name', 'tour_date', 'deposit_amount', 'total_cost'],
 		optional: ['included_items', 'rain_plan', 'notes']
 	},
+	planning_your_wedding: {
+		critical: ['wedding_date'],
+		important: ['music_type', 'vows'],
+		optional: []
+	},
 	home_setup: {
 		critical: ['housing_plan', 'move_in_date'],
 		important: ['utilities_plan', 'shared_calendar_link', 'first_month_priorities'],

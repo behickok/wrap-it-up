@@ -1,4 +1,5 @@
 import { redirect, error } from '@sveltejs/kit';
+import type { D1Database } from '@cloudflare/workers-types';
 import type { PageServerLoad, Actions } from './$types';
 import type {
 	Journey,
@@ -13,6 +14,155 @@ import type {
 } from '$lib/types';
 import { getAllJourneyPricing, saveJourneyPricing, getPlatformFeePercentage } from '$lib/server/pricingUtils';
 
+const defaultFieldTypes: Omit<FieldType, 'id' | 'created_at'>[] = [
+	{
+		type_name: 'text',
+		display_name: 'Text Input',
+		validation_schema: '{"type": "string", "maxLength": 255}',
+		default_config: '{"placeholder": "Enter text..."}',
+		icon: '📝',
+		is_active: true
+	},
+	{
+		type_name: 'textarea',
+		display_name: 'Text Area',
+		validation_schema: '{"type": "string", "maxLength": 5000}',
+		default_config: '{"placeholder": "Enter details...", "rows": 4}',
+		icon: '📄',
+		is_active: true
+	},
+	{
+		type_name: 'number',
+		display_name: 'Number',
+		validation_schema: '{"type": "number"}',
+		default_config: '{"placeholder": "Enter number..."}',
+		icon: '🔢',
+		is_active: true
+	},
+	{
+		type_name: 'date',
+		display_name: 'Date',
+		validation_schema: '{"type": "string", "format": "date"}',
+		default_config: '{}',
+		icon: '📅',
+		is_active: true
+	},
+	{
+		type_name: 'datetime',
+		display_name: 'Date & Time',
+		validation_schema: '{"type": "string", "format": "date-time"}',
+		default_config: '{}',
+		icon: '🕐',
+		is_active: true
+	},
+	{
+		type_name: 'select',
+		display_name: 'Dropdown',
+		validation_schema: '{"type": "string"}',
+		default_config: '{"options": []}',
+		icon: '📋',
+		is_active: true
+	},
+	{
+		type_name: 'multiselect',
+		display_name: 'Multi-Select',
+		validation_schema: '{"type": "array"}',
+		default_config: '{"options": []}',
+		icon: '☑️',
+		is_active: true
+	},
+	{
+		type_name: 'checkbox',
+		display_name: 'Checkbox',
+		validation_schema: '{"type": "boolean"}',
+		default_config: '{}',
+		icon: '✅',
+		is_active: true
+	},
+	{
+		type_name: 'radio',
+		display_name: 'Radio Buttons',
+		validation_schema: '{"type": "string"}',
+		default_config: '{"options": []}',
+		icon: '🔘',
+		is_active: true
+	},
+	{
+		type_name: 'email',
+		display_name: 'Email',
+		validation_schema: '{"type": "string", "format": "email"}',
+		default_config: '{"placeholder": "email@example.com"}',
+		icon: '📧',
+		is_active: true
+	},
+	{
+		type_name: 'phone',
+		display_name: 'Phone',
+		validation_schema: '{"type": "string", "pattern": "^[0-9+\\-\\(\\)\\s]+$"}',
+		default_config: '{"placeholder": "(555) 123-4567"}',
+		icon: '📞',
+		is_active: true
+	},
+	{
+		type_name: 'url',
+		display_name: 'URL',
+		validation_schema: '{"type": "string", "format": "uri"}',
+		default_config: '{"placeholder": "https://example.com"}',
+		icon: '🔗',
+		is_active: true
+	},
+	{
+		type_name: 'file',
+		display_name: 'File Upload',
+		validation_schema: '{"type": "string"}',
+		default_config: '{"maxSize": 5242880, "accept": "*"}',
+		icon: '📎',
+		is_active: true
+	},
+	{
+		type_name: 'currency',
+		display_name: 'Currency',
+		validation_schema: '{"type": "number"}',
+		default_config: '{"prefix": "$", "placeholder": "0.00"}',
+		icon: '💰',
+		is_active: true
+	},
+	{
+		type_name: 'rating',
+		display_name: 'Rating',
+		validation_schema: '{"type": "number", "minimum": 1, "maximum": 5}',
+		default_config: '{"max": 5}',
+		icon: '⭐',
+		is_active: true
+	}
+];
+
+async function ensureFieldTypes(db: D1Database) {
+	const countResult = await db
+		.prepare('SELECT COUNT(*) as count FROM field_types')
+		.first<{ count: number }>();
+	if ((countResult?.count || 0) > 0) return;
+
+	for (const type of defaultFieldTypes) {
+		await db
+			.prepare(
+				`
+				INSERT OR IGNORE INTO field_types (type_name, display_name, validation_schema, default_config, icon, is_active)
+				VALUES (?, ?, ?, ?, ?, ?)
+			`
+			)
+			.bind(
+				type.type_name,
+				type.display_name,
+				type.validation_schema,
+				type.default_config,
+				type.icon,
+				type.is_active
+			)
+			.run();
+	}
+}
+
 export const load: PageServerLoad = async ({ params, locals, platform }) => {
 	if (!locals.user) {
 		throw redirect(302, '/login');
@@ -22,6 +172,8 @@ export const load: PageServerLoad = async ({ params, locals, platform }) => {
 	if (!db) {
 		throw new Error('Database not available');
 	}
+
+	await ensureFieldTypes(db);
 
 	const journeyId = parseInt(params.id);
 	if (isNaN(journeyId)) {
@@ -186,10 +338,45 @@ export const actions: Actions = {
 
 		const journeyId = parseInt(params.id);
 		const formData = await request.formData();
-		const categoryId = parseInt(formData.get('category_id') as string);
 		const displayOrder = parseInt(formData.get('display_order') as string) || 0;
+		const categoryName = (formData.get('category_name') as string)?.trim() || '';
+		const categoryDescription =
+			(formData.get('category_description') as string)?.trim() || null;
+		const categoryIcon = ((formData.get('category_icon') as string) || '📁').trim() || '📁';
+
+		let categoryId: number | null = null;
+		const rawCategoryId = formData.get('category_id');
+		if (rawCategoryId) {
+			const parsedId = parseInt(rawCategoryId as string);
+			if (!isNaN(parsedId)) {
+				categoryId = parsedId;
+			}
+		}
 
 		try {
+			if (!categoryId) {
+				if (!categoryName) {
+					return { success: false, error: 'Category name is required' };
+				}
+
+				const newCategory = await db
+					.prepare(
+						`
+						INSERT INTO categories (name, description, icon)
+						VALUES (?, ?, ?)
+						RETURNING id
+					`
+					)
+					.bind(categoryName, categoryDescription, categoryIcon)
+					.first<{ id: number }>();
+
+				categoryId = newCategory?.id ?? null;
+			}
+
+			if (!categoryId) {
+				return { success: false, error: 'Failed to create category' };
+			}
+
 			await db
 				.prepare(
 					`

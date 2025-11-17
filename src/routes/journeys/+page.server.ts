@@ -1,6 +1,8 @@
 import { redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
-import type { Journey, UserJourney } from '$lib/types';
+import type { Journey } from '$lib/types';
+
+type JourneyWithPublishStatus = Journey & { is_published: number | boolean };
 
 export const load: PageServerLoad = async ({ locals, platform }) => {
 	// Check authentication
@@ -14,12 +16,25 @@ export const load: PageServerLoad = async ({ locals, platform }) => {
 	}
 
 	try {
-		// Fetch all active journeys
+		// Fetch all active journeys with publish status
 		const journeysResult = await db
-			.prepare('SELECT * FROM journeys WHERE is_active = 1 ORDER BY id')
-			.all();
+			.prepare(
+				`
+				SELECT
+					j.*,
+					COALESCE(jc.is_published, 0) as is_published
+				FROM journeys j
+				LEFT JOIN journey_creators jc ON j.id = jc.journey_id
+				WHERE j.is_active = 1
+				ORDER BY j.id
+			`
+			)
+			.all<JourneyWithPublishStatus>();
 
-		const journeys = (journeysResult.results || []) as Journey[];
+		const journeys = (journeysResult.results || []).map((journey) => ({
+			...journey,
+			is_published: Boolean(journey.is_published)
+		}));
 
 		// Fetch user's current journeys
 		const userJourneysResult = await db

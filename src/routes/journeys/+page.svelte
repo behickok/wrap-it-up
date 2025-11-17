@@ -4,14 +4,13 @@
 	let { data }: { data: PageData } = $props();
 
 	const { journeys, subscribedJourneyIds } = data;
-	const AVAILABLE_JOURNEYS = ['wedding', 'care'];
 
 	function isSubscribed(journeyId: number): boolean {
 		return subscribedJourneyIds.includes(journeyId);
 	}
 
-	function isJourneyAvailable(slug: string): boolean {
-		return AVAILABLE_JOURNEYS.includes(slug);
+	function isJourneyAvailable(journey: { is_published?: boolean }): boolean {
+		return journey.is_published ?? true;
 	}
 </script>
 
@@ -39,7 +38,7 @@
 
 	<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
 		{#each journeys as journey}
-			{@const available = isJourneyAvailable(journey.slug)}
+			{@const available = isJourneyAvailable(journey)}
 			{@const subscribed = isSubscribed(journey.id)}
 
 			<div class="card bg-base-100 shadow-xl hover:shadow-2xl transition-shadow">

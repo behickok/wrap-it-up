@@ -1,7 +1,7 @@
 import { redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 import { getUserWithRoles, hasPermission } from '$lib/server/permissions';
-import type { Journey, JourneyCreator, JourneyAnalytics } from '$lib/types';
+import type { Journey, JourneyCreator, JourneyAnalyticsSummary } from '$lib/types';
 
 export const load: PageServerLoad = async ({ locals, platform }) => {
 	if (!locals.user) {
@@ -19,8 +19,16 @@ export const load: PageServerLoad = async ({ locals, platform }) => {
 		throw redirect(302, '/login');
 	}
 
-	// Check if user has creator permissions
-	if (!hasPermission(userWithRoles, 'journey.create')) {
+	// Check if user is a creator or otherwise has permission
+	const creatorRecord = await db
+		.prepare('SELECT id FROM journey_creators WHERE creator_user_id = ?')
+		.bind(locals.user.id)
+		.first<Pick<JourneyCreator, 'id'>>();
+
+	const isCreator = Boolean(creatorRecord);
+	const canAccessDashboard = isCreator || hasPermission(userWithRoles, 'journey.create');
+
+	if (!canAccessDashboard) {
 		throw redirect(302, '/');
 	}
 
@@ -53,12 +61,12 @@ export const load: PageServerLoad = async ({ locals, platform }) => {
 				SELECT *
 				FROM journey_analytics
 				WHERE journey_id = ?
-				  AND metric_date >= date('now', '-30 days')
-				ORDER BY metric_date DESC
+				  AND stat_date >= date('now', '-30 days')
+				ORDER BY stat_date DESC
 			`
 			)
 			.bind(journey.id)
-			.all<JourneyAnalytics>();
+			.all<JourneyAnalyticsSummary>();
 
 		return {
 			journey_id: journey.id,
@@ -67,7 +75,7 @@ export const load: PageServerLoad = async ({ locals, platform }) => {
 	});
 
 	const analyticsData = await Promise.all(analyticsPromises);
-	const analyticsMap = new Map<number, JourneyAnalytics[]>(
+	const analyticsMap = new Map<number, JourneyAnalyticsSummary[]>(
 		analyticsData.map((a) => [a.journey_id, a.recent])
 	);
 
@@ -79,19 +87,19 @@ export const load: PageServerLoad = async ({ locals, platform }) => {
 
 	// Calculate average completion rate across all journeys
 	let totalCompletionSum = 0;
-	let totalScoreSum = 0;
+	let totalRatingSum = 0;
 	let analyticsCount = 0;
 
 	analyticsMap.forEach((analytics) => {
 		analytics.forEach((day) => {
-			totalCompletionSum += day.avg_completion_percentage;
-			totalScoreSum += day.avg_score;
+			totalCompletionSum += day.avg_progress_percentage || 0;
+			totalRatingSum += day.avg_review_rating || 0;
 			analyticsCount++;
 		});
 	});
 
 	const avgCompletion = analyticsCount > 0 ? totalCompletionSum / analyticsCount : 0;
-	const avgScore = analyticsCount > 0 ? totalScoreSum / analyticsCount : 0;
+	const avgRating = analyticsCount > 0 ? totalRatingSum / analyticsCount : 0;
 
 	return {
 		user: userWithRoles,
@@ -103,7 +111,7 @@ export const load: PageServerLoad = async ({ locals, platform }) => {
 			publishedJourneys,
 			featuredJourneys,
 			avgCompletion: Math.round(avgCompletion),
-			avgScore: Math.round(avgScore)
+			avgRating: avgRating.toFixed(1)
 		}
 	};
 };

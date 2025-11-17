@@ -17,58 +17,42 @@
 
 	import type { ParsedSectionField } from '$lib/types';
 
-	type SectionContentProps = {
-		sectionId: string;
-		data?: {
-			sectionData?: Record<string, any>;
-			userId?: number;
-			user?: { id?: number };
-		};
-		sectionData?: Record<string, any>;
-		userId?: number;
-		user?: { id?: number };
-		fields?: ParsedSectionField[];
-		sectionDefinition?: {
-			id?: number;
-			slug?: string;
-			name?: string;
-			description?: string | null;
-			scoring_type?: string | null;
-			weight?: number | null;
-		} | null;
-	};
+type SectionContentProps = {
+	sectionId: string;
+	sectionData?: Record<string, any>;
+	userId?: number;
+	user?: { id?: number };
+	fields?: ParsedSectionField[];
+	sectionDefinition?: {
+		id?: number;
+		slug?: string;
+		name?: string;
+		description?: string | null;
+		scoring_type?: string | null;
+		weight?: number | null;
+	} | null;
+};
 
-	const props: SectionContentProps = $props();
+const props: SectionContentProps = $props();
 
-	const sectionId = $derived(props.sectionId);
-	const data = $derived(props.data);
-	const providedSectionData = $derived(props.sectionData);
-	const providedUserId = $derived(props.userId);
-	const providedUser = $derived(props.user);
+const sectionId = $derived(props.sectionId);
+const providedSectionData = $derived(props.sectionData);
+const providedUserId = $derived(props.userId);
+const providedUser = $derived(props.user);
+const fields = $derived(props.fields ?? []);
+const sectionDefinition = $derived(props.sectionDefinition);
 
-	const fields = $derived(props.fields ?? []);
-	const sectionDefinition = $derived(props.sectionDefinition);
-
-	const section = $derived(sectionDefinition ?? SECTIONS.find((s) => s.id === sectionId));
-	const sectionData: Record<string, any> = $derived(() => {
-		const dataSection = data?.sectionData;
-		const propSection = providedSectionData;
-
-		if (sectionId && dataSection && typeof dataSection === 'object' && sectionId in dataSection) {
-			return dataSection[sectionId];
-		}
-
-		if (sectionId && propSection && typeof propSection === 'object' && sectionId in propSection) {
-			return propSection[sectionId];
-		}
-
-		return (dataSection ?? propSection ?? {}) as Record<string, any>;
-	});
-	const userId = $derived(
-		providedUserId ?? data?.userId ?? providedUser?.id ?? data?.user?.id
-	);
-	const listDefinition = $derived(LIST_SECTION_DEFINITIONS[sectionId]);
-	const isListSection = $derived(Boolean(listDefinition));
+const section = $derived(
+	sectionDefinition ??
+		SECTIONS.find((s) => s.id === sectionId) ??
+		({ id: sectionId, name: sectionId } as (typeof SECTIONS)[number])
+);
+const sectionData = $derived(
+	providedSectionData && typeof providedSectionData === 'object' ? providedSectionData : {}
+);
+const userId = $derived(providedUserId ?? providedUser?.id ?? null);
+const listDefinition = $derived(LIST_SECTION_DEFINITIONS[sectionId]);
+const isListSection = $derived(Boolean(listDefinition));
 	const weddingCustomSections = new Set([
 		'marriage_license',
 		'prenup',
@@ -85,7 +69,7 @@
 		!isListSection && !weddingCustomSections.has(sectionId) && Array.isArray(fields) && fields.length > 0
 	);
 
-	const dynamicInitialData = $derived(() =>
+	const dynamicInitialData = $derived(
 		typeof sectionData === 'object' && !Array.isArray(sectionData) ? sectionData : {}
 	);
 

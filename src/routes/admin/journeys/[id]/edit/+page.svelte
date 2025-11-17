@@ -9,14 +9,7 @@ type ServiceTierData = (typeof data.serviceTiers)[number];
 type SectionData = (typeof data.sections)[number];
 type FieldData = (typeof data.fields)[number];
 type JourneyCategoryData = (typeof data.journeyCategories)[number];
-type CategoryData = (typeof data.allCategories)[number];
 
-const availableCategories: CategoryData[] = data.allCategories.filter(
-	(category: CategoryData) =>
-		!data.journeyCategories.find(
-			(jc: JourneyCategoryData) => jc.category_id === category.id
-		)
-);
 function getSectionsByCategory(categoryId: number) {
 	return data.sections.filter((section: SectionData) => section.category_id === categoryId);
 }
@@ -38,7 +31,11 @@ function findSectionById(sectionId: number) {
 
 	// Category management
 	let showCategoryPicker = $state(false);
-	let selectedCategoryId = $state<number | null>(null);
+	let newCategoryForm = $state({
+		name: '',
+		description: '',
+		icon: '📁'
+	});
 
 	// Section editing
 	let editingSection = $state<number | null>(null);
@@ -63,17 +60,43 @@ function findSectionById(sectionId: number) {
 		importance_level: string;
 		help_text: string;
 		placeholder: string;
-		field_config: string;
 	}>({
 		field_name: '',
 		field_label: '',
-		field_type_id: 0,
+		field_type_id: data.fieldTypes[0]?.id || 0,
 		is_required: false,
 		importance_level: 'optional',
 		help_text: '',
-		placeholder: '',
-		field_config: ''
+		placeholder: ''
 	});
+	type FieldConfigEditorState = {
+		rows: string;
+		optionsText: string;
+		min: string;
+		max: string;
+		step: string;
+		prefix: string;
+		suffix: string;
+		ratingMax: string;
+		maxSize: string;
+		accept: string;
+	};
+	function createDefaultFieldConfig(): FieldConfigEditorState {
+		return {
+			rows: '4',
+			optionsText: '',
+			min: '',
+			max: '',
+			step: '',
+			prefix: '',
+			suffix: '',
+			ratingMax: '5',
+			maxSize: '',
+			accept: ''
+		};
+	}
+	let fieldConfigEditor = $state<FieldConfigEditorState>(createDefaultFieldConfig());
+	const selectedFieldType = $derived(getSelectedFieldType());
 
 	// Preview state
 	let previewSectionId = $state<number | null>(null);
@@ -172,9 +195,9 @@ function openFieldEditor(fieldId: number) {
 				is_required: field.is_required,
 				importance_level: field.importance_level,
 				help_text: field.help_text || '',
-				placeholder: field.placeholder || '',
-				field_config: field.field_config || ''
+				placeholder: field.placeholder || ''
 			};
+			populateFieldConfigEditor(field.field_config || '', field.type_name);
 		}
 	}
 
@@ -199,11 +222,151 @@ function openFieldEditor(fieldId: number) {
 			is_required: false,
 			importance_level: 'optional',
 			help_text: '',
-			placeholder: '',
-			field_config: ''
+			placeholder: ''
 		};
+		resetFieldConfigEditor();
 		creatingField = null;
 		editingField = null;
+	}
+
+	function resetFieldConfigEditor() {
+		fieldConfigEditor = createDefaultFieldConfig();
+	}
+
+	function optionLineFromConfig(option: any): string {
+		if (typeof option === 'string') {
+			return option;
+		}
+		const value = (option?.value ?? option?.label ?? '').toString().trim();
+		const label = (option?.label ?? option?.value ?? '').toString().trim();
+		if (!value) return '';
+		return label && label !== value ? `${label} | ${value}` : value;
+	}
+
+	function populateFieldConfigEditor(configJSON: string | null, typeName?: string) {
+		resetFieldConfigEditor();
+		if (!configJSON) return;
+		try {
+			const parsed = JSON.parse(configJSON);
+			if (typeof parsed.rows === 'number') fieldConfigEditor.rows = parsed.rows.toString();
+			if (Array.isArray(parsed.options)) {
+				const optionLines = parsed.options
+					.map(optionLineFromConfig)
+					.filter((line: string) => line.trim().length > 0);
+				fieldConfigEditor.optionsText = optionLines.join('\n');
+			}
+			if (typeof parsed.min === 'number') fieldConfigEditor.min = parsed.min.toString();
+			if (typeof parsed.max === 'number') {
+				if (typeName === 'rating') {
+					fieldConfigEditor.ratingMax = parsed.max.toString();
+				} else {
+					fieldConfigEditor.max = parsed.max.toString();
+				}
+			}
+			if (typeof parsed.step === 'number') fieldConfigEditor.step = parsed.step.toString();
+			if (typeof parsed.prefix === 'string') fieldConfigEditor.prefix = parsed.prefix;
+			if (typeof parsed.suffix === 'string') fieldConfigEditor.suffix = parsed.suffix;
+			if (typeof parsed.maxSize === 'number') {
+				fieldConfigEditor.maxSize = Math.round(parsed.maxSize / (1024 * 1024)).toString();
+			}
+			if (typeof parsed.accept === 'string') fieldConfigEditor.accept = parsed.accept;
+		} catch (err) {
+			console.warn('Failed to parse field config:', err);
+		}
+	}
+
+	function getSelectedFieldType(): (typeof data.fieldTypes)[number] | undefined {
+		return data.fieldTypes.find((ft) => ft.id === fieldForm.field_type_id) ?? data.fieldTypes[0];
+	}
+
+	function supportsOptions(typeName?: string) {
+		return typeName === 'select' || typeName === 'multiselect' || typeName === 'radio';
+	}
+
+	function handleFieldTypeChange(event: Event) {
+		const value = parseInt((event.target as HTMLSelectElement).value);
+		if (!isNaN(value)) {
+			fieldForm.field_type_id = value;
+			resetFieldConfigEditor();
+		}
+	}
+
+	function buildFieldConfig() {
+		const type = selectedFieldType;
+		if (!type) return {};
+
+		const config: Record<string, any> = {};
+
+		if (type.type_name === 'textarea') {
+			const rows = parseInt(fieldConfigEditor.rows);
+			if (!isNaN(rows) && rows > 0) {
+				config.rows = rows;
+			}
+		}
+
+		if (supportsOptions(type.type_name)) {
+			const options = fieldConfigEditor.optionsText
+				.split('\n')
+				.map((line) => line.trim())
+				.filter(Boolean)
+				.map((line) => {
+					const [labelPart, valuePart] = line
+						.split('|')
+						.map((part) => part.trim())
+						.filter((part) => part.length > 0);
+					if (valuePart) {
+						return {
+							label: labelPart,
+							value: valuePart
+						};
+					}
+					return {
+						label: labelPart,
+						value: labelPart
+					};
+				});
+			if (options.length > 0) {
+				config.options = options;
+			}
+		}
+
+		if (type.type_name === 'number') {
+			const min = parseFloat(fieldConfigEditor.min);
+			const max = parseFloat(fieldConfigEditor.max);
+			const step = parseFloat(fieldConfigEditor.step);
+			if (!isNaN(min)) config.min = min;
+			if (!isNaN(max)) config.max = max;
+			if (!isNaN(step)) config.step = step;
+		}
+
+		if (type.type_name === 'currency') {
+			if (fieldConfigEditor.prefix.trim()) config.prefix = fieldConfigEditor.prefix.trim();
+			if (fieldConfigEditor.suffix.trim()) config.suffix = fieldConfigEditor.suffix.trim();
+		}
+
+		if (type.type_name === 'rating') {
+			const max = parseInt(fieldConfigEditor.ratingMax);
+			if (!isNaN(max) && max > 0) {
+				config.max = max;
+			}
+		}
+
+		if (type.type_name === 'file') {
+			const maxSizeMb = parseInt(fieldConfigEditor.maxSize);
+			if (!isNaN(maxSizeMb) && maxSizeMb > 0) {
+				config.maxSize = maxSizeMb * 1024 * 1024;
+			}
+			if (fieldConfigEditor.accept.trim()) {
+				config.accept = fieldConfigEditor.accept.trim();
+			}
+		}
+
+		return config;
+	}
+
+	function buildFieldConfigJSON() {
+		const config = buildFieldConfig();
+		return Object.keys(config).length > 0 ? JSON.stringify(config) : '';
 	}
 
 function getSectionFields(sectionId: number) {
@@ -447,7 +610,13 @@ function getSectionFields(sectionId: number) {
 		<div class="space-y-4">
 			<div class="flex justify-between items-center">
 				<h2 class="text-2xl font-bold">Journey Categories</h2>
-				<button class="btn btn-primary btn-sm" onclick={() => (showCategoryPicker = true)}>
+				<button
+					class="btn btn-primary btn-sm"
+					onclick={() => {
+						newCategoryForm = { name: '', description: '', icon: '📁' };
+						showCategoryPicker = true;
+					}}
+				>
 					+ Add Category
 				</button>
 			</div>
@@ -498,30 +667,53 @@ function getSectionFields(sectionId: number) {
 								await update();
 								if (result.type === 'success') {
 									showCategoryPicker = false;
-									selectedCategoryId = null;
+									newCategoryForm = { name: '', description: '', icon: '📁' };
 									invalidateAll();
 								}
 							};
 						}}
 					>
 						<div class="form-control mb-4">
-							<label class="label" for="category_id">
-								<span class="label-text">Select Category</span>
+							<label class="label" for="category_name">
+								<span class="label-text">Category Name</span>
 							</label>
-							<select
-								id="category_id"
-								name="category_id"
-								class="select select-bordered"
-								bind:value={selectedCategoryId}
+							<input
+								id="category_name"
+								name="category_name"
+								type="text"
+								class="input input-bordered"
+								placeholder="e.g. Planning"
+								bind:value={newCategoryForm.name}
 								required
-							>
-								<option value={null} disabled selected>Choose a category...</option>
-								{#each availableCategories as category}
-									<option value={category.id}>
-										{category.icon || '📁'} {category.name}
-									</option>
-								{/each}
-							</select>
+							/>
+						</div>
+
+						<div class="form-control mb-4">
+							<label class="label" for="category_description">
+								<span class="label-text">Description</span>
+							</label>
+							<textarea
+								id="category_description"
+								name="category_description"
+								class="textarea textarea-bordered"
+								rows="3"
+								bind:value={newCategoryForm.description}
+								placeholder="Short description for this category"
+							></textarea>
+						</div>
+
+						<div class="form-control mb-4">
+							<label class="label" for="category_icon">
+								<span class="label-text">Icon (emoji)</span>
+							</label>
+							<input
+								id="category_icon"
+								name="category_icon"
+								type="text"
+								class="input input-bordered"
+								maxlength="4"
+								bind:value={newCategoryForm.icon}
+							/>
 						</div>
 
 						<div class="form-control mb-4">
@@ -538,26 +730,37 @@ function getSectionFields(sectionId: number) {
 						</div>
 
 						<div class="modal-action">
-							<button type="button" class="btn" onclick={() => (showCategoryPicker = false)}>
+							<button
+								type="button"
+								class="btn"
+								onclick={() => {
+									showCategoryPicker = false;
+									newCategoryForm = { name: '', description: '', icon: '📁' };
+								}}
+							>
 								Cancel
 							</button>
 							<button type="submit" class="btn btn-primary">Add Category</button>
 						</div>
 					</form>
 				</div>
-		<div
-			class="modal-backdrop"
-			role="button"
-			tabindex="0"
-			onclick={() => (showCategoryPicker = false)}
-			onkeydown={(event) => {
-				if (event.key === 'Enter' || event.key === ' ') {
-					event.preventDefault();
-					showCategoryPicker = false;
-				}
-			}}
-			aria-label="Close category picker"
-		></div>
+				<div
+					class="modal-backdrop"
+					role="button"
+					tabindex="0"
+					onclick={() => {
+						showCategoryPicker = false;
+						newCategoryForm = { name: '', description: '', icon: '📁' };
+					}}
+					onkeydown={(event) => {
+						if (event.key === 'Enter' || event.key === ' ') {
+							event.preventDefault();
+							showCategoryPicker = false;
+							newCategoryForm = { name: '', description: '', icon: '📁' };
+						}
+					}}
+					aria-label="Close category picker"
+				></div>
 			</div>
 		{/if}
 	{:else if activeTab === 'sections'}
@@ -950,6 +1153,7 @@ function getSectionFields(sectionId: number) {
 									id="field_type_id"
 									name="field_type_id"
 									bind:value={fieldForm.field_type_id}
+									onchange={handleFieldTypeChange}
 									required
 									class="select select-bordered"
 								>
@@ -1007,24 +1211,170 @@ function getSectionFields(sectionId: number) {
 							/>
 						</div>
 
-						<div class="form-control mb-4">
-							<label class="label" for="field_config">
-								<span class="label-text">Field Config (JSON)</span>
-							</label>
-							<textarea
-								id="field_config"
-								name="field_config"
-								bind:value={fieldForm.field_config}
-								rows="3"
-								placeholder="JSON config (e.g., rows, options)"
-								class="textarea textarea-bordered font-mono text-sm"
-							></textarea>
-							<div class="label">
-								<span class="label-text-alt"
-									>Optional JSON configuration for select options, text area rows, etc.</span
-								>
+						<div class="bg-base-200 rounded-lg p-4 mb-4 space-y-4">
+							<div>
+								<div class="flex items-center justify-between">
+									<h4 class="font-semibold text-base">Field Configuration</h4>
+									<span class="text-sm text-base-content/60">{selectedFieldType?.display_name}</span>
+								</div>
+								<p class="text-sm text-base-content/60">
+									Use these helpers to configure how this field behaves. We'll handle the JSON behind the scenes.
+								</p>
 							</div>
+
+							{#if selectedFieldType?.type_name === 'textarea'}
+								<div class="form-control">
+									<label class="label" for="config_rows">
+										<span class="label-text">Visible Rows</span>
+									</label>
+									<input
+										id="config_rows"
+										type="number"
+										min="1"
+										class="input input-bordered"
+										bind:value={fieldConfigEditor.rows}
+									/>
+								</div>
+							{/if}
+
+							{#if supportsOptions(selectedFieldType?.type_name)}
+								<div class="form-control">
+									<label class="label" for="config_options">
+										<span class="label-text">Options</span>
+									</label>
+									<textarea
+										id="config_options"
+										class="textarea textarea-bordered"
+										rows="4"
+										bind:value={fieldConfigEditor.optionsText}
+										placeholder="Enter one option per line"
+									></textarea>
+									<div class="label">
+										<span class="label-text-alt">Shown for dropdowns, multi-selects, and radio buttons.</span>
+									</div>
+								</div>
+							{/if}
+
+							{#if selectedFieldType?.type_name === 'number'}
+								<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+									<div class="form-control">
+										<label class="label" for="config_min">
+											<span class="label-text">Min</span>
+										</label>
+										<input
+											id="config_min"
+											type="number"
+											class="input input-bordered"
+											bind:value={fieldConfigEditor.min}
+										/>
+									</div>
+									<div class="form-control">
+										<label class="label" for="config_max">
+											<span class="label-text">Max</span>
+										</label>
+										<input
+											id="config_max"
+											type="number"
+											class="input input-bordered"
+											bind:value={fieldConfigEditor.max}
+										/>
+									</div>
+									<div class="form-control">
+										<label class="label" for="config_step">
+											<span class="label-text">Step</span>
+										</label>
+										<input
+											id="config_step"
+											type="number"
+											class="input input-bordered"
+											bind:value={fieldConfigEditor.step}
+											placeholder="e.g., 0.5"
+										/>
+									</div>
+								</div>
+							{/if}
+
+							{#if selectedFieldType?.type_name === 'currency'}
+								<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+									<div class="form-control">
+										<label class="label" for="config_prefix">
+											<span class="label-text">Prefix</span>
+										</label>
+										<input
+											id="config_prefix"
+											type="text"
+											class="input input-bordered"
+											placeholder="e.g., $"
+											bind:value={fieldConfigEditor.prefix}
+										/>
+									</div>
+									<div class="form-control">
+										<label class="label" for="config_suffix">
+											<span class="label-text">Suffix</span>
+										</label>
+										<input
+											id="config_suffix"
+											type="text"
+											class="input input-bordered"
+											placeholder="e.g., USD"
+											bind:value={fieldConfigEditor.suffix}
+										/>
+									</div>
+								</div>
+							{/if}
+
+							{#if selectedFieldType?.type_name === 'rating'}
+								<div class="form-control">
+									<label class="label" for="config_rating_max">
+										<span class="label-text">Maximum Rating</span>
+									</label>
+									<input
+										id="config_rating_max"
+										type="number"
+										min="1"
+										class="input input-bordered"
+										bind:value={fieldConfigEditor.ratingMax}
+									/>
+								</div>
+							{/if}
+
+							{#if selectedFieldType?.type_name === 'file'}
+								<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+									<div class="form-control">
+										<label class="label" for="config_max_size">
+											<span class="label-text">Max File Size (MB)</span>
+										</label>
+										<input
+											id="config_max_size"
+											type="number"
+											min="1"
+											class="input input-bordered"
+											bind:value={fieldConfigEditor.maxSize}
+										/>
+									</div>
+									<div class="form-control">
+										<label class="label" for="config_accept">
+											<span class="label-text">Accepted Types</span>
+										</label>
+										<input
+											id="config_accept"
+											type="text"
+											class="input input-bordered"
+											placeholder=".pdf,.jpg"
+											bind:value={fieldConfigEditor.accept}
+										/>
+									</div>
+								</div>
+							{/if}
+
+							{#if !supportsOptions(selectedFieldType?.type_name) && selectedFieldType?.type_name !== 'textarea' && selectedFieldType?.type_name !== 'number' && selectedFieldType?.type_name !== 'currency' && selectedFieldType?.type_name !== 'rating' && selectedFieldType?.type_name !== 'file'}
+								<p class="text-sm text-base-content/60">
+									This field type doesn't need extra configuration. You're all set!
+								</p>
+							{/if}
 						</div>
+
+						<input type="hidden" name="field_config" value={buildFieldConfigJSON()} />
 
 						<div class="form-control mb-4">
 							<label class="label cursor-pointer justify-start gap-2">

@@ -1,5 +1,13 @@
 <script lang="ts">
-	import type { ParsedSectionField, FieldConfig, SelectFieldConfig, NumberFieldConfig, FileFieldConfig, TextAreaFieldConfig, RatingFieldConfig } from '$lib/types';
+import type {
+	ParsedSectionField,
+	FieldConfig,
+	SelectFieldConfig,
+	NumberFieldConfig,
+	FileFieldConfig,
+	TextAreaFieldConfig,
+	RatingFieldConfig
+} from '$lib/types';
 
 	interface Props {
 		field: ParsedSectionField;
@@ -57,6 +65,24 @@
 	const getConfig = <T extends FieldConfig>(): T => {
 		return config as T;
 	};
+
+	const normalizeOptions = (options: any): Array<{ value: string; label: string }> => {
+		if (!Array.isArray(options)) return [];
+		return options
+			.map((option) => {
+				if (typeof option === 'string') {
+					const trimmed = option.trim();
+					return trimmed ? { value: trimmed, label: trimmed } : null;
+				}
+				const value = (option?.value ?? option?.label ?? '').toString().trim();
+				const label = (option?.label ?? option?.value ?? '').toString().trim();
+				if (!value) return null;
+				return { value, label: label || value };
+			})
+			.filter((option): option is { value: string; label: string } => Boolean(option));
+	};
+
+	const selectOptions = $derived(normalizeOptions(getConfig<SelectFieldConfig>().options));
 
 	// Get placeholder
 	const placeholder =
@@ -237,11 +263,11 @@
 			onchange={handleInput}
 			required={field.is_required}
 			disabled={disabled}
-			class="select select-bordered w-full"
+			class="select select-bordered w-full text-base-content"
 			class:select-error={error}
 		>
 			<option value="">{getConfig<SelectFieldConfig>().placeholder || 'Select...'}</option>
-			{#each getConfig<SelectFieldConfig>().options || [] as option}
+			{#each selectOptions as option}
 				<option value={option.value}>{option.label}</option>
 			{/each}
 		</select>
@@ -256,10 +282,10 @@
 			required={field.is_required}
 			disabled={disabled}
 			multiple
-			class="select select-bordered w-full min-h-32"
+			class="select select-bordered w-full min-h-32 text-base-content"
 			class:select-error={error}
 		>
-			{#each getConfig<SelectFieldConfig>().options || [] as option}
+			{#each selectOptions as option}
 				<option value={option.value}>{option.label}</option>
 			{/each}
 		</select>
@@ -270,7 +296,7 @@
 	<!-- Radio Buttons -->
 	{:else if field.field_type.type_name === 'radio'}
 		<div class="flex flex-col gap-2">
-			{#each getConfig<SelectFieldConfig>().options || [] as option}
+			{#each selectOptions as option}
 				<label class="label cursor-pointer justify-start gap-2">
 					<input
 						type="radio"
