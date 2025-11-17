@@ -18,6 +18,7 @@ function createPageData(overrides = {}) {
 		userId: 1,
 		userJourneys: [],
 		isMentor: false,
+		isCreator: false,
 		readinessScore: { total_score: 0, sections: {} },
 		sectionData: {},
 		featuredJourneys: [],
