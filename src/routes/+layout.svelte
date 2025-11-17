@@ -72,6 +72,14 @@ const showReadinessCard = $derived(
 						>
 							📚 Journeys
 						</a>
+						{#if $page.data?.isCreator}
+							<a
+								href="/creator/dashboard"
+								class={`nav-chip ${$page.url.pathname.startsWith('/creator') ? 'nav-chip-active' : ''}`}
+							>
+								🎨 Creator
+							</a>
+						{/if}
 						{#if $page.data?.isMentor}
 							<a
 								href="/mentor/dashboard"

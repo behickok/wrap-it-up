@@ -1,5 +1,6 @@
 import type { PageServerLoad } from './$types';
 import type { Journey } from '$lib/types';
+import { redirect } from '@sveltejs/kit';
 
 type EnrolledJourneyRow = {
 	id: number;
@@ -33,6 +34,18 @@ export const load: PageServerLoad = async ({ locals, platform }) => {
 	}
 
 	try {
+		// Check if user is a creator and redirect to creator dashboard
+		if (user) {
+			const creator = await db
+				.prepare('SELECT * FROM journey_creators WHERE creator_user_id = ?')
+				.bind(user.id)
+				.first();
+
+			if (creator) {
+				throw redirect(302, '/creator/dashboard');
+			}
+		}
+
 		const journeysResult = await db
 			.prepare('SELECT * FROM journeys WHERE is_active = 1 ORDER BY name')
 			.all();
